@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, Link } from 'react-router-dom';
 import { 
   Car, 
   Calendar, 
@@ -44,9 +44,9 @@ const Navigation = () => {
           const isActive = location.pathname === item.path;
           
           return (
-            <a
+            <Link
               key={item.path}
-              href={item.path}
+              to={item.path}
               className={cn(
                 "flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 group",
                 isActive
@@ -59,7 +59,7 @@ const Navigation = () => {
                 isActive ? "scale-110" : "group-hover:scale-105"
               )} />
               <span className="font-medium">{item.label}</span>
-            </a>
+            </Link>
           );
         })}
       </div>
