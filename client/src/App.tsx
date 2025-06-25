@@ -17,6 +17,9 @@ import Alerts from "./pages/Alerts";
 import Reports from "./pages/Reports";
 import Users from "./pages/Users";
 import Settings from "./pages/Settings";
+import DatabaseTest from "./pages/DatabaseTest";
+import RealData from "./pages/RealData";
+import MySQLDashboard from "./pages/MySQLDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -41,6 +44,9 @@ const App = () => (
           <Route path="/reports" element={<Reports />} />
           <Route path="/users" element={<Users />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/db-test" element={<DatabaseTest />} />
+          <Route path="/real-data" element={<RealData />} />
+          <Route path="/mysql" element={<MySQLDashboard />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -3,6 +3,49 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Test de connexion à la base de données
+  app.get("/api/db-test", async (req, res) => {
+    try {
+      const tables = await storage.testConnection();
+      res.json({ 
+        success: true, 
+        message: "Connexion MySQL réussie", 
+        database: "gestinter_test",
+        tables: tables.length,
+        tableNames: tables.map(t => t.Tables_in_gestinter_test || Object.values(t)[0])
+      });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // API pour récupérer les données des tables existantes
+  app.get("/api/machines", async (req, res) => {
+    try {
+      const machines = await storage.getAllMachines();
+      res.json(machines);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/contacts", async (req, res) => {
+    try {
+      const contacts = await storage.getAllContacts();
+      res.json(contacts);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/anomalies", async (req, res) => {
+    try {
+      const anomalies = await storage.getAllAnomalies();
+      res.json(anomalies);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
   // Vehicles API
   app.get("/api/vehicles", async (req, res) => {
     try {

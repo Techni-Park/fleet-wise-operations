@@ -28,14 +28,20 @@ Fleet management application built with React/TypeScript frontend and Express/No
 - **2024-12-25**: Optimized dashboard cards and tables for mobile devices
 - **2024-12-25**: Added touch-friendly interactions and animations
 - **2024-12-25**: Implemented mobile-first responsive breakpoints throughout the app
+- **2024-12-25**: Connected to remote MySQL database (85.31.239.121:3306)
+- **2024-12-25**: Configured access to gestinter_test database with 73 tables
+- **2024-12-25**: Created database test interface and real data visualization
+- **2024-12-25**: Implemented API endpoints for MACHINE_MNT, CONTACT, and ANOMALIE tables
 
 ## Database Configuration
-The application now uses MySQL with the following environment variables:
-- `DB_HOST`: MySQL host (default: localhost)
-- `DB_PORT`: MySQL port (default: 3306)
-- `DB_USER`: MySQL username (default: root)
-- `DB_PASSWORD`: MySQL password
-- `DB_NAME`: Database name (default: fleet_management)
+The application is now connected to a remote MySQL database:
+- `DB_HOST`: 85.31.239.121
+- `DB_PORT`: 3306
+- `DB_USERNAME`: tp_admin
+- `DB_PASSWORD`: Techn1p@rk04
+- `DB_DATABASE`: gestinter_test
+
+The database contains 73 tables including MACHINE_MNT, CONTACT, ANOMALIE, ACTION, INGREDIENT, PRODUIT, SOCIETE, USER, VEHICULE, and DOCUMENT.
 
 ## User Preferences
 - Language: French

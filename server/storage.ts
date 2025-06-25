@@ -10,6 +10,8 @@ import {
 } from "@shared/schema";
 
 export interface IStorage {
+  // Test de connexion
+  testConnection(): Promise<any[]>;
   // Users
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
@@ -92,6 +94,10 @@ export interface IStorage {
 }
 
 export class MySQLStorage implements IStorage {
+  async testConnection(): Promise<any[]> {
+    const result = await db.execute(sql`SHOW TABLES`);
+    return result;
+  }
   // Users
   async getUser(id: number): Promise<User | undefined> {
     const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
