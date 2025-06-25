@@ -101,13 +101,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Interventions API
+  // Interventions API - données réelles MySQL
   app.get("/api/interventions", async (req, res) => {
     try {
       const interventions = await storage.getAllInterventions();
       res.json(interventions);
     } catch (error) {
-      res.status(500).json({ error: "Failed to fetch interventions" });
+      console.error('Erreur API interventions:', error);
+      res.status(500).json({ error: error.message });
     }
   });
 

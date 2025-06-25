@@ -32,6 +32,9 @@ Fleet management application built with React/TypeScript frontend and Express/No
 - **2024-12-25**: Configured access to gestinter_test database with 73 tables
 - **2024-12-25**: Created database test interface and real data visualization
 - **2024-12-25**: Implemented API endpoints for MACHINE_MNT, CONTACT, and ANOMALIE tables
+- **2024-12-25**: Connected Interventions page to real INTERVENTION table in MySQL database
+- **2024-12-25**: Updated Drizzle schema to match exact INTERVENTION table structure
+- **2024-12-25**: Implemented real-time intervention data loading with status mapping
 
 ## Database Configuration
 The application is now connected to a remote MySQL database:

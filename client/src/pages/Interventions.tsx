@@ -1,9 +1,7 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Filter, Eye, Edit, Trash2, Calendar, Clock, User, AlertTriangle } from 'lucide-react';
-import Navigation from '@/components/Layout/Navigation';
-import Header from '@/components/Layout/Header';
+import { Plus, Search, Filter, Eye, Edit, Trash2, Calendar, Clock, User, AlertTriangle, Loader, RefreshCw } from 'lucide-react';
+import AppLayout from '@/components/Layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -12,258 +10,289 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 
 const Interventions = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [interventions, setInterventions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Données d'exemple
-  const interventions = [
-    {
-      id: '1',
-      title: 'Révision 20 000 km',
-      type: 'Maintenance',
-      vehicle: { plate: 'AB-123-CD', model: 'Renault Clio' },
-      status: 'completed',
-      priority: 'medium',
-      scheduledDate: '2024-05-15',
-      completedDate: '2024-05-15',
-      technician: 'Pierre Martin',
-      duration: '2h30',
-      cost: 250.00
-    },
-    {
-      id: '2',
-      title: 'Nettoyage complet intérieur/extérieur',
-      type: 'Nettoyage',
-      vehicle: { plate: 'CD-456-EF', model: 'Peugeot 308' },
-      status: 'in_progress',
-      priority: 'low',
-      scheduledDate: '2024-06-10',
-      completedDate: null,
-      technician: 'Marie Dubois',
-      duration: '1h00',
-      cost: 45.00
-    },
-    {
-      id: '3',
-      title: 'Changement pneu avant droit',
-      type: 'Réparation',
-      vehicle: { plate: 'GH-789-IJ', model: 'Ford Focus' },
-      status: 'scheduled',
-      priority: 'high',
-      scheduledDate: '2024-06-20',
-      completedDate: null,
-      technician: 'Jean Leroy',
-      duration: '45min',
-      cost: 120.00
-    },
-    {
-      id: '4',
-      title: 'Convoyage vers garage partenaire',
-      type: 'Convoyage',
-      vehicle: { plate: 'KL-012-MN', model: 'Volkswagen Golf' },
-      status: 'scheduled',
-      priority: 'medium',
-      scheduledDate: '2024-06-18',
-      completedDate: null,
-      technician: 'Paul Durand',
-      duration: '1h30',
-      cost: 80.00
-    },
-    {
-      id: '5',
-      title: 'Service conciergerie - livraison client',
-      type: 'Conciergerie',
-      vehicle: { plate: 'OP-345-QR', model: 'Citroën C3' },
-      status: 'completed',
-      priority: 'low',
-      scheduledDate: '2024-06-05',
-      completedDate: '2024-06-05',
-      technician: 'Sophie Martin',
-      duration: '2h00',
-      cost: 60.00
-    }
-  ];
+  const loadInterventions = async (showRefresh = false) => {
+    if (showRefresh) setRefreshing(true);
+    else setLoading(true);
 
-  const stats = [
-    { label: 'Total interventions', value: interventions.length, icon: Calendar, color: 'text-blue-600' },
-    { label: 'En cours', value: interventions.filter(i => i.status === 'in_progress').length, icon: Clock, color: 'text-orange-600' },
-    { label: 'Planifiées', value: interventions.filter(i => i.status === 'scheduled').length, icon: User, color: 'text-purple-600' },
-    { label: 'Terminées', value: interventions.filter(i => i.status === 'completed').length, icon: AlertTriangle, color: 'text-green-600' }
-  ];
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return <Badge className="bg-green-100 text-green-800">Terminée</Badge>;
-      case 'in_progress':
-        return <Badge className="bg-blue-100 text-blue-800">En cours</Badge>;
-      case 'scheduled':
-        return <Badge className="bg-orange-100 text-orange-800">Planifiée</Badge>;
-      case 'cancelled':
-        return <Badge className="bg-red-100 text-red-800">Annulée</Badge>;
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
+    try {
+      const response = await fetch('/api/interventions');
+      const data = await response.json();
+      setInterventions(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Erreur lors du chargement des interventions:', error);
+      setInterventions([]);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
   };
 
-  const getPriorityBadge = (priority: string) => {
-    switch (priority) {
-      case 'high':
-        return <Badge variant="destructive">Haute</Badge>;
-      case 'medium':
-        return <Badge className="bg-orange-100 text-orange-800">Moyenne</Badge>;
-      case 'low':
-        return <Badge className="bg-gray-100 text-gray-800">Basse</Badge>;
-      default:
-        return <Badge variant="secondary">{priority}</Badge>;
-    }
+  useEffect(() => {
+    loadInterventions();
+  }, []);
+
+  // Fonction pour formater le statut
+  const formatStatus = (status: number) => {
+    const statusMap: { [key: number]: { label: string; variant: string } } = {
+      0: { label: 'Planifiée', variant: 'secondary' },
+      1: { label: 'En cours', variant: 'default' },
+      9: { label: 'Terminée', variant: 'secondary' },
+      10: { label: 'Annulée', variant: 'destructive' }
+    };
+    return statusMap[status] || { label: 'Inconnu', variant: 'secondary' };
   };
 
+  // Fonction pour formater les dates
+  const formatDate = (dateString: string) => {
+    if (!dateString) return '-';
+    return new Date(dateString).toLocaleDateString('fr-FR');
+  };
+
+  // Filtrage des interventions
   const filteredInterventions = interventions.filter(intervention =>
-    intervention.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    intervention.vehicle.plate.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    intervention.technician.toLowerCase().includes(searchTerm.toLowerCase())
+    (intervention.LIB50?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     intervention.DEMANDEUR?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     intervention.CDUSER?.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
+  if (loading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <Loader className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
+            <p>Chargement des interventions...</p>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
   return (
-    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900 w-full">
-      <Navigation />
-      
-      <div className="flex-1">
-        <Header />
-        
-        <main className="p-6">
-          {/* En-tête de page */}
-          <div className="flex justify-between items-center mb-8">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                Interventions
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400">
-                Gestion et suivi des interventions sur la flotte
-              </p>
-            </div>
+    <AppLayout>
+      <div className="space-y-6">
+        {/* En-tête avec actions */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">
+              Interventions
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-2">
+              {interventions.length} interventions dans la base MySQL
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button 
+              onClick={() => loadInterventions(true)} 
+              disabled={refreshing}
+              variant="outline"
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+              Actualiser
+            </Button>
             <Link to="/interventions/create">
-              <Button className="bg-blue-600 hover:bg-blue-700">
+              <Button className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700">
                 <Plus className="w-4 h-4 mr-2" />
                 Nouvelle intervention
               </Button>
             </Link>
           </div>
+        </div>
 
-          {/* Statistiques */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {stats.map((stat, index) => {
-              const IconComponent = stat.icon;
-              return (
-                <Card key={index}>
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                          {stat.label}
-                        </p>
-                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                          {stat.value}
-                        </p>
-                      </div>
-                      <IconComponent className={`w-8 h-8 ${stat.color}`} />
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
+        {/* Statistiques */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{interventions.length}</p>
+                </div>
+                <Calendar className="w-8 h-8 text-blue-600" />
+              </div>
+            </CardContent>
+          </Card>
 
-          {/* Filtres et recherche */}
-          <div className="flex justify-between items-center mb-6">
-            <div className="flex space-x-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <Input
-                  placeholder="Rechercher une intervention..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 w-80"
-                />
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">En cours</p>
+                  <p className="text-2xl font-bold text-orange-600">
+                    {interventions.filter(i => i.ST_INTER === 1).length}
+                  </p>
+                </div>
+                <Clock className="w-8 h-8 text-orange-600" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Terminées</p>
+                  <p className="text-2xl font-bold text-green-600">
+                    {interventions.filter(i => i.ST_INTER === 9).length}
+                  </p>
+                </div>
+                <User className="w-8 h-8 text-green-600" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Sur site</p>
+                  <p className="text-2xl font-bold text-red-600">
+                    {interventions.filter(i => i.SUR_SITE === 1).length}
+                  </p>
+                </div>
+                <AlertTriangle className="w-8 h-8 text-red-600" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Barre de recherche et filtres */}
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex flex-col lg:flex-row gap-4">
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Input
+                    placeholder="Rechercher par libellé, demandeur ou utilisateur..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
               </div>
               <Button variant="outline">
                 <Filter className="w-4 h-4 mr-2" />
                 Filtres
               </Button>
             </div>
-          </div>
+          </CardContent>
+        </Card>
 
-          {/* Tableau des interventions */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Liste des interventions</CardTitle>
-            </CardHeader>
-            <CardContent>
+        {/* Tableau des interventions */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Liste des interventions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Intervention</TableHead>
-                    <TableHead>Véhicule</TableHead>
-                    <TableHead>Type</TableHead>
+                    <TableHead>ID</TableHead>
+                    <TableHead>Libellé</TableHead>
+                    <TableHead>Demandeur</TableHead>
                     <TableHead>Statut</TableHead>
-                    <TableHead>Priorité</TableHead>
-                    <TableHead>Date prévue</TableHead>
-                    <TableHead>Technicien</TableHead>
-                    <TableHead>Durée</TableHead>
-                    <TableHead>Coût</TableHead>
+                    <TableHead>Utilisateur</TableHead>
+                    <TableHead>Date début</TableHead>
+                    <TableHead>Date fin</TableHead>
+                    <TableHead>Machine</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredInterventions.map((intervention) => (
-                    <TableRow key={intervention.id}>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">{intervention.title}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">{intervention.vehicle.plate}</p>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            {intervention.vehicle.model}
-                          </p>
-                        </div>
-                      </TableCell>
-                      <TableCell>{intervention.type}</TableCell>
-                      <TableCell>{getStatusBadge(intervention.status)}</TableCell>
-                      <TableCell>{getPriorityBadge(intervention.priority)}</TableCell>
-                      <TableCell>
-                        {new Date(intervention.scheduledDate).toLocaleDateString('fr-FR')}
-                      </TableCell>
-                      <TableCell>{intervention.technician}</TableCell>
-                      <TableCell>{intervention.duration}</TableCell>
-                      <TableCell>{intervention.cost.toFixed(2)}€</TableCell>
-                      <TableCell>
-                        <div className="flex space-x-2">
-                          <Link to={`/interventions/${intervention.id}`}>
-                            <Button variant="outline" size="sm">
-                              <Eye className="w-3 h-3" />
-                            </Button>
-                          </Link>
-                          <Link to={`/interventions/${intervention.id}/edit`}>
-                            <Button variant="outline" size="sm">
-                              <Edit className="w-3 h-3" />
-                            </Button>
-                          </Link>
-                          <Button variant="destructive" size="sm">
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
-                        </div>
+                  {filteredInterventions.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={9} className="text-center py-8 text-gray-500">
+                        Aucune intervention trouvée
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : (
+                    filteredInterventions.map((intervention) => {
+                      const status = formatStatus(intervention.ST_INTER);
+                      return (
+                        <TableRow key={intervention.IDINTERVENTION}>
+                          <TableCell>
+                            <div className="font-medium text-gray-900 dark:text-white">
+                              #{intervention.IDINTERVENTION}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <div className="font-medium text-gray-900 dark:text-white">
+                                {intervention.LIB50 || '-'}
+                              </div>
+                              {intervention.USDEF_LIB && (
+                                <div className="text-sm text-gray-500">
+                                  {intervention.USDEF_LIB}
+                                </div>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="font-medium">{intervention.DEMANDEUR || '-'}</div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={status.variant as any}>
+                              {status.label}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <div className="font-medium">{intervention.CDUSER || '-'}</div>
+                              {intervention.US_TEAM && (
+                                <div className="text-sm text-gray-500">{intervention.US_TEAM}</div>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <div>{formatDate(intervention.DT_INTER_DBT)}</div>
+                              {intervention.HR_DEBUT && (
+                                <div className="text-sm text-gray-500">{intervention.HR_DEBUT}</div>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <div>{formatDate(intervention.DT_INTER_FIN)}</div>
+                              {intervention.HR_FIN && (
+                                <div className="text-sm text-gray-500">{intervention.HR_FIN}</div>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {intervention.CLE_MACHINE_CIBLE || '-'}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex space-x-2">
+                              <Link to={`/interventions/${intervention.IDINTERVENTION}`}>
+                                <Button variant="ghost" size="sm">
+                                  <Eye className="w-4 h-4" />
+                                </Button>
+                              </Link>
+                              <Link to={`/interventions/${intervention.IDINTERVENTION}/edit`}>
+                                <Button variant="ghost" size="sm">
+                                  <Edit className="w-4 h-4" />
+                                </Button>
+                              </Link>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
                 </TableBody>
               </Table>
-            </CardContent>
-          </Card>
-        </main>
+            </div>
+          </CardContent>
+        </Card>
       </div>
-    </div>
+    </AppLayout>
   );
 };
 

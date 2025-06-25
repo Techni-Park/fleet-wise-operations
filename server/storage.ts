@@ -164,33 +164,67 @@ export class MySQLStorage implements IStorage {
 
   // Interventions
   async getIntervention(id: number): Promise<Intervention | undefined> {
-    const result = await db.select().from(interventions).where(eq(interventions.id, id)).limit(1);
-    return result[0];
+    try {
+      const result = await db.select().from(interventions).where(eq(interventions.IDINTERVENTION, id)).limit(1);
+      return result[0];
+    } catch (error) {
+      console.error('Erreur getIntervention:', error);
+      const rawResult = await db.execute(sql`SELECT * FROM INTERVENTION WHERE IDINTERVENTION = ${id} LIMIT 1`);
+      return rawResult[0]?.[0] as Intervention;
+    }
   }
 
   async createIntervention(intervention: InsertIntervention): Promise<Intervention> {
-    const result = await db.insert(interventions).values(intervention);
-    const insertId = result[0].insertId as number;
-    const newIntervention = await this.getIntervention(insertId);
-    return newIntervention!;
+    try {
+      const result = await db.insert(interventions).values(intervention).returning();
+      return result[0];
+    } catch (error) {
+      console.error('Erreur createIntervention:', error);
+      throw error;
+    }
   }
 
   async updateIntervention(id: number, intervention: Partial<InsertIntervention>): Promise<Intervention | undefined> {
-    await db.update(interventions).set(intervention).where(eq(interventions.id, id));
-    return this.getIntervention(id);
+    try {
+      await db.update(interventions).set(intervention).where(eq(interventions.IDINTERVENTION, id));
+      return this.getIntervention(id);
+    } catch (error) {
+      console.error('Erreur updateIntervention:', error);
+      throw error;
+    }
   }
 
   async deleteIntervention(id: number): Promise<boolean> {
-    const result = await db.delete(interventions).where(eq(interventions.id, id));
-    return result[0].affectedRows > 0;
+    try {
+      const result = await db.delete(interventions).where(eq(interventions.IDINTERVENTION, id));
+      return result[0].affectedRows > 0;
+    } catch (error) {
+      console.error('Erreur deleteIntervention:', error);
+      return false;
+    }
   }
 
   async getAllInterventions(): Promise<Intervention[]> {
-    return db.select().from(interventions);
+    try {
+      const result = await db.select().from(interventions).limit(100);
+      return result;
+    } catch (error) {
+      console.error('Erreur getAllInterventions:', error);
+      const rawResult = await db.execute(sql`SELECT * FROM INTERVENTION ORDER BY DHCRE DESC LIMIT 100`);
+      return rawResult[0] as Intervention[];
+    }
   }
 
   async getInterventionsByVehicle(vehicleId: number): Promise<Intervention[]> {
-    return db.select().from(interventions).where(eq(interventions.vehicleId, vehicleId));
+    try {
+      // Recherche par machine cible
+      const result = await db.select().from(interventions).where(eq(interventions.CLE_MACHINE_CIBLE, vehicleId.toString())).limit(50);
+      return result;
+    } catch (error) {
+      console.error('Erreur getInterventionsByVehicle:', error);
+      const rawResult = await db.execute(sql`SELECT * FROM INTERVENTION WHERE CLE_MACHINE_CIBLE = ${vehicleId.toString()} LIMIT 50`);
+      return rawResult[0] as Intervention[];
+    }
   }
 
   // Alerts
