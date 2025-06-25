@@ -1,6 +1,6 @@
-
 import React, { useState } from 'react';
 import { Car, Plus, Search, Filter, Edit, Trash2, Eye, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import Navigation from '@/components/Layout/Navigation';
 import Header from '@/components/Layout/Header';
 import { Button } from '@/components/ui/button';
@@ -122,10 +122,12 @@ const Vehicles = () => {
                 Gérez votre flotte de véhicules et suivez leur état
               </p>
             </div>
-            <Button className="bg-blue-600 hover:bg-blue-700">
-              <Plus className="w-4 h-4 mr-2" />
-              Ajouter un véhicule
-            </Button>
+            <Link to="/vehicles/create">
+              <Button className="bg-blue-600 hover:bg-blue-700">
+                <Plus className="w-4 h-4 mr-2" />
+                Ajouter un véhicule
+              </Button>
+            </Link>
           </div>
 
           {/* Statistiques rapides */}
@@ -249,12 +251,16 @@ const Vehicles = () => {
                     <TableCell>{new Date(vehicle.technicalControl).toLocaleDateString('fr-FR')}</TableCell>
                     <TableCell>
                       <div className="flex space-x-2">
-                        <Button variant="ghost" size="sm">
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm">
-                          <Edit className="w-4 h-4" />
-                        </Button>
+                        <Link to={`/vehicles/${vehicle.id}`}>
+                          <Button variant="ghost" size="sm">
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                        </Link>
+                        <Link to={`/vehicles/${vehicle.id}/edit`}>
+                          <Button variant="ghost" size="sm">
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                        </Link>
                         <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700">
                           <Trash2 className="w-4 h-4" />
                         </Button>
