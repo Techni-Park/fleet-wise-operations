@@ -9,6 +9,8 @@ import Vehicles from "./pages/Vehicles";
 import VehicleDetails from "./pages/VehicleDetails";
 import CreateVehicle from "./pages/CreateVehicle";
 import EditVehicle from "./pages/EditVehicle";
+import Interventions from "./pages/Interventions";
+import InterventionDetails from "./pages/InterventionDetails";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,6 +27,8 @@ const App = () => (
           <Route path="/vehicles/create" element={<CreateVehicle />} />
           <Route path="/vehicles/:id" element={<VehicleDetails />} />
           <Route path="/vehicles/:id/edit" element={<EditVehicle />} />
+          <Route path="/interventions" element={<Interventions />} />
+          <Route path="/interventions/:id" element={<InterventionDetails />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

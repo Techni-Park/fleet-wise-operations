@@ -7,6 +7,13 @@ import Header from '@/components/Layout/Header';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import VehicleInterventions from '@/components/Vehicles/VehicleInterventions';
+import VehicleAlerts from '@/components/Vehicles/VehicleAlerts';
+import VehicleDocuments from '@/components/Vehicles/VehicleDocuments';
+import VehiclePhotos from '@/components/Vehicles/VehiclePhotos';
+import VehicleAnomalies from '@/components/Vehicles/VehicleAnomalies';
+import VehicleStats from '@/components/Vehicles/VehicleStats';
 
 const VehicleDetails = () => {
   const { id } = useParams();
@@ -82,124 +89,77 @@ const VehicleDetails = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
             {/* Informations principales */}
-            <div className="lg:col-span-2 space-y-6">
+            <div className="lg:col-span-1">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center">
                     <Car className="w-5 h-5 mr-2" />
-                    Informations générales
+                    Informations
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Plaque d'immatriculation</p>
-                      <p className="font-medium">{vehicle.plate}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Modèle</p>
-                      <p className="font-medium">{vehicle.model}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Année</p>
-                      <p className="font-medium">{vehicle.year}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Kilométrage</p>
-                      <p className="font-medium">{vehicle.mileage.toLocaleString()} km</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">VIN</p>
-                      <p className="font-medium text-xs">{vehicle.vin}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Couleur</p>
-                      <p className="font-medium">{vehicle.color}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Carburant</p>
-                      <p className="font-medium">{vehicle.fuelType}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Puissance</p>
-                      <p className="font-medium">{vehicle.enginePower}</p>
-                    </div>
+                <CardContent className="space-y-4">
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Statut</p>
+                    {getStatusBadge(vehicle.status)}
                   </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Calendar className="w-5 h-5 mr-2" />
-                    Maintenance
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Dernière maintenance</p>
-                      <p className="font-medium">{new Date(vehicle.lastMaintenance).toLocaleDateString('fr-FR')}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Prochaine maintenance</p>
-                      <p className="font-medium">{new Date(vehicle.nextMaintenance).toLocaleDateString('fr-FR')}</p>
-                    </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Modèle</p>
+                    <p className="font-medium">{vehicle.model}</p>
                   </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <FileText className="w-5 h-5 mr-2" />
-                    Documents
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Assurance</p>
-                      <p className="font-medium">{new Date(vehicle.insurance).toLocaleDateString('fr-FR')}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Contrôle technique</p>
-                      <p className="font-medium">{new Date(vehicle.technicalControl).toLocaleDateString('fr-FR')}</p>
-                    </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Année</p>
+                    <p className="font-medium">{vehicle.year}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Kilométrage</p>
+                    <p className="font-medium">{vehicle.mileage.toLocaleString()} km</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Carburant</p>
+                    <p className="font-medium">{vehicle.fuelType}</p>
                   </div>
                 </CardContent>
               </Card>
             </div>
 
-            {/* Statut et actions */}
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Statut</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {getStatusBadge(vehicle.status)}
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Actions rapides</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <Button variant="outline" className="w-full">
-                    Programmer une maintenance
-                  </Button>
-                  <Button variant="outline" className="w-full">
-                    Ajouter une intervention
-                  </Button>
-                  <Button variant="outline" className="w-full">
-                    Mettre à jour le kilométrage
-                  </Button>
-                </CardContent>
-              </Card>
+            {/* Onglets principaux */}
+            <div className="lg:col-span-3">
+              <Tabs defaultValue="interventions" className="w-full">
+                <TabsList className="grid w-full grid-cols-6">
+                  <TabsTrigger value="interventions">Interventions</TabsTrigger>
+                  <TabsTrigger value="alerts">Alertes</TabsTrigger>
+                  <TabsTrigger value="documents">Documents</TabsTrigger>
+                  <TabsTrigger value="photos">Photos</TabsTrigger>
+                  <TabsTrigger value="anomalies">Anomalies</TabsTrigger>
+                  <TabsTrigger value="stats">Statistiques</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="interventions">
+                  <VehicleInterventions vehicleId={vehicle.id} />
+                </TabsContent>
+                
+                <TabsContent value="alerts">
+                  <VehicleAlerts vehicleId={vehicle.id} />
+                </TabsContent>
+                
+                <TabsContent value="documents">
+                  <VehicleDocuments vehicle={vehicle} />
+                </TabsContent>
+                
+                <TabsContent value="photos">
+                  <VehiclePhotos vehicleId={vehicle.id} />
+                </TabsContent>
+                
+                <TabsContent value="anomalies">
+                  <VehicleAnomalies vehicleId={vehicle.id} />
+                </TabsContent>
+                
+                <TabsContent value="stats">
+                  <VehicleStats vehicleId={vehicle.id} />
+                </TabsContent>
+              </Tabs>
             </div>
           </div>
         </main>
