@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Edit, Trash2, Calendar, Clock, User, FileText, Camera, CheckCircle } from 'lucide-react';
@@ -8,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import InterventionAnomalies from '@/components/Interventions/InterventionAnomalies';
 
 const InterventionDetails = () => {
   const { id } = useParams();
@@ -166,9 +166,10 @@ const InterventionDetails = () => {
             {/* Détails de l'intervention */}
             <div className="lg:col-span-3">
               <Tabs defaultValue="details" className="w-full">
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="grid w-full grid-cols-5">
                   <TabsTrigger value="details">Détails</TabsTrigger>
                   <TabsTrigger value="checklist">Check-list</TabsTrigger>
+                  <TabsTrigger value="anomalies">Anomalies</TabsTrigger>
                   <TabsTrigger value="photos">Photos</TabsTrigger>
                   <TabsTrigger value="parts">Pièces</TabsTrigger>
                 </TabsList>
@@ -255,6 +256,13 @@ const InterventionDetails = () => {
                       </div>
                     </CardContent>
                   </Card>
+                </TabsContent>
+                
+                <TabsContent value="anomalies">
+                  <InterventionAnomalies 
+                    interventionId={intervention.id} 
+                    vehicleId={intervention.vehicle.id} 
+                  />
                 </TabsContent>
                 
                 <TabsContent value="photos">
