@@ -160,6 +160,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Documents API
+  app.get("/api/documents", async (req, res) => {
+    try {
+      const documents = await storage.getAllDocuments();
+      res.json(documents);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch documents" });
+    }
+  });
+
+  app.get("/api/documents/:id", async (req, res) => {
+    try {
+      const document = await storage.getDocument(parseInt(req.params.id));
+      if (!document) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+      res.json(document);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch document" });
+    }
+  });
+
+  app.post("/api/documents", async (req, res) => {
+    try {
+      const document = await storage.createDocument(req.body);
+      res.status(201).json(document);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create document" });
+    }
+  });
+
+  app.put("/api/documents/:id", async (req, res) => {
+    try {
+      const document = await storage.updateDocument(parseInt(req.params.id), req.body);
+      if (!document) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+      res.json(document);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update document" });
+    }
+  });
+
+  app.delete("/api/documents/:id", async (req, res) => {
+    try {
+      const deleted = await storage.deleteDocument(parseInt(req.params.id));
+      if (!deleted) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete document" });
+    }
+  });
+
+  app.get("/api/documents/project/:projectId", async (req, res) => {
+    try {
+      const documents = await storage.getDocumentsByProject(parseInt(req.params.projectId));
+      res.json(documents);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch project documents" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

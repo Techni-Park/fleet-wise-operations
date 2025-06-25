@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { db } from "./db";
-import { users, vehicles, interventions, alerts, type User, type InsertUser, type Vehicle, type InsertVehicle, type Intervention, type InsertIntervention, type Alert, type InsertAlert } from "@shared/schema";
+import { users, vehicles, interventions, alerts, documents, type User, type InsertUser, type Vehicle, type InsertVehicle, type Intervention, type InsertIntervention, type Alert, type InsertAlert, type Document, type InsertDocument } from "@shared/schema";
 
 export interface IStorage {
   // Users
@@ -34,6 +34,14 @@ export interface IStorage {
   deleteAlert(id: number): Promise<boolean>;
   getAllAlerts(): Promise<Alert[]>;
   getActiveAlerts(): Promise<Alert[]>;
+
+  // Documents
+  getDocument(id: number): Promise<Document | undefined>;
+  createDocument(document: InsertDocument): Promise<Document>;
+  updateDocument(id: number, document: Partial<InsertDocument>): Promise<Document | undefined>;
+  deleteDocument(id: number): Promise<boolean>;
+  getAllDocuments(): Promise<Document[]>;
+  getDocumentsByProject(projectId: number): Promise<Document[]>;
 }
 
 export class MySQLStorage implements IStorage {
@@ -161,6 +169,37 @@ export class MySQLStorage implements IStorage {
 
   async getActiveAlerts(): Promise<Alert[]> {
     return db.select().from(alerts).where(eq(alerts.status, "active"));
+  }
+
+  // Documents
+  async getDocument(id: number): Promise<Document | undefined> {
+    const result = await db.select().from(documents).where(eq(documents.ID, id)).limit(1);
+    return result[0];
+  }
+
+  async createDocument(document: InsertDocument): Promise<Document> {
+    const result = await db.insert(documents).values(document);
+    const insertId = result[0].insertId as number;
+    const newDocument = await this.getDocument(insertId);
+    return newDocument!;
+  }
+
+  async updateDocument(id: number, document: Partial<InsertDocument>): Promise<Document | undefined> {
+    await db.update(documents).set(document).where(eq(documents.ID, id));
+    return this.getDocument(id);
+  }
+
+  async deleteDocument(id: number): Promise<boolean> {
+    const result = await db.delete(documents).where(eq(documents.ID, id));
+    return result[0].affectedRows > 0;
+  }
+
+  async getAllDocuments(): Promise<Document[]> {
+    return db.select().from(documents);
+  }
+
+  async getDocumentsByProject(projectId: number): Promise<Document[]> {
+    return db.select().from(documents).where(eq(documents.IDPROJET, projectId));
   }
 }
 

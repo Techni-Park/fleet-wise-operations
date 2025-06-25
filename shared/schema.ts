@@ -67,10 +67,38 @@ export const alerts = mysqlTable("alerts", {
   resolvedAt: timestamp("resolved_at"),
 });
 
+export const documents = mysqlTable("DOCUMENT", {
+  ID: int("ID").primaryKey().autoincrement(),
+  IDDOCUMENT: int("IDDOCUMENT").unique(),
+  CDUSER: varchar("CDUSER", { length: 3 }).default(""),
+  LIB100: varchar("LIB100", { length: 100 }).default(""),
+  FILEREF: varchar("FILEREF", { length: 256 }).default(""),
+  COMMENTAIRE: text("COMMENTAIRE"),
+  IDCONTACT: int("IDCONTACT").default(0),
+  DHCRE: datetime("DHCRE", { mode: "string", fsp: 3 }),
+  USCRE: varchar("USCRE", { length: 3 }).default(""),
+  DHMOD: datetime("DHMOD", { mode: "string", fsp: 3 }),
+  USMOD: varchar("USMOD", { length: 3 }).default(""),
+  DT_DOC: datetime("DT_DOC", { mode: "date" }),
+  IDPROJET: int("IDPROJET").default(0),
+  IDTACHE: int("IDTACHE").default(0),
+  ID2GENRE_DOCUMENT: int("ID2GENRE_DOCUMENT").default(0),
+  XXTRIGRAMME: varchar("XXTRIGRAMME", { length: 3 }).default(""),
+  XXIDNUMCIBLE: int("XXIDNUMCIBLE").default(0),
+  IDFICHIERBRUT: int("IDFICHIERBRUT").default(0),
+  ID2STATUT_DOC: int("ID2STATUT_DOC").default(0),
+  IDDOSSIERCLASS: int("IDDOSSIERCLASS").default(0),
+  TRGCIBLE: varchar("TRGCIBLE", { length: 11 }).default(""),
+  created_at: datetime("created_at"),
+  updated_at: datetime("updated_at"),
+  DH_SYNCHRO: datetime("DH_SYNCHRO"),
+});
+
 export const insertUserSchema = createInsertSchema(users);
 export const insertVehicleSchema = createInsertSchema(vehicles);
 export const insertInterventionSchema = createInsertSchema(interventions);
 export const insertAlertSchema = createInsertSchema(alerts);
+export const insertDocumentSchema = createInsertSchema(documents);
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -80,3 +108,5 @@ export type InsertIntervention = z.infer<typeof insertInterventionSchema>;
 export type Intervention = typeof interventions.$inferSelect;
 export type InsertAlert = z.infer<typeof insertAlertSchema>;
 export type Alert = typeof alerts.$inferSelect;
+export type InsertDocument = z.infer<typeof insertDocumentSchema>;
+export type Document = typeof documents.$inferSelect;

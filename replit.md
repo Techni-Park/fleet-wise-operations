@@ -16,6 +16,9 @@ Fleet management application built with React/TypeScript frontend and Express/No
 - **2024-12-25**: Added comprehensive schema for vehicles, interventions, alerts, and users
 - **2024-12-25**: Implemented REST API endpoints for all entities
 - **2024-12-25**: Updated storage layer to use MySQL instead of in-memory storage
+- **2024-12-25**: Added DOCUMENT table schema matching existing MySQL structure
+- **2024-12-25**: Fixed Drizzle ORM configuration with proper mode setting
+- **2024-12-25**: Completed project migration - application ready for use
 
 ## Database Configuration
 The application now uses MySQL with the following environment variables:
