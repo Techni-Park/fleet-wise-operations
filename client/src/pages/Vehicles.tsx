@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
-import { Car, Plus, Search, Filter, Edit, Trash2, Eye, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Car, Plus, Search, Filter, Edit, Trash2, Eye, AlertTriangle, CheckCircle, Clock, Loader, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import AppLayout from '@/components/Layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -14,268 +15,316 @@ import {
   TableRow,
 } from '@/components/ui/table';
 
-interface Vehicle {
-  id: string;
-  plate: string;
-  model: string;
-  year: number;
-  mileage: number;
-  status: 'active' | 'maintenance' | 'inactive';
-  lastMaintenance: string;
-  nextMaintenance: string;
-  insurance: string;
-  technicalControl: string;
-}
-
 const Vehicles = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [vehicules, setVehicules] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Données d'exemple
-  const vehicles: Vehicle[] = [
-    {
-      id: '1',
-      plate: 'AB-123-CD',
-      model: 'Renault Clio',
-      year: 2020,
-      mileage: 45000,
-      status: 'active',
-      lastMaintenance: '2024-05-15',
-      nextMaintenance: '2024-08-15',
-      insurance: '2024-12-31',
-      technicalControl: '2024-10-20'
-    },
-    {
-      id: '2',
-      plate: 'EF-456-GH',
-      model: 'Peugeot 308',
-      year: 2019,
-      mileage: 68000,
-      status: 'maintenance',
-      lastMaintenance: '2024-04-10',
-      nextMaintenance: '2024-07-10',
-      insurance: '2024-11-15',
-      technicalControl: '2024-09-05'
-    },
-    {
-      id: '3',
-      plate: 'IJ-789-KL',
-      model: 'Ford Transit',
-      year: 2021,
-      mileage: 32000,
-      status: 'active',
-      lastMaintenance: '2024-06-01',
-      nextMaintenance: '2024-09-01',
-      insurance: '2025-01-20',
-      technicalControl: '2024-11-30'
-    },
-    {
-      id: '4',
-      plate: 'MN-012-OP',
-      model: 'Volkswagen Golf',
-      year: 2018,
-      mileage: 89000,
-      status: 'inactive',
-      lastMaintenance: '2024-03-20',
-      nextMaintenance: '2024-06-20',
-      insurance: '2024-08-10',
-      technicalControl: '2024-07-15'
-    }
-  ];
+  const loadVehicules = async (showRefresh = false) => {
+    if (showRefresh) setRefreshing(true);
+    else setLoading(true);
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'active':
-        return <Badge className="bg-green-100 text-green-800 hover:bg-green-100"><CheckCircle className="w-3 h-3 mr-1" />Actif</Badge>;
-      case 'maintenance':
-        return <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-100"><Clock className="w-3 h-3 mr-1" />Maintenance</Badge>;
-      case 'inactive':
-        return <Badge className="bg-red-100 text-red-800 hover:bg-red-100"><AlertTriangle className="w-3 h-3 mr-1" />Inactif</Badge>;
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
+    try {
+      const response = await fetch('/api/vehicules');
+      const data = await response.json();
+      setVehicules(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Erreur lors du chargement des véhicules:', error);
+      setVehicules([]);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
   };
 
-  const filteredVehicles = vehicles.filter(vehicle => {
-    const matchesSearch = vehicle.plate.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         vehicle.model.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || vehicle.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  useEffect(() => {
+    loadVehicules();
+  }, []);
+
+  // Fonction pour formater le statut de la machine
+  const formatMachineStatus = (status: number) => {
+    const statusMap: { [key: number]: { label: string; variant: string } } = {
+      1: { label: 'Active', variant: 'default' },
+      2: { label: 'Maintenance', variant: 'destructive' },
+      3: { label: 'Hors service', variant: 'secondary' },
+      4: { label: 'Archivée', variant: 'outline' }
+    };
+    return statusMap[status] || { label: 'Inconnu', variant: 'secondary' };
+  };
+
+  // Fonction pour formater les dates
+  const formatDate = (dateString: string) => {
+    if (!dateString) return '-';
+    return new Date(dateString).toLocaleDateString('fr-FR');
+  };
+
+  // Fonction pour calculer si le contrôle technique est expiré
+  const isControlExpired = (dateString: string) => {
+    if (!dateString) return false;
+    const controlDate = new Date(dateString);
+    const today = new Date();
+    return controlDate < today;
+  };
+
+  // Filtrage des véhicules
+  const filteredVehicules = vehicules.filter(vehicule =>
+    (vehicule.IMMAT?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     vehicule.MARQUE?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     vehicule.MODELE?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     vehicule.LIB_MACHINE?.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
+  if (loading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <Loader className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
+            <p>Chargement des véhicules...</p>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
-      {/* En-tête de page */}
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            Gestion des véhicules
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Gérez votre flotte de véhicules et suivez leur état
-          </p>
-        </div>
-        <Link to="/vehicles/create">
-          <Button className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto">
-            <Plus className="w-4 h-4 mr-2" />
-            <span className="hidden sm:inline">Ajouter un véhicule</span>
-            <span className="sm:hidden">Ajouter</span>
-          </Button>
-        </Link>
-      </div>
-
-      {/* Statistiques rapides */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8">
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 lg:p-6 border border-gray-200 dark:border-gray-700 transition-all duration-200 hover:shadow-lg">
-          <div className="flex items-center">
-            <div className="p-2 lg:p-3 bg-blue-100 dark:bg-blue-900 rounded-lg">
-              <Car className="w-5 h-5 lg:w-6 lg:h-6 text-blue-600 dark:text-blue-400" />
-            </div>
-            <div className="ml-3 lg:ml-4 min-w-0 flex-1">
-              <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400 truncate">Total véhicules</p>
-              <p className="text-lg lg:text-2xl font-bold text-gray-900 dark:text-white">{vehicles.length}</p>
-            </div>
+      <div className="space-y-6">
+        {/* En-tête avec actions */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">
+              Véhicules
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-2">
+              {vehicules.length} véhicules dans la base MySQL (VEHICULE + MACHINE_MNT)
+            </p>
           </div>
-        </div>
-            
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 lg:p-6 border border-gray-200 dark:border-gray-700 transition-all duration-200 hover:shadow-lg">
-          <div className="flex items-center">
-            <div className="p-2 lg:p-3 bg-green-100 dark:bg-green-900 rounded-lg">
-              <CheckCircle className="w-5 h-5 lg:w-6 lg:h-6 text-green-600 dark:text-green-400" />
-            </div>
-            <div className="ml-3 lg:ml-4 min-w-0 flex-1">
-              <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400 truncate">Actifs</p>
-              <p className="text-lg lg:text-2xl font-bold text-gray-900 dark:text-white">
-                {vehicles.filter(v => v.status === 'active').length}
-              </p>
-            </div>
-          </div>
-        </div>
-            
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 lg:p-6 border border-gray-200 dark:border-gray-700 transition-all duration-200 hover:shadow-lg">
-          <div className="flex items-center">
-            <div className="p-2 lg:p-3 bg-orange-100 dark:bg-orange-900 rounded-lg">
-              <Clock className="w-5 h-5 lg:w-6 lg:h-6 text-orange-600 dark:text-orange-400" />
-            </div>
-            <div className="ml-3 lg:ml-4 min-w-0 flex-1">
-              <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400 truncate">En maintenance</p>
-              <p className="text-lg lg:text-2xl font-bold text-gray-900 dark:text-white">
-                {vehicles.filter(v => v.status === 'maintenance').length}
-              </p>
-            </div>
-          </div>
-        </div>
-            
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 lg:p-6 border border-gray-200 dark:border-gray-700 transition-all duration-200 hover:shadow-lg">
-          <div className="flex items-center">
-            <div className="p-2 lg:p-3 bg-red-100 dark:bg-red-900 rounded-lg">
-              <AlertTriangle className="w-5 h-5 lg:w-6 lg:h-6 text-red-600 dark:text-red-400" />
-            </div>
-            <div className="ml-3 lg:ml-4 min-w-0 flex-1">
-              <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400 truncate">Inactifs</p>
-              <p className="text-lg lg:text-2xl font-bold text-gray-900 dark:text-white">
-                {vehicles.filter(v => v.status === 'inactive').length}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Filtres et recherche */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 lg:p-6 mb-6">
-        <div className="flex flex-col lg:flex-row gap-4">
-          <div className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <Input
-                placeholder="Rechercher par plaque ou modèle..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-          </div>
-          
-          <div className="flex flex-col sm:flex-row gap-2">
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button 
+              onClick={() => loadVehicules(true)} 
+              disabled={refreshing}
+              variant="outline"
             >
-              <option value="all">Tous les statuts</option>
-              <option value="active">Actif</option>
-              <option value="maintenance">Maintenance</option>
-              <option value="inactive">Inactif</option>
-            </select>
-            
-            <Button variant="outline" className="w-full sm:w-auto">
-              <Filter className="w-4 h-4 mr-2" />
-              <span className="hidden sm:inline">Filtrer</span>
-              <span className="sm:hidden">Filtres</span>
+              <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+              Actualiser
             </Button>
+            <Link to="/vehicles/create">
+              <Button className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700">
+                <Plus className="w-4 h-4 mr-2" />
+                Nouveau véhicule
+              </Button>
+            </Link>
           </div>
         </div>
-      </div>
 
-      {/* Tableau des véhicules */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="min-w-[120px]">Plaque</TableHead>
-                <TableHead className="min-w-[150px]">Modèle</TableHead>
-                <TableHead className="hidden sm:table-cell min-w-[80px]">Année</TableHead>
-                <TableHead className="hidden md:table-cell min-w-[100px]">Kilométrage</TableHead>
-                <TableHead className="min-w-[100px]">Statut</TableHead>
-                <TableHead className="hidden lg:table-cell min-w-[140px]">Prochaine maintenance</TableHead>
-                <TableHead className="hidden xl:table-cell min-w-[120px]">Assurance</TableHead>
-                <TableHead className="text-right min-w-[120px]">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-            <TableBody>
-              {filteredVehicles.map((vehicle) => (
-                <TableRow key={vehicle.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                  <TableCell className="font-medium">{vehicle.plate}</TableCell>
-                  <TableCell className="font-medium">{vehicle.model}</TableCell>
-                  <TableCell className="hidden sm:table-cell">{vehicle.year}</TableCell>
-                  <TableCell className="hidden md:table-cell">{vehicle.mileage.toLocaleString()} km</TableCell>
-                  <TableCell>
-                    <Badge 
-                      variant={
-                        vehicle.status === 'active' ? 'default' :
-                        vehicle.status === 'maintenance' ? 'secondary' : 'destructive'
-                      }
-                      className="text-xs"
-                    >
-                      {vehicle.status === 'active' ? 'Actif' :
-                       vehicle.status === 'maintenance' ? 'Maint.' : 'Inactif'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="hidden lg:table-cell text-sm">{vehicle.nextMaintenance}</TableCell>
-                  <TableCell className="hidden xl:table-cell text-sm">{vehicle.insurance}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end space-x-1">
-                      <Link to={`/vehicles/${vehicle.id}`}>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                      </Link>
-                      <Link to={`/vehicles/${vehicle.id}/edit`}>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                      </Link>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-600 hover:text-red-800">
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+        {/* Statistiques */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{vehicules.length}</p>
+                </div>
+                <Car className="w-8 h-8 text-blue-600" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Actifs</p>
+                  <p className="text-2xl font-bold text-green-600">
+                    {vehicules.filter(v => v.ID2_ETATMACHINE === 1).length}
+                  </p>
+                </div>
+                <CheckCircle className="w-8 h-8 text-green-600" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Maintenance</p>
+                  <p className="text-2xl font-bold text-orange-600">
+                    {vehicules.filter(v => v.ID2_ETATMACHINE === 2).length}
+                  </p>
+                </div>
+                <Clock className="w-8 h-8 text-orange-600" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Contrôles expirés</p>
+                  <p className="text-2xl font-bold text-red-600">
+                    {vehicules.filter(v => isControlExpired(v.DT_CTRLTECH)).length}
+                  </p>
+                </div>
+                <AlertTriangle className="w-8 h-8 text-red-600" />
+              </div>
+            </CardContent>
+          </Card>
         </div>
+
+        {/* Barre de recherche et filtres */}
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex flex-col lg:flex-row gap-4">
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Input
+                    placeholder="Rechercher par immatriculation, marque, modèle..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+              <Button variant="outline">
+                <Filter className="w-4 h-4 mr-2" />
+                Filtres
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Tableau des véhicules */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Liste des véhicules</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {vehicules.length === 0 ? (
+              <div className="text-center py-12">
+                <Car className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                  Aucun véhicule trouvé
+                </h3>
+                <p className="text-gray-500 mb-6">
+                  Les tables VEHICULE et MACHINE_MNT sont actuellement vides dans votre base MySQL.
+                </p>
+                <p className="text-sm text-gray-400">
+                  Cette interface est configurée pour afficher les données combinées dès qu'elles seront disponibles.
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>ID</TableHead>
+                      <TableHead>Immatriculation</TableHead>
+                      <TableHead>Véhicule</TableHead>
+                      <TableHead>Machine</TableHead>
+                      <TableHead>Statut</TableHead>
+                      <TableHead>Kilométrage</TableHead>
+                      <TableHead>Contrôle technique</TableHead>
+                      <TableHead>Assurance</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredVehicules.map((vehicule) => {
+                      const status = formatMachineStatus(vehicule.ID2_ETATMACHINE);
+                      const controlExpired = isControlExpired(vehicule.DT_CTRLTECH);
+                      
+                      return (
+                        <TableRow key={vehicule.IDVEHICULE}>
+                          <TableCell>
+                            <div className="font-medium text-gray-900 dark:text-white">
+                              #{vehicule.IDVEHICULE}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="font-medium text-gray-900 dark:text-white">
+                              {vehicule.IMMAT || '-'}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <div className="font-medium">
+                                {vehicule.MARQUE} {vehicule.MODELE}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                {vehicule.CARBURANT} • {vehicule.NUM_SERIE || 'N/S non renseigné'}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <div className="font-medium">{vehicule.CD_MACHINE || '-'}</div>
+                              <div className="text-sm text-gray-500">
+                                {vehicule.LIB_MACHINE || 'Libellé non renseigné'}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={status.variant as any}>
+                              {status.label}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <div className="font-medium">
+                                {vehicule.KMACTUEL ? `${vehicule.KMACTUEL.toLocaleString()} km` : '-'}
+                              </div>
+                              {vehicule.KILOMETRAGE && vehicule.KILOMETRAGE !== vehicule.KMACTUEL && (
+                                <div className="text-sm text-gray-500">
+                                  Machine: {vehicule.KILOMETRAGE.toLocaleString()} km
+                                </div>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className={controlExpired ? 'text-red-600' : ''}>
+                              <div>{formatDate(vehicule.DT_CTRLTECH)}</div>
+                              {controlExpired && (
+                                <div className="text-xs text-red-500">Expiré</div>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <div>{formatDate(vehicule.DT_ECHASS)}</div>
+                              {vehicule.NUMCONTRASS && (
+                                <div className="text-sm text-gray-500">{vehicule.NUMCONTRASS}</div>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex space-x-2">
+                              <Link to={`/vehicles/${vehicule.IDVEHICULE}`}>
+                                <Button variant="ghost" size="sm">
+                                  <Eye className="w-4 h-4" />
+                                </Button>
+                              </Link>
+                              <Link to={`/vehicles/${vehicule.IDVEHICULE}/edit`}>
+                                <Button variant="ghost" size="sm">
+                                  <Edit className="w-4 h-4" />
+                                </Button>
+                              </Link>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </AppLayout>
   );

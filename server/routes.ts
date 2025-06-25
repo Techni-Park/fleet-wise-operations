@@ -319,6 +319,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Vehicules API - données combinées VEHICULE + MACHINE_MNT
+  app.get("/api/vehicules", async (req, res) => {
+    try {
+      const vehicules = await storage.getAllVehicules();
+      res.json(vehicules);
+    } catch (error) {
+      console.error('Erreur API vehicules:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/vehicules/:id", async (req, res) => {
+    try {
+      const vehicule = await storage.getVehicule(parseInt(req.params.id));
+      if (!vehicule) {
+        return res.status(404).json({ error: "Vehicule not found" });
+      }
+      res.json(vehicule);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch vehicule" });
+    }
+  });
+
   app.get("/api/machines/:id", async (req, res) => {
     try {
       const machine = await storage.getMachine(parseInt(req.params.id));

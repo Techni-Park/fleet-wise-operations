@@ -35,6 +35,9 @@ Fleet management application built with React/TypeScript frontend and Express/No
 - **2024-12-25**: Connected Interventions page to real INTERVENTION table in MySQL database
 - **2024-12-25**: Updated Drizzle schema to match exact INTERVENTION table structure
 - **2024-12-25**: Implemented real-time intervention data loading with status mapping
+- **2024-12-25**: Connected Vehicles page to MACHINE_MNT linked to VEHICULE tables with combined data display
+- **2024-12-25**: Updated Drizzle schema to match exact MACHINE_MNT and VEHICULE table structures
+- **2024-12-25**: Implemented JOIN query to combine vehicle and machine data in a single interface
 
 ## Database Configuration
 The application is now connected to a remote MySQL database:

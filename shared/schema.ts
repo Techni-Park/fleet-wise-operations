@@ -276,8 +276,96 @@ export const ingredients = mysqlTable("INGREDIENT", {
   IDSOCIETE: int("IDSOCIETE"),
 });
 
-// Table MACHINE_MNT
+// Table MACHINE_MNT (structure réelle MySQL)
 export const machinesMnt = mysqlTable("MACHINE_MNT", {
+  IDMACHINE: bigint("IDMACHINE", { mode: "number" }).primaryKey(),
+  CD_MACHINE: varchar("CD_MACHINE", { length: 25 }),
+  LIB_MACHINE: varchar("LIB_MACHINE", { length: 50 }),
+  ID2_ETATMACHINE: int("ID2_ETATMACHINE").notNull(),
+  MARQUE: varchar("MARQUE", { length: 25 }),
+  MODELE: varchar("MODELE", { length: 25 }),
+  NUM_SAV: varchar("NUM_SAV", { length: 25 }),
+  DHMOD: datetime("DHMOD", { mode: "string", fsp: 3 }),
+  DHCRE: datetime("DHCRE", { mode: "string", fsp: 3 }),
+  CONTACT_SAV: varchar("CONTACT_SAV", { length: 60 }),
+  TELSAV: varchar("TELSAV", { length: 18 }),
+  OBSERVATIONS: longtext("OBSERVATIONS"),
+  IDCONTACT: bigint("IDCONTACT", { mode: "number" }),
+  DT_PROCH_MNT: date("DT_PROCH_MNT"),
+  DT_EXP_GARANTIE: date("DT_EXP_GARANTIE"),
+  ID2GENRE_MACHINE: tinyint("ID2GENRE_MACHINE", { unsigned: true }),
+  ADRESSE1: varchar("ADRESSE1", { length: 50 }),
+  USCRE: varchar("USCRE", { length: 3 }),
+  USMOD: varchar("USMOD", { length: 3 }),
+  DT_MISEENFONCTION: date("DT_MISEENFONCTION"),
+  USDEF_LIB: varchar("USDEF_LIB", { length: 40 }),
+  USDEF_NUM: float("USDEF_NUM"),
+  USDEF_BOO: tinyint("USDEF_BOO"),
+  IMG_MACHINE: longtext("IMG_MACHINE"),
+  DOSSIER: varchar("DOSSIER", { length: 150 }),
+  DT_DBT_GARANTIE: date("DT_DBT_GARANTIE"),
+  NUM_SERIE: varchar("NUM_SERIE", { length: 25 }),
+  TYPE_MACHINE: varchar("TYPE_MACHINE", { length: 25 }),
+  IMMAT: varchar("IMMAT", { length: 20 }),
+  PUISSANCEW: int("PUISSANCEW"),
+  KILOMETRAGE: int("KILOMETRAGE"),
+  USDEF_DATE: date("USDEF_DATE"),
+  USDEF_CBO: smallint("USDEF_CBO"),
+  US_RESP: varchar("US_RESP", { length: 3 }),
+  IDSOCIETE: bigint("IDSOCIETE", { mode: "number" }),
+  POIDS: float("POIDS"),
+  CD_PRODUIT: varchar("CD_PRODUIT", { length: 25 }),
+  DT_MNT_DBT: date("DT_MNT_DBT"),
+  DT_MNT_FIN: date("DT_MNT_FIN"),
+  IARCHIVE: tinyint("IARCHIVE"),
+  CPOSTAL: varchar("CPOSTAL", { length: 9 }),
+  VILLE: varchar("VILLE", { length: 30 }),
+  CDREGION: varchar("CDREGION", { length: 3 }),
+  CDPAYS: varchar("CDPAYS", { length: 3 }),
+  ADRESSE2: varchar("ADRESSE2", { length: 50 }),
+  CAPACITE: varchar("CAPACITE", { length: 50 }),
+});
+
+// Table VEHICULE (structure réelle MySQL)
+export const vehicules = mysqlTable("VEHICULE", {
+  IDVEHICULE: bigint("IDVEHICULE", { mode: "number" }).primaryKey(),
+  IDCONTACT: bigint("IDCONTACT", { mode: "number" }),
+  IDMACHINE: int("IDMACHINE", { unsigned: true }).notNull(),
+  IDSOCIETE: bigint("IDSOCIETE", { mode: "number" }),
+  IMMAT: varchar("IMMAT", { length: 20 }),
+  ID2_TYPEVEHIC: tinyint("ID2_TYPEVEHIC", { unsigned: true }),
+  PUISSANCE_ADMIN: tinyint("PUISSANCE_ADMIN"),
+  NUM_CNIT: varchar("NUM_CNIT", { length: 25 }),
+  NUM_IDENTIF: varchar("NUM_IDENTIF", { length: 25 }),
+  NUMSERIE_CLE: text("NUMSERIE_CLE"),
+  URL_CONSTRUCTEUR: varchar("URL_CONSTRUCTEUR", { length: 100 }),
+  PVIDE: int("PVIDE"),
+  PTAC: int("PTAC"),
+  PTR: int("PTR"),
+  GENRE_NATIONAL: varchar("GENRE_NATIONAL", { length: 5 }),
+  CARBURANT: varchar("CARBURANT", { length: 5 }),
+  PLACES_ASSISES: int("PLACES_ASSISES"),
+  COUT_KM: float("COUT_KM"),
+  NUMCONTRASS: varchar("NUMCONTRASS", { length: 24 }),
+  DT_ECHASS: date("DT_ECHASS"),
+  KMVIDANGE: int("KMVIDANGE", { unsigned: true }),
+  KMACTUEL: int("KMACTUEL", { unsigned: true }),
+  DT_PREMCIRC: date("DT_PREMCIRC"),
+  DT_PRCTRL: date("DT_PRCTRL"),
+  DT_DERNIEREMAINT: date("DT_DERNIEREMAINT"),
+  DT_CTRLTECH: date("DT_CTRLTECH"),
+  DT_CTRLPOLLUTION: date("DT_CTRLPOLLUTION"),
+  PNEUSAV: varchar("PNEUSAV", { length: 24 }),
+  PNEUSAR: varchar("PNEUSAR", { length: 24 }),
+  NOTES: text("NOTES"),
+  DHCRE: datetime("DHCRE"),
+  USCRE: varchar("USCRE", { length: 3 }),
+  DHMOD: datetime("DHMOD"),
+  USMOD: varchar("USMOD", { length: 3 }),
+});
+
+// Ancienne table MACHINE_MNT (renommée pour éviter les conflits)
+export const machinesMntOld = mysqlTable("machines_mnt_old", {
   IDMACHINE: bigint("IDMACHINE", { mode: "number" }).primaryKey().autoincrement(),
   CD_MACHINE: varchar("CD_MACHINE", { length: 25 }).default(""),
   LIB_MACHINE: varchar("LIB_MACHINE", { length: 50 }).default(""),
@@ -632,8 +720,8 @@ export const userSystem = mysqlTable("USER", {
   COULAFF: int("COULAFF").default(0),
 });
 
-// Table VEHICULE  
-export const vehicules = mysqlTable("VEHICULE", {
+// Table VEHICULE ancienne (renommée pour éviter les conflits)
+export const vehiculesOld = mysqlTable("vehicules_old", {
   IDVEHICULE: bigint("IDVEHICULE", { mode: "number" }).primaryKey().autoincrement(),
   IDCONTACT: bigint("IDCONTACT", { mode: "number" }),
   IDMACHINE: int("IDMACHINE").notNull().unique(),
@@ -715,3 +803,5 @@ export type InsertUserSystem = z.infer<typeof insertUserSystemSchema>;
 export type UserSystem = typeof userSystem.$inferSelect;
 export type InsertVehicule = z.infer<typeof insertVehiculeSchema>;
 export type Vehicule = typeof vehicules.$inferSelect;
+export type InsertMachineMnt = z.infer<typeof insertMachineMntSchema>;
+export type MachineMnt = typeof machinesMnt.$inferSelect;

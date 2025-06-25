@@ -374,21 +374,81 @@ export class MySQLStorage implements IStorage {
     return newSociete!;
   }
 
-  // Vehicules
-  async getVehicule(id: number): Promise<Vehicule | undefined> {
-    const result = await db.select().from(vehicules).where(eq(vehicules.IDVEHICULE, id)).limit(1);
-    return result[0];
+  // Vehicules avec liaison MACHINE_MNT
+  async getVehicule(id: number): Promise<any | undefined> {
+    try {
+      // Jointure entre VEHICULE et MACHINE_MNT
+      const result = await db.execute(sql`
+        SELECT 
+          v.*,
+          m.CD_MACHINE,
+          m.LIB_MACHINE,
+          m.MARQUE,
+          m.MODELE,
+          m.NUM_SERIE,
+          m.TYPE_MACHINE,
+          m.KILOMETRAGE,
+          m.DT_PROCH_MNT,
+          m.DT_EXP_GARANTIE,
+          m.OBSERVATIONS
+        FROM VEHICULE v
+        LEFT JOIN MACHINE_MNT m ON v.IDMACHINE = m.IDMACHINE
+        WHERE v.IDVEHICULE = ${id}
+        LIMIT 1
+      `);
+      return result[0]?.[0];
+    } catch (error) {
+      console.error('Erreur getVehicule:', error);
+      return undefined;
+    }
   }
 
-  async getAllVehicules(): Promise<Vehicule[]> {
-    return db.select().from(vehicules);
+  async getAllVehicules(): Promise<any[]> {
+    try {
+      // Jointure pour récupérer les véhicules avec leurs machines
+      const result = await db.execute(sql`
+        SELECT 
+          v.IDVEHICULE,
+          v.IMMAT,
+          v.CARBURANT,
+          v.KMACTUEL,
+          v.DT_PREMCIRC,
+          v.DT_CTRLTECH,
+          v.DT_DERNIEREMAINT,
+          v.NUMCONTRASS,
+          v.DT_ECHASS,
+          m.IDMACHINE,
+          m.CD_MACHINE,
+          m.LIB_MACHINE,
+          m.MARQUE,
+          m.MODELE,
+          m.NUM_SERIE,
+          m.TYPE_MACHINE,
+          m.KILOMETRAGE,
+          m.DT_PROCH_MNT,
+          m.DT_EXP_GARANTIE,
+          m.ID2_ETATMACHINE,
+          m.OBSERVATIONS
+        FROM VEHICULE v
+        LEFT JOIN MACHINE_MNT m ON v.IDMACHINE = m.IDMACHINE
+        ORDER BY v.IDVEHICULE DESC
+        LIMIT 100
+      `);
+      return result[0] as any[];
+    } catch (error) {
+      console.error('Erreur getAllVehicules:', error);
+      return [];
+    }
   }
 
   async createVehicule(vehicule: InsertVehicule): Promise<Vehicule> {
-    const result = await db.insert(vehicules).values(vehicule);
-    const insertId = result[0].insertId as number;
-    const newVehicule = await this.getVehicule(insertId);
-    return newVehicule!;
+    try {
+      const result = await db.insert(vehicules).values(vehicule).returning();
+      return result[0];
+    } catch (error) {
+      console.error('Erreur createVehicule:', error);
+      throw error;
+    }
   }
 
   // Anomalies
