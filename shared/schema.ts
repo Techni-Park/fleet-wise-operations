@@ -1,37 +1,47 @@
-import { mysqlTable, text, int, varchar, datetime, decimal, mysqlEnum, timestamp } from "drizzle-orm/mysql-core";
+import { pgTable, text, serial, integer, varchar, timestamp, decimal, pgEnum } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const users = mysqlTable("users", {
-  id: int("id").primaryKey().autoincrement(),
+export const roleEnum = pgEnum("role", ["admin", "manager", "technician", "driver"]);
+export const statusEnum = pgEnum("status", ["active", "inactive", "pending"]);
+export const fuelTypeEnum = pgEnum("fuel_type", ["essence", "diesel", "electrique", "hybride"]);
+export const vehicleStatusEnum = pgEnum("vehicle_status", ["active", "maintenance", "inactive"]);
+export const interventionTypeEnum = pgEnum("intervention_type", ["maintenance", "reparation", "controle", "diagnostic", "nettoyage", "convoyage", "conciergerie"]);
+export const interventionStatusEnum = pgEnum("intervention_status", ["scheduled", "in_progress", "completed", "cancelled"]);
+export const priorityEnum = pgEnum("priority", ["low", "medium", "high"]);
+export const alertCategoryEnum = pgEnum("alert_category", ["maintenance", "compliance", "insurance", "usage"]);
+export const alertStatusEnum = pgEnum("alert_status", ["active", "resolved"]);
+
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
   username: varchar("username", { length: 50 }).notNull().unique(),
   password: varchar("password", { length: 255 }).notNull(),
   email: varchar("email", { length: 100 }).notNull().unique(),
-  role: mysqlEnum("role", ["admin", "manager", "technician", "driver"]).notNull().default("driver"),
+  role: roleEnum("role").notNull().default("driver"),
   firstName: varchar("first_name", { length: 50 }),
   lastName: varchar("last_name", { length: 50 }),
   phone: varchar("phone", { length: 20 }),
-  status: mysqlEnum("status", ["active", "inactive", "pending"]).notNull().default("active"),
+  status: statusEnum("status").notNull().default("active"),
   createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const vehicles = mysqlTable("vehicles", {
-  id: int("id").primaryKey().autoincrement(),
+export const vehicles = pgTable("vehicles", {
+  id: serial("id").primaryKey(),
   plate: varchar("plate", { length: 20 }).notNull().unique(),
   model: varchar("model", { length: 100 }).notNull(),
   brand: varchar("brand", { length: 50 }),
-  year: int("year").notNull(),
-  mileage: int("mileage").notNull().default(0),
+  year: integer("year").notNull(),
+  mileage: integer("mileage").notNull().default(0),
   vin: varchar("vin", { length: 17 }).unique(),
   color: varchar("color", { length: 30 }),
-  fuelType: mysqlEnum("fuel_type", ["essence", "diesel", "electrique", "hybride"]).notNull(),
+  fuelType: fuelTypeEnum("fuel_type").notNull(),
   enginePower: varchar("engine_power", { length: 20 }),
-  status: mysqlEnum("status", ["active", "maintenance", "inactive"]).notNull().default("active"),
-  insurance: datetime("insurance"),
-  technicalControl: datetime("technical_control"),
+  status: vehicleStatusEnum("status").notNull().default("active"),
+  insurance: timestamp("insurance"),
+  technicalControl: timestamp("technical_control"),
   createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const interventions = mysqlTable("interventions", {
