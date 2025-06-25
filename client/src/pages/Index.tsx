@@ -1,8 +1,7 @@
 
 import React from 'react';
 import { Car, Users, Wrench, AlertTriangle, TrendingUp, Calendar } from 'lucide-react';
-import Navigation from '@/components/Layout/Navigation';
-import Header from '@/components/Layout/Header';
+import AppLayout from '@/components/Layout/AppLayout';
 import StatsCard from '@/components/Dashboard/StatsCard';
 import RecentActivity from '@/components/Dashboard/RecentActivity';
 import AlertsPanel from '@/components/Dashboard/AlertsPanel';
@@ -41,74 +40,51 @@ const Index = () => {
   ];
 
   return (
-    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900 w-full">
-      <Navigation />
-      
-      <div className="flex-1">
-        <Header />
-        
-        <main className="p-6">
-          {/* En-tête de page */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-              Tableau de bord
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400">
-              Vue d'ensemble de votre flotte de véhicules
-            </p>
-          </div>
+    <AppLayout>
+      <div className="space-y-6">
+        <div className="mb-8">
+          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white mb-2">
+            Tableau de bord
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400">
+            Vue d'ensemble de votre flotte de véhicules
+          </p>
+        </div>
 
-          {/* Cartes de statistiques */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {stats.map((stat, index) => (
-              <div key={index} className="animate-fade-in" style={{ animationDelay: `${index * 100}ms` }}>
-                <StatsCard {...stat} />
-              </div>
-            ))}
-          </div>
-
-          {/* Graphiques de vue d'ensemble */}
-          <div className="mb-8 animate-fade-in" style={{ animationDelay: '400ms' }}>
-            <FleetOverviewChart />
-          </div>
-
-          {/* Activités récentes et alertes */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="animate-fade-in" style={{ animationDelay: '500ms' }}>
-              <RecentActivity />
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8">
+          {stats.map((stat, index) => (
+            <div key={index} className="transform transition-all duration-200 hover:scale-105">
+              <StatsCard {...stat} />
             </div>
-            
-            <div className="animate-fade-in" style={{ animationDelay: '600ms' }}>
+          ))}
+        </div>
+
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          {/* Fleet Overview Chart */}
+          <div className="xl:col-span-2">
+            <div className="transform transition-all duration-200 hover:shadow-lg">
+              <FleetOverviewChart />
+            </div>
+          </div>
+
+          {/* Alerts Panel */}
+          <div>
+            <div className="transform transition-all duration-200 hover:shadow-lg">
               <AlertsPanel />
             </div>
           </div>
+        </div>
 
-          {/* Section d'actions rapides */}
-          <div className="mt-8 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 animate-fade-in" style={{ animationDelay: '700ms' }}>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Actions rapides
-            </h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <button className="flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors duration-200">
-                <Car className="w-5 h-5" />
-                <span>Ajouter un véhicule</span>
-              </button>
-              
-              <button className="flex items-center justify-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg transition-colors duration-200">
-                <Calendar className="w-5 h-5" />
-                <span>Programmer intervention</span>
-              </button>
-              
-              <button className="flex items-center justify-center space-x-2 bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg transition-colors duration-200">
-                <Users className="w-5 h-5" />
-                <span>Gérer les utilisateurs</span>
-              </button>
-            </div>
+        {/* Recent Activity */}
+        <div className="mt-8">
+          <div className="transform transition-all duration-200 hover:shadow-lg">
+            <RecentActivity />
           </div>
-        </main>
+        </div>
       </div>
-    </div>
+    </AppLayout>
   );
 };
 
