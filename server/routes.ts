@@ -224,6 +224,149 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Actions API
+  app.get("/api/actions", async (req, res) => {
+    try {
+      const actions = await storage.getAllActions();
+      res.json(actions);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch actions" });
+    }
+  });
+
+  app.get("/api/actions/:id", async (req, res) => {
+    try {
+      const action = await storage.getAction(parseInt(req.params.id));
+      if (!action) {
+        return res.status(404).json({ error: "Action not found" });
+      }
+      res.json(action);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch action" });
+    }
+  });
+
+  // Contacts API
+  app.get("/api/contacts", async (req, res) => {
+    try {
+      const contacts = await storage.getAllContacts();
+      res.json(contacts);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch contacts" });
+    }
+  });
+
+  app.post("/api/contacts", async (req, res) => {
+    try {
+      const contact = await storage.createContact(req.body);
+      res.status(201).json(contact);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create contact" });
+    }
+  });
+
+  // Machines API
+  app.get("/api/machines", async (req, res) => {
+    try {
+      const machines = await storage.getAllMachines();
+      res.json(machines);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch machines" });
+    }
+  });
+
+  app.get("/api/machines/:id", async (req, res) => {
+    try {
+      const machine = await storage.getMachine(parseInt(req.params.id));
+      if (!machine) {
+        return res.status(404).json({ error: "Machine not found" });
+      }
+      res.json(machine);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch machine" });
+    }
+  });
+
+  app.post("/api/machines", async (req, res) => {
+    try {
+      const machine = await storage.createMachine(req.body);
+      res.status(201).json(machine);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create machine" });
+    }
+  });
+
+  // Produits API
+  app.get("/api/produits", async (req, res) => {
+    try {
+      const produits = await storage.getAllProduits();
+      res.json(produits);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch produits" });
+    }
+  });
+
+  // Societes API
+  app.get("/api/societes", async (req, res) => {
+    try {
+      const societes = await storage.getAllSocietes();
+      res.json(societes);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch societes" });
+    }
+  });
+
+  // Vehicules API
+  app.get("/api/vehicules", async (req, res) => {
+    try {
+      const vehicules = await storage.getAllVehicules();
+      res.json(vehicules);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch vehicules" });
+    }
+  });
+
+  app.get("/api/vehicules/:id", async (req, res) => {
+    try {
+      const vehicule = await storage.getVehicule(parseInt(req.params.id));
+      if (!vehicule) {
+        return res.status(404).json({ error: "Vehicule not found" });
+      }
+      res.json(vehicule);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch vehicule" });
+    }
+  });
+
+  app.post("/api/vehicules", async (req, res) => {
+    try {
+      const vehicule = await storage.createVehicule(req.body);
+      res.status(201).json(vehicule);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create vehicule" });
+    }
+  });
+
+  // Anomalies API
+  app.get("/api/anomalies", async (req, res) => {
+    try {
+      const anomalies = await storage.getAllAnomalies();
+      res.json(anomalies);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch anomalies" });
+    }
+  });
+
+  // Ingredients API
+  app.get("/api/ingredients", async (req, res) => {
+    try {
+      const ingredients = await storage.getAllIngredients();
+      res.json(ingredients);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch ingredients" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

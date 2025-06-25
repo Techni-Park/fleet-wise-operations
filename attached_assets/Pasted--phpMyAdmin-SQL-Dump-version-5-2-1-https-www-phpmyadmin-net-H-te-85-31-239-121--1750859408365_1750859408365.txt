@@ -1,0 +1,847 @@
+-- phpMyAdmin SQL Dump
+-- version 5.2.1
+-- https://www.phpmyadmin.net/
+--
+-- Hôte : 85.31.239.121
+-- Généré le : mer. 25 juin 2025 à 13:48
+-- Version du serveur : 8.0.42-0ubuntu0.22.04.1
+-- Version de PHP : 8.2.8
+
+SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+START TRANSACTION;
+SET time_zone = "+00:00";
+
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8mb4 */;
+
+--
+-- Base de données : `tp_gestinter`
+--
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `ACTION`
+--
+
+CREATE TABLE `ACTION` (
+  `IDACTION` bigint NOT NULL,
+  `DT_AFAIRE` date DEFAULT NULL,
+  `DTREAL` date DEFAULT NULL,
+  `CDUSER` varchar(3) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT '',
+  `TYPACT` smallint DEFAULT '0',
+  `LIB100` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT '',
+  `COMMENTAIRE` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci,
+  `IDCONTACT` bigint DEFAULT '0',
+  `DHCRE` datetime(3) DEFAULT NULL,
+  `USCRE` varchar(3) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT '',
+  `DHMOD` datetime(3) DEFAULT NULL,
+  `USMOD` varchar(3) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT '',
+  `AFFICHE_AVANT` tinyint DEFAULT '0',
+  `IDPROJET` bigint DEFAULT '0',
+  `IDTACHE` bigint DEFAULT '0',
+  `PRIORITE` smallint DEFAULT '0',
+  `ST_ACTION` smallint DEFAULT '0',
+  `DH_ACOMMENCER` datetime(3) DEFAULT NULL,
+  `DUREE_PREVUE` bigint DEFAULT '0',
+  `DH_COMMENCE` datetime(3) DEFAULT NULL,
+  `DH_MAILEXPED` datetime(3) DEFAULT NULL,
+  `CLE_MACHINE_CIBLE` varchar(12) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT '',
+  `IDACTIONPLANIF` bigint DEFAULT '0',
+  `RAPPEL_MAIL` tinyint DEFAULT '0',
+  `IARCHIVE` tinyint DEFAULT '0',
+  `ID2GENRE_ACTION` smallint DEFAULT '0',
+  `DH_AFINIR` datetime(3) DEFAULT NULL,
+  `DH_REAL` datetime(3) DEFAULT NULL,
+  `IDAGENDA_GOOGLE` varchar(160) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT '',
+  `IDAGENDA_OUTLK` varchar(160) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT '',
+  `LIEU` varchar(160) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT '',
+  `CLE_PIECE_CIBLE` varchar(12) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT '',
+  `IDACTION_PREC` int DEFAULT '0',
+  `IRAPPELFAIT` tinyint DEFAULT '0',
+  `ID2ZONE_GEO` tinyint UNSIGNED DEFAULT '0'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `ANOMALIE`
+--
+
+CREATE TABLE `ANOMALIE` (
+  `IDANOMALIE` bigint NOT NULL,
+  `LIB_ANOMALIE` varchar(80) COLLATE utf8mb4_general_ci DEFAULT '',
+  `ID2_TYPANOM` smallint DEFAULT '0',
+  `CRITICITE` smallint DEFAULT '0',
+  `REPRODUCTIBLE` smallint DEFAULT '0',
+  `PRIORITE` smallint DEFAULT '0',
+  `VERSION` varchar(12) COLLATE utf8mb4_general_ci DEFAULT '',
+  `US_RESP` varchar(3) COLLATE utf8mb4_general_ci DEFAULT '',
+  `US_TRT` varchar(3) COLLATE utf8mb4_general_ci DEFAULT '',
+  `ST_ANOM` tinyint UNSIGNED DEFAULT '0',
+  `DHCRE` datetime(3) DEFAULT NULL,
+  `USCRE` varchar(3) COLLATE utf8mb4_general_ci DEFAULT '',
+  `DHMOD` datetime(3) DEFAULT NULL,
+  `USMOD` varchar(3) COLLATE utf8mb4_general_ci DEFAULT '',
+  `DH_SYNCHRO` datetime DEFAULT NULL,
+  `LIB_CONCERNE` varchar(25) COLLATE utf8mb4_general_ci DEFAULT '',
+  `REF_EXTERNE` varchar(25) COLLATE utf8mb4_general_ci DEFAULT '',
+  `VERSION_RESOL` varchar(12) COLLATE utf8mb4_general_ci DEFAULT '',
+  `TRGCIBLE` varchar(11) COLLATE utf8mb4_general_ci DEFAULT '',
+  `ITERMINE` tinyint DEFAULT '0',
+  `DH_CONSTAT` datetime(3) DEFAULT NULL,
+  `DH_RESOLUTION` datetime(3) DEFAULT NULL,
+  `DETECTE_PAR` varchar(30) COLLATE utf8mb4_general_ci DEFAULT '',
+  `OBSERVATIONS` longtext COLLATE utf8mb4_general_ci
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `CONTACT`
+--
+
+CREATE TABLE `CONTACT` (
+  `IDCONTACT` bigint NOT NULL,
+  `IBAN` varchar(42) COLLATE utf8mb4_general_ci DEFAULT '',
+  `NOMFAMILLE` varchar(30) COLLATE utf8mb4_general_ci DEFAULT '',
+  `PRENOM` varchar(20) COLLATE utf8mb4_general_ci DEFAULT '',
+  `NOMFAMILLEYL` varchar(30) COLLATE utf8mb4_general_ci DEFAULT '',
+  `PRENOMYL` varchar(20) COLLATE utf8mb4_general_ci DEFAULT '',
+  `NOMCLAS` varchar(30) COLLATE utf8mb4_general_ci DEFAULT '',
+  `IDSOCIETE` bigint DEFAULT '0',
+  `QT_PRO` smallint DEFAULT '0',
+  `CTG_CONTACT` tinyint DEFAULT NULL,
+  `DHCRE` datetime(3) DEFAULT NULL,
+  `DTNAISS` date DEFAULT NULL,
+  `DHMOD` datetime(3) DEFAULT NULL,
+  `IDCIVILITE` bigint DEFAULT '1',
+  `ADRESSE1` varchar(50) COLLATE utf8mb4_general_ci DEFAULT '',
+  `ADRESSE2` varchar(50) COLLATE utf8mb4_general_ci DEFAULT '',
+  `RAISON_SOCIALE` varchar(160) COLLATE utf8mb4_general_ci DEFAULT '',
+  `CDPAYS` varchar(3) COLLATE utf8mb4_general_ci DEFAULT 'FRA',
+  `CPOSTAL` varchar(9) COLLATE utf8mb4_general_ci DEFAULT '',
+  `TEL1` varchar(18) COLLATE utf8mb4_general_ci DEFAULT '',
+  `VILLE` varchar(30) COLLATE utf8mb4_general_ci DEFAULT '',
+  `TEL2` varchar(18) COLLATE utf8mb4_general_ci DEFAULT '',
+  `INFOPORTE` varchar(30) COLLATE utf8mb4_general_ci DEFAULT '',
+  `EMAIL` varchar(64) COLLATE utf8mb4_general_ci DEFAULT '',
+  `WEBSITE` varchar(60) COLLATE utf8mb4_general_ci DEFAULT '',
+  `IDCIVILITEP` smallint DEFAULT '0',
+  `ADRESSEP1` varchar(50) COLLATE utf8mb4_general_ci DEFAULT '',
+  `ADRESSEP2` varchar(50) COLLATE utf8mb4_general_ci DEFAULT '',
+  `CDPAYSP` varchar(3) COLLATE utf8mb4_general_ci DEFAULT '',
+  `CPOSTALP` varchar(9) COLLATE utf8mb4_general_ci DEFAULT '',
+  `VILLEP` varchar(30) COLLATE utf8mb4_general_ci DEFAULT '',
+  `EMAILP` varchar(64) COLLATE utf8mb4_general_ci DEFAULT '',
+  `WEBSITEP` varchar(60) COLLATE utf8mb4_general_ci DEFAULT '',
+  `TELP1` varchar(18) COLLATE utf8mb4_general_ci DEFAULT '',
+  `TELP2` varchar(18) COLLATE utf8mb4_general_ci DEFAULT '',
+  `TELP3` varchar(18) COLLATE utf8mb4_general_ci DEFAULT '',
+  `TELAUTRE` varchar(100) COLLATE utf8mb4_general_ci DEFAULT '',
+  `SECTEUR_PRO` varchar(50) COLLATE utf8mb4_general_ci DEFAULT '',
+  `USDEF_LIB` varchar(40) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `USDEF_NUM` double DEFAULT NULL,
+  `USDEF_BOO` tinyint DEFAULT NULL,
+  `COMMENTAIRE` longtext COLLATE utf8mb4_general_ci,
+  `USCRE` varchar(3) COLLATE utf8mb4_general_ci DEFAULT '',
+  `USMOD` varchar(3) COLLATE utf8mb4_general_ci DEFAULT '',
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  `DH_SYNCHRO` datetime DEFAULT NULL,
+  `PHOTO` longblob,
+  `ID2GENRE_CONTACT` tinyint UNSIGNED DEFAULT '0',
+  `FONCTION_PRO` varchar(50) COLLATE utf8mb4_general_ci DEFAULT '',
+  `CD_LANG` smallint DEFAULT '0',
+  `USDEF_DATE` date DEFAULT NULL,
+  `USDEF_CBO` smallint DEFAULT NULL,
+  `LATITUDEP` float DEFAULT '0',
+  `LONGITUDEP` float DEFAULT '0',
+  `REFEXTERNE` varchar(12) COLLATE utf8mb4_general_ci DEFAULT '',
+  `CD_DEVISE` varchar(3) COLLATE utf8mb4_general_ci DEFAULT '',
+  `US_RESP` varchar(3) COLLATE utf8mb4_general_ci DEFAULT '',
+  `ID2TYP_CLIENT` int DEFAULT '0',
+  `IMAIL_BLACKLIST` tinyint DEFAULT NULL,
+  `IARCHIVE` tinyint DEFAULT '0',
+  `ID2ZONE_GEO` tinyint UNSIGNED DEFAULT '0',
+  `ICLTPRO` tinyint DEFAULT '0',
+  `LOGIN` varchar(64) COLLATE utf8mb4_general_ci DEFAULT '',
+  `PASSWORD` varchar(12) COLLATE utf8mb4_general_ci DEFAULT '',
+  `IANOM` tinyint DEFAULT '0',
+  `CDREGION` varchar(3) COLLATE utf8mb4_general_ci DEFAULT '',
+  `CDREGIONP` varchar(3) COLLATE utf8mb4_general_ci DEFAULT '',
+  `TYPTEL3` tinyint UNSIGNED DEFAULT '0',
+  `TYPTEL2` tinyint UNSIGNED DEFAULT '0',
+  `TYPTEL1` tinyint UNSIGNED DEFAULT '0',
+  `TYPTELP1` tinyint UNSIGNED DEFAULT '0',
+  `TYPTELP2` tinyint UNSIGNED DEFAULT '0',
+  `TYPTELP3` tinyint UNSIGNED DEFAULT '0',
+  `IDORIG` bigint DEFAULT '0',
+  `AUTHKEY` varchar(80) COLLATE utf8mb4_general_ci DEFAULT '',
+  `TEL3` varchar(18) COLLATE utf8mb4_general_ci DEFAULT '',
+  `IANOMALIE` tinyint DEFAULT '0'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `INGREDIENT`
+--
+
+CREATE TABLE `INGREDIENT` (
+  `IDINGREDIENT` bigint NOT NULL,
+  `CD_PRODUIT` varchar(25) COLLATE utf8mb4_general_ci DEFAULT '',
+  `DESCRIPTION` varchar(80) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `IDPROJET` bigint DEFAULT '0',
+  `IDTACHE` bigint DEFAULT '0',
+  `IDINTERVENTION` bigint DEFAULT '0',
+  `QT_CONSO` float DEFAULT '0',
+  `UNITE_VENTE` varchar(20) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `IDFAMPROD` int NOT NULL,
+  `QT_FACT` float DEFAULT '0',
+  `DT_DEBUT` date DEFAULT NULL,
+  `HR_DEBUT` time DEFAULT '00:00:00',
+  `DT_FIN` date DEFAULT NULL,
+  `HR_FIN` time DEFAULT '00:00:00',
+  `LIB80` varchar(80) COLLATE utf8mb4_general_ci DEFAULT '',
+  `DHCRE` datetime(3) DEFAULT NULL,
+  `USCRE` varchar(3) COLLATE utf8mb4_general_ci DEFAULT '',
+  `DHMOD` datetime(3) DEFAULT NULL,
+  `USMOD` varchar(3) COLLATE utf8mb4_general_ci DEFAULT '',
+  `ID2GENRE_INGREDIENT` int DEFAULT '0',
+  `PU_ACHAT_HT` decimal(24,6) DEFAULT '0.000000',
+  `PU_VENTE_HT` decimal(24,6) DEFAULT '0.000000',
+  `MTT_VALO` decimal(24,6) DEFAULT '0.000000',
+  `TYP_FAM` smallint DEFAULT '0',
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `isupprime` tinyint(1) DEFAULT '0',
+  `isynchro` tinyint(1) DEFAULT '0',
+  `DH_SYNCHRO` date DEFAULT NULL,
+  `RAISON_SOCIALE` varchar(50) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `NOMFAMILLE` varchar(30) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `PRENOM` varchar(50) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `ADRESSE` varchar(80) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `CP` varchar(5) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `VILLE` varchar(50) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `EMAIL` varchar(80) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `IDSOCIETE` int DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `MACHINE_MNT`
+--
+
+CREATE TABLE `MACHINE_MNT` (
+  `IDMACHINE` bigint NOT NULL,
+  `CD_MACHINE` varchar(25) COLLATE utf8mb4_general_ci DEFAULT '',
+  `LIB_MACHINE` varchar(50) COLLATE utf8mb4_general_ci DEFAULT '',
+  `ID2_ETATMACHINE` int NOT NULL,
+  `MARQUE` varchar(25) COLLATE utf8mb4_general_ci DEFAULT '',
+  `MODELE` varchar(25) COLLATE utf8mb4_general_ci DEFAULT '',
+  `NUM_SAV` varchar(25) COLLATE utf8mb4_general_ci DEFAULT '',
+  `DHMOD` datetime(3) DEFAULT NULL,
+  `DHCRE` datetime(3) DEFAULT NULL,
+  `CONTACT_SAV` varchar(60) COLLATE utf8mb4_general_ci DEFAULT '',
+  `TELSAV` varchar(18) COLLATE utf8mb4_general_ci DEFAULT '',
+  `OBSERVATIONS` longtext COLLATE utf8mb4_general_ci,
+  `IDCONTACT` bigint DEFAULT '0',
+  `DT_PROCH_MNT` date DEFAULT NULL,
+  `DT_EXP_GARANTIE` date DEFAULT NULL,
+  `ID2GENRE_MACHINE` tinyint UNSIGNED DEFAULT '0',
+  `ADRESSE1` varchar(50) COLLATE utf8mb4_general_ci DEFAULT '',
+  `USCRE` varchar(3) COLLATE utf8mb4_general_ci DEFAULT '',
+  `USMOD` varchar(3) COLLATE utf8mb4_general_ci DEFAULT '',
+  `DT_MISEENFONCTION` date DEFAULT NULL,
+  `USDEF_LIB` varchar(40) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `USDEF_NUM` double DEFAULT NULL,
+  `USDEF_BOO` tinyint DEFAULT NULL,
+  `IMG_MACHINE` longblob,
+  `DOSSIER` varchar(150) COLLATE utf8mb4_general_ci DEFAULT '',
+  `DT_DBT_GARANTIE` date DEFAULT NULL,
+  `NUM_SERIE` varchar(25) COLLATE utf8mb4_general_ci DEFAULT '',
+  `TYPE_MACHINE` varchar(25) COLLATE utf8mb4_general_ci DEFAULT '',
+  `IMMAT` varchar(20) COLLATE utf8mb4_general_ci DEFAULT '',
+  `PUISSANCEW` int DEFAULT '0',
+  `KILOMETRAGE` int DEFAULT '0',
+  `USDEF_DATE` date DEFAULT NULL,
+  `USDEF_CBO` smallint DEFAULT NULL,
+  `US_RESP` varchar(3) COLLATE utf8mb4_general_ci DEFAULT '',
+  `IDSOCIETE` bigint DEFAULT '0',
+  `POIDS` double DEFAULT '0',
+  `CD_PRODUIT` varchar(25) COLLATE utf8mb4_general_ci DEFAULT '',
+  `DT_MNT_DBT` date DEFAULT NULL,
+  `DT_MNT_FIN` date DEFAULT NULL,
+  `IARCHIVE` tinyint DEFAULT '0',
+  `CPOSTAL` varchar(9) COLLATE utf8mb4_general_ci DEFAULT '',
+  `VILLE` varchar(30) COLLATE utf8mb4_general_ci DEFAULT '',
+  `CDREGION` varchar(3) COLLATE utf8mb4_general_ci DEFAULT '',
+  `CDPAYS` varchar(3) COLLATE utf8mb4_general_ci DEFAULT '',
+  `ADRESSE2` varchar(50) COLLATE utf8mb4_general_ci DEFAULT '',
+  `CAPACITE` varchar(50) COLLATE utf8mb4_general_ci DEFAULT '0'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `PRODUIT`
+--
+
+CREATE TABLE `PRODUIT` (
+  `CD_PRODUIT` varchar(25) COLLATE utf8mb4_general_ci DEFAULT '',
+  `IDSOCIETE` bigint DEFAULT '0',
+  `LIB_PRODUIT` varchar(100) COLLATE utf8mb4_general_ci DEFAULT '',
+  `IDFAMPROD` bigint DEFAULT '0',
+  `PU_ACHAT_HT` decimal(24,6) DEFAULT '0.000000',
+  `PU_VENTE_HT` decimal(24,6) DEFAULT '0.000000',
+  `TX_TVA_VENTE` float DEFAULT '0',
+  `PU_ACHAT_TTC` decimal(24,6) DEFAULT '0.000000',
+  `PU_VENTE_TTC` decimal(24,6) DEFAULT '0.000000',
+  `STK_ALERTE` double DEFAULT '0',
+  `STK_SECURITE` double DEFAULT '0',
+  `STK_COURANT` double DEFAULT '0',
+  `UNITE_VENTE` varchar(15) COLLATE utf8mb4_general_ci DEFAULT '',
+  `EAN13` varchar(13) COLLATE utf8mb4_general_ci DEFAULT '',
+  `USDEF_LIB` varchar(40) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `USDEF_NUM` double DEFAULT NULL,
+  `IMG_PROD` longblob,
+  `DOSSIER` varchar(150) COLLATE utf8mb4_general_ci DEFAULT '',
+  `IHORSCATALOGUE` tinyint DEFAULT '0',
+  `DELAI_LIVR` smallint UNSIGNED DEFAULT '0',
+  `POIDS_BRUT` float DEFAULT '0',
+  `VOLUME` float DEFAULT '0',
+  `IGERE_STOCK` tinyint DEFAULT '0',
+  `DESCRIPTIF` longtext COLLATE utf8mb4_general_ci,
+  `TX_TVA_ACHAT` float DEFAULT '0',
+  `NOTES_TECHNIQUES` longtext COLLATE utf8mb4_general_ci,
+  `IDSSFAMPROD` bigint DEFAULT '0',
+  `CD_PRODUIT_FOU` varchar(25) COLLATE utf8mb4_general_ci DEFAULT '',
+  `USDEF_BOO` tinyint DEFAULT NULL,
+  `USDEF_CBO` smallint DEFAULT NULL,
+  `USDEF_DATE` date DEFAULT NULL,
+  `DELAI_LIVR_FOU` smallint UNSIGNED DEFAULT '0',
+  `CD_PLANCOMPTA` varchar(15) COLLATE utf8mb4_general_ci DEFAULT '',
+  `TX_REM_FOU` float DEFAULT '0',
+  `TX_CHUTE` float DEFAULT '0',
+  `MTT_DEEE` decimal(24,6) DEFAULT '0.000000',
+  `IPRODCOMP` tinyint DEFAULT '0',
+  `ICOMPMOD` tinyint DEFAULT '0',
+  `ITELQUEL` tinyint DEFAULT '0',
+  `IMP_DETAIL_COMP` smallint DEFAULT '0',
+  `IGENFABAUTO` tinyint DEFAULT '0',
+  `ID2RAYON` int DEFAULT '0',
+  `IARRONDI_HT` tinyint DEFAULT '0',
+  `ITARIFAUTO` tinyint DEFAULT '0',
+  `STK_MAX` double DEFAULT '0',
+  `MARQUE` varchar(25) COLLATE utf8mb4_general_ci DEFAULT '',
+  `UNITE_ACHAT` varchar(15) COLLATE utf8mb4_general_ci DEFAULT '',
+  `NOTES_FOURNISSEUR` longtext COLLATE utf8mb4_general_ci,
+  `PU_REVIENT_HT` decimal(24,6) DEFAULT '0.000000',
+  `PU_REVIENT_TTC` decimal(24,6) DEFAULT '0.000000',
+  `TX_TVA_REVIENT` float DEFAULT '0',
+  `NOMEN_DOUANE` varchar(10) COLLATE utf8mb4_general_ci DEFAULT '',
+  `POIDS_NET` float DEFAULT '0',
+  `QT_MINCDE` float DEFAULT '0',
+  `DIMLONG` float DEFAULT '0',
+  `DIMLARG` float DEFAULT '0',
+  `DIMHAUT` float DEFAULT '0',
+  `TYP_COMMERCIALISAT` tinyint UNSIGNED DEFAULT '0',
+  `IDPRODUIT` bigint NOT NULL,
+  `IGERE_LOT` tinyint DEFAULT '0',
+  `QTE_INDIV` float DEFAULT '0',
+  `TYP_PRIX` tinyint UNSIGNED DEFAULT '0',
+  `PCT_PRIXVENTE` float DEFAULT '0',
+  `ITARFOU` tinyint DEFAULT '0',
+  `CD_DEVISEFOU` varchar(3) COLLATE utf8mb4_general_ci DEFAULT '',
+  `PU_ACHAT_HTDF` decimal(24,6) DEFAULT '0.000000',
+  `ISANSREMISEC` tinyint DEFAULT '0',
+  `ISANSREMISEF` tinyint DEFAULT '0',
+  `DT_DERMAJTARIFC` date DEFAULT NULL,
+  `DT_DERMAJTARIFF` date DEFAULT NULL,
+  `ID2GENRE_PRD` tinyint UNSIGNED DEFAULT '0',
+  `TX_MARGE` float DEFAULT '0',
+  `TX_MARGEOBJ` float DEFAULT '0',
+  `IFINSERIE` tinyint DEFAULT '0',
+  `NBDECQPROD` tinyint UNSIGNED DEFAULT '0',
+  `IDPRODUITDOSS` bigint DEFAULT '0',
+  `PAMP` decimal(24,6) DEFAULT '0.000000',
+  `ID2TYP_GARANTIE` tinyint UNSIGNED DEFAULT '0',
+  `DUREE_GARANTIE` smallint UNSIGNED DEFAULT '0',
+  `VITESSEROTA` float DEFAULT '0',
+  `MTT_TRANSPORT` decimal(24,6) DEFAULT '0.000000',
+  `MTT_DOUANES` decimal(24,6) DEFAULT '0.000000',
+  `ID2_ATTRIBPRO` smallint UNSIGNED DEFAULT NULL,
+  `IDORIG` bigint DEFAULT '0',
+  `CD_ACTION` varchar(1) COLLATE utf8mb4_general_ci DEFAULT '',
+  `TIMESTAMP_TRAD` datetime(3) DEFAULT NULL,
+  `DHCRE` datetime(3) DEFAULT NULL,
+  `USCRE` varchar(3) COLLATE utf8mb4_general_ci DEFAULT '',
+  `DHMOD` datetime(3) DEFAULT NULL,
+  `USMOD` varchar(3) COLLATE utf8mb4_general_ci DEFAULT '',
+  `AUTHKEY` varchar(80) COLLATE utf8mb4_general_ci DEFAULT '',
+  `QTE_REASSORT` float DEFAULT '0',
+  `IGERE_NUMSERIE` tinyint DEFAULT '0',
+  `USDEF_LIB1` varchar(40) COLLATE utf8mb4_general_ci DEFAULT '',
+  `USDEF_DATE1` date DEFAULT NULL,
+  `USDEF_LIB2` varchar(40) COLLATE utf8mb4_general_ci DEFAULT '',
+  `USDEF_DATE2` date DEFAULT NULL,
+  `USDEF_LIB3` varchar(40) COLLATE utf8mb4_general_ci DEFAULT '',
+  `USDEF_DATE3` date DEFAULT NULL,
+  `USDEF_LIB4` varchar(40) COLLATE utf8mb4_general_ci DEFAULT '',
+  `USDEF_DATE4` date DEFAULT NULL,
+  `USDEF_LIB5` varchar(40) COLLATE utf8mb4_general_ci DEFAULT '',
+  `USDEF_DATE5` date DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `SOCIETE`
+--
+
+CREATE TABLE `SOCIETE` (
+  `IDDELPMT` bigint DEFAULT '0',
+  `IDSOCIETE` bigint NOT NULL,
+  `RAISON_SOCIALE` varchar(160) COLLATE utf8mb4_general_ci DEFAULT '',
+  `ADRESSEP1` varchar(50) COLLATE utf8mb4_general_ci DEFAULT '',
+  `ADRESSEP2` varchar(50) COLLATE utf8mb4_general_ci DEFAULT '',
+  `CPOSTALP` varchar(9) COLLATE utf8mb4_general_ci DEFAULT '',
+  `VILLEP` varchar(30) COLLATE utf8mb4_general_ci DEFAULT '',
+  `CDPAYSP` varchar(3) COLLATE utf8mb4_general_ci DEFAULT '',
+  `TELAUTRE` varchar(150) COLLATE utf8mb4_general_ci DEFAULT '',
+  `NENTREP` varchar(30) COLLATE utf8mb4_general_ci DEFAULT '',
+  `SIRET` varchar(21) COLLATE utf8mb4_general_ci DEFAULT '',
+  `CODE_APE` varchar(5) COLLATE utf8mb4_general_ci DEFAULT '',
+  `NUM_TVA` varchar(15) COLLATE utf8mb4_general_ci DEFAULT '',
+  `EMAILP` varchar(50) COLLATE utf8mb4_general_ci DEFAULT '',
+  `WEBSITEP` varchar(60) COLLATE utf8mb4_general_ci DEFAULT '',
+  `IFOURNISSEUR` tinyint DEFAULT '0',
+  `IDCONTACT_CDE` bigint DEFAULT '0',
+  `COMMENTAIRE` longtext COLLATE utf8mb4_general_ci,
+  `USCRE` varchar(3) COLLATE utf8mb4_general_ci DEFAULT '',
+  `DHCRE` datetime(3) DEFAULT NULL,
+  `USMOD` varchar(3) COLLATE utf8mb4_general_ci DEFAULT '',
+  `DHMOD` datetime(3) DEFAULT NULL,
+  `EFFECTIFS` int DEFAULT '0',
+  `USDEF_BOO` tinyint DEFAULT NULL,
+  `USDEF_CBO` smallint DEFAULT NULL,
+  `USDEF_DATE` date DEFAULT NULL,
+  `USDEF_LIB` varchar(40) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `USDEF_NUM` double DEFAULT NULL,
+  `TX_REMISE` float DEFAULT '0',
+  `TX_TVACLI` float DEFAULT '0',
+  `REGIME_TVACLI` tinyint UNSIGNED DEFAULT '0',
+  `CD_DEVISE` varchar(3) COLLATE utf8mb4_general_ci DEFAULT '',
+  `ID2MODE_PAIEMENT` tinyint UNSIGNED DEFAULT '0',
+  `ID2CDT_FACTUR` tinyint UNSIGNED DEFAULT '0',
+  `ID2FORME_SOCIALE` tinyint UNSIGNED DEFAULT '0',
+  `TELP1` varchar(18) COLLATE utf8mb4_general_ci DEFAULT '',
+  `MTT_CAPITAL` bigint UNSIGNED DEFAULT '0',
+  `TELP2` varchar(18) COLLATE utf8mb4_general_ci DEFAULT '',
+  `TELP3` varchar(18) COLLATE utf8mb4_general_ci DEFAULT '',
+  `TYPTELP1` tinyint UNSIGNED DEFAULT '0',
+  `TYPTELP2` tinyint UNSIGNED DEFAULT '0',
+  `TYPTELP3` tinyint UNSIGNED DEFAULT '0',
+  `TX_REMISEMAX` float DEFAULT '0',
+  `IBAN` varchar(42) COLLATE utf8mb4_general_ci DEFAULT '',
+  `BIC` varchar(14) COLLATE utf8mb4_general_ci DEFAULT '',
+  `CDREGIONP` varchar(3) COLLATE utf8mb4_general_ci DEFAULT '',
+  `REFEXTERNE` varchar(12) COLLATE utf8mb4_general_ci DEFAULT '',
+  `TX_RETRO` float DEFAULT '0',
+  `US_RESP` varchar(3) COLLATE utf8mb4_general_ci DEFAULT '',
+  `ID2CDTCDFOU` tinyint UNSIGNED DEFAULT '0',
+  `MTT_FRANCO` int DEFAULT '0'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `USER`
+--
+
+CREATE TABLE `USER` (
+  `CDUSER` varchar(3) COLLATE utf8mb4_general_ci DEFAULT '',
+  `PASSWORD` varchar(12) COLLATE utf8mb4_general_ci DEFAULT '',
+  `IARCHIVE` tinyint DEFAULT '0',
+  `NOMFAMILLE` varchar(30) COLLATE utf8mb4_general_ci DEFAULT '',
+  `PRENOM` varchar(20) COLLATE utf8mb4_general_ci DEFAULT '',
+  `PARAM_USER` longtext COLLATE utf8mb4_general_ci,
+  `TELBUR` varchar(18) COLLATE utf8mb4_general_ci DEFAULT '',
+  `OUVRIR_DEMARRAGE` smallint DEFAULT '0',
+  `ACTION_Défaut` tinyint UNSIGNED DEFAULT '0',
+  `DHCRE` datetime(3) DEFAULT NULL,
+  `CHRN_LANC` smallint DEFAULT '0',
+  `DHMOD` datetime(3) DEFAULT NULL,
+  `DH_SYNCHRO` datetime DEFAULT NULL,
+  `CHRN_OPAC` tinyint UNSIGNED DEFAULT '0',
+  `CHRN_DELAI` tinyint UNSIGNED DEFAULT '0',
+  `IAUTORISE` tinyint DEFAULT '0',
+  `ICONNECTE` tinyint DEFAULT '0',
+  `IP_CONNECTION` varchar(15) COLLATE utf8mb4_general_ci DEFAULT '',
+  `DH_CONNECT` datetime(3) DEFAULT NULL,
+  `IADMIN` tinyint DEFAULT '0',
+  `ADRESSE1` varchar(50) COLLATE utf8mb4_general_ci DEFAULT '',
+  `ADRESSE2` varchar(50) COLLATE utf8mb4_general_ci DEFAULT '',
+  `CPOSTAL` varchar(9) COLLATE utf8mb4_general_ci DEFAULT '',
+  `VILLE` varchar(30) COLLATE utf8mb4_general_ci DEFAULT '',
+  `EMAIL` varchar(64) COLLATE utf8mb4_general_ci DEFAULT '',
+  `EMAILP` varchar(50) COLLATE utf8mb4_general_ci DEFAULT '',
+  `NOM_MAIL` varchar(40) COLLATE utf8mb4_general_ci DEFAULT '',
+  `NOM_MAILP` varchar(40) COLLATE utf8mb4_general_ci DEFAULT '',
+  `COMMENTAIRE` longtext COLLATE utf8mb4_general_ci,
+  `USCRE` varchar(3) COLLATE utf8mb4_general_ci DEFAULT '',
+  `USMOD` varchar(3) COLLATE utf8mb4_general_ci DEFAULT '',
+  `CL_FONDMENU` int DEFAULT '0',
+  `OPAC_POSTIT` smallint DEFAULT '0',
+  `CHRN_AFFICHE` tinyint DEFAULT '0',
+  `CHRN_SON` tinyint DEFAULT '0',
+  `NUMSECU` varchar(13) COLLATE utf8mb4_general_ci DEFAULT '',
+  `IAUTMODIF` tinyint DEFAULT '0',
+  `TELDOM` varchar(18) COLLATE utf8mb4_general_ci DEFAULT '',
+  `GSMBUR` varchar(18) COLLATE utf8mb4_general_ci DEFAULT '',
+  `IAFF_PREMLIGNE` tinyint DEFAULT '0',
+  `TELDET_LANC` smallint DEFAULT '0',
+  `TELDET_SON` tinyint DEFAULT '0',
+  `NOM_APPARENT` varchar(50) COLLATE utf8mb4_general_ci DEFAULT '',
+  `ACTION_AFF_AVANT` tinyint UNSIGNED DEFAULT '0',
+  `CD_LANG` smallint DEFAULT '0',
+  `MENTIONS_SP` varchar(300) COLLATE utf8mb4_general_ci DEFAULT '',
+  `PHOTO` longblob,
+  `HR_DBT_W` time DEFAULT '00:00:00',
+  `HR_FIN_W` time DEFAULT '00:00:00',
+  `JR_DEBUT_SEMAINE` smallint DEFAULT '0',
+  `DUREE_ACTION_DEFAUT` smallint DEFAULT NULL,
+  `PRIVILEGES` smallint DEFAULT NULL,
+  `IMASQPXACH` tinyint DEFAULT '0',
+  `ISYNCH_GGL` tinyint DEFAULT '0',
+  `ISYNCH_OUTLK` tinyint DEFAULT '0',
+  `IRAPPEL_FACTURE` smallint DEFAULT NULL,
+  `IRAPPEL_DEVIS` smallint DEFAULT '0',
+  `NBJOURS_RAPPEL` smallint DEFAULT '0',
+  `NBHR_HEBDO` float DEFAULT '0',
+  `POLICE_POSTIT` varchar(20) COLLATE utf8mb4_general_ci DEFAULT '',
+  `COUL_POSTIT` int DEFAULT '0',
+  `TAILLEPOL_POSTIT` tinyint DEFAULT '0',
+  `PRIVIL_PGMEXTERNE` smallint DEFAULT '0',
+  `PRIVIL_SUP` smallint DEFAULT NULL,
+  `DH_DERNIERE_LECTURE` datetime(3) DEFAULT NULL,
+  `AFF_ONGLET_PROJET` tinyint DEFAULT NULL,
+  `AFF_ONGLET_CONTACT` tinyint DEFAULT NULL,
+  `AFF_MENUS` tinyint DEFAULT NULL,
+  `PRIVIL_PATCH` tinyint DEFAULT '0',
+  `PRIVIL_EXPORT` tinyint DEFAULT '0',
+  `AFF_ONGLET_PRODUIT` tinyint DEFAULT NULL,
+  `CL_FONDECRAN` int DEFAULT '0',
+  `DH_DECONNECT` datetime(3) DEFAULT NULL,
+  `IDUSER` bigint NOT NULL,
+  `DT_NAISS` date DEFAULT NULL,
+  `LIEUNAISS` varchar(36) COLLATE utf8mb4_general_ci DEFAULT '',
+  `SIGNATURE` longblob,
+  `FONCTION_PRO` varchar(25) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `CDPAYS` varchar(3) COLLATE utf8mb4_general_ci DEFAULT '',
+  `CDREGIONP` varchar(3) COLLATE utf8mb4_general_ci DEFAULT '',
+  `ADRESSEP1` varchar(50) COLLATE utf8mb4_general_ci DEFAULT '',
+  `ADRESSEP2` varchar(50) COLLATE utf8mb4_general_ci DEFAULT '',
+  `CPOSTALP` varchar(9) COLLATE utf8mb4_general_ci DEFAULT '',
+  `VILLEP` varchar(30) COLLATE utf8mb4_general_ci DEFAULT '',
+  `CDREGION` varchar(3) COLLATE utf8mb4_general_ci DEFAULT '',
+  `CDPAYSP` varchar(3) COLLATE utf8mb4_general_ci DEFAULT '',
+  `PRIVIL_REFER` tinyint DEFAULT '0',
+  `PRIVIL_ADDON` tinyint DEFAULT '0',
+  `DUR_PAUSE` time DEFAULT '00:00:00',
+  `ICONF_ABANDON` tinyint DEFAULT '0',
+  `ID2POOL` int DEFAULT '0',
+  `ID2SERVICE` int DEFAULT '0',
+  `IPANIER` tinyint DEFAULT '0',
+  `IEXTERNE` tinyint DEFAULT '0',
+  `DT_ENTREE` date DEFAULT NULL,
+  `DT_SORTIE` date DEFAULT NULL,
+  `IC2CONTRATW` int DEFAULT '0',
+  `COEFFSAL` varchar(10) COLLATE utf8mb4_general_ci DEFAULT '',
+  `DHRECONNECT` datetime(3) DEFAULT NULL,
+  `TX_REMISEMAX` float DEFAULT '0',
+  `CD_PAYSNAISS` varchar(3) COLLATE utf8mb4_general_ci DEFAULT '',
+  `USDEF_BOO` tinyint DEFAULT NULL,
+  `USDEF_CBO` tinyint UNSIGNED DEFAULT NULL,
+  `USDEF_DATE` date DEFAULT NULL,
+  `USDEF_LIB` varchar(40) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `USDEF_NUM` double DEFAULT NULL,
+  `HRDBTCNXAUT` time DEFAULT '00:00:00',
+  `HRFINCNXAUT` time DEFAULT '00:00:00',
+  `IPCNXAUT` varchar(15) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `PRIVIL_AUTRES` varchar(12) COLLATE utf8mb4_general_ci DEFAULT '',
+  `JRCNXAUT` tinyint DEFAULT NULL,
+  `COULAFF` int DEFAULT '0'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `users`
+--
+
+CREATE TABLE `users` (
+  `id` int UNSIGNED NOT NULL,
+  `active` tinyint(1) NOT NULL DEFAULT '0',
+  `CDUSER` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `first_name` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `last_name` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `email` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `password` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `remember_token` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `last_login` datetime DEFAULT NULL,
+  `ip` varchar(20) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `idagenda` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  `deleted_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `VEHICULE`
+--
+
+CREATE TABLE `VEHICULE` (
+  `IDVEHICULE` bigint NOT NULL,
+  `IDCONTACT` bigint DEFAULT NULL,
+  `IDMACHINE` int UNSIGNED NOT NULL,
+  `IDSOCIETE` bigint DEFAULT NULL,
+  `IMMAT` varchar(20) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `ID2_TYPEVEHIC` tinyint UNSIGNED DEFAULT NULL,
+  `PUISSANCE_ADMIN` tinyint DEFAULT NULL,
+  `NUM_CNIT` varchar(25) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `NUM_IDENTIF` varchar(25) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `NUMSERIE_CLE` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci,
+  `URL_CONSTRUCTEUR` varchar(100) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `PVIDE` int DEFAULT NULL,
+  `PTAC` int DEFAULT NULL,
+  `PTR` int DEFAULT NULL,
+  `GENRE_NATIONAL` varchar(5) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `CARBURANT` varchar(5) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `PLACES_ASSISES` int DEFAULT NULL,
+  `COUT_KM` float DEFAULT NULL,
+  `NUMCONTRASS` varchar(24) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `DT_ECHASS` date DEFAULT NULL,
+  `KMVIDANGE` int UNSIGNED DEFAULT NULL,
+  `KMACTUEL` int UNSIGNED DEFAULT NULL,
+  `DT_PREMCIRC` date DEFAULT NULL,
+  `DT_PRCTRL` date DEFAULT NULL,
+  `DT_DERNIEREMAINT` date DEFAULT NULL,
+  `DT_CTRLTECH` date DEFAULT NULL,
+  `DT_CTRLPOLLUTION` date DEFAULT NULL,
+  `PNEUSAV` varchar(24) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `PNEUSAR` varchar(24) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `NOTES` text COLLATE utf8mb4_general_ci,
+  `DHCRE` datetime DEFAULT NULL,
+  `USCRE` varchar(3) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `DHMOD` datetime DEFAULT NULL,
+  `USMOD` varchar(3) COLLATE utf8mb4_general_ci DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Index pour les tables déchargées
+--
+
+--
+-- Index pour la table `ACTION`
+--
+ALTER TABLE `ACTION`
+  ADD PRIMARY KEY (`IDACTION`),
+  ADD KEY `WDIDX17234964620` (`DT_AFAIRE`),
+  ADD KEY `WDIDX17234964621` (`DTREAL`),
+  ADD KEY `WDIDX17234964622` (`CDUSER`),
+  ADD KEY `WDIDX17234964623` (`TYPACT`),
+  ADD KEY `WDIDX17234964624` (`IDCONTACT`),
+  ADD KEY `WDIDX17234964625` (`IDPROJET`),
+  ADD KEY `WDIDX17234964626` (`IDTACHE`),
+  ADD KEY `WDIDX17234964627` (`CLE_MACHINE_CIBLE`),
+  ADD KEY `WDIDX17234964628` (`IDACTIONPLANIF`),
+  ADD KEY `WDIDX17234964629` (`ID2GENRE_ACTION`),
+  ADD KEY `WDIDX172349646210` (`IDAGENDA_GOOGLE`),
+  ADD KEY `WDIDX172349646211` (`IDAGENDA_OUTLK`),
+  ADD KEY `WDIDX172349646212` (`CLE_PIECE_CIBLE`),
+  ADD KEY `CC_US_REAL` (`CDUSER`,`DTREAL`),
+  ADD KEY `CC_US_AFAIRE` (`CDUSER`,`DT_AFAIRE`),
+  ADD KEY `CC_PRTA` (`IDPROJET`,`IDTACHE`),
+  ADD KEY `CC_CT_AR` (`IDCONTACT`,`IARCHIVE`),
+  ADD KEY `CC_PR_AR` (`IDPROJET`,`IARCHIVE`),
+  ADD KEY `CC_MA_ST_DT` (`CLE_MACHINE_CIBLE`,`ST_ACTION`,`DT_AFAIRE`),
+  ADD KEY `CC_TY_DT_USR` (`TYPACT`,`DT_AFAIRE`,`CDUSER`),
+  ADD KEY `CC_AP_DT` (`IDACTIONPLANIF`,`DT_AFAIRE`);
+
+--
+-- Index pour la table `ANOMALIE`
+--
+ALTER TABLE `ANOMALIE`
+  ADD PRIMARY KEY (`IDANOMALIE`),
+  ADD KEY `WDIDX16491668420` (`LIB_CONCERNE`),
+  ADD KEY `WDIDX16491668421` (`TRGCIBLE`),
+  ADD KEY `CC_CIBLTERM` (`TRGCIBLE`,`ITERMINE`);
+
+--
+-- Index pour la table `CONTACT`
+--
+ALTER TABLE `CONTACT`
+  ADD PRIMARY KEY (`IDCONTACT`),
+  ADD KEY `WDIDX17290865640` (`NOMFAMILLE`),
+  ADD KEY `WDIDX17290865641` (`NOMCLAS`),
+  ADD KEY `WDIDX17290865642` (`IDSOCIETE`),
+  ADD KEY `WDIDX17290865643` (`QT_PRO`),
+  ADD KEY `WDIDX17290865644` (`DHCRE`),
+  ADD KEY `WDIDX17290865645` (`DHMOD`),
+  ADD KEY `WDIDX17290865646` (`RAISON_SOCIALE`),
+  ADD KEY `WDIDX17290865647` (`CDPAYS`),
+  ADD KEY `WDIDX17290865648` (`CPOSTAL`),
+  ADD KEY `WDIDX17290865649` (`VILLE`),
+  ADD KEY `WDIDX172908656410` (`EMAIL`),
+  ADD KEY `WDIDX172908656411` (`CDPAYSP`),
+  ADD KEY `WDIDX172908656412` (`CPOSTALP`),
+  ADD KEY `WDIDX172908656413` (`VILLEP`),
+  ADD KEY `WDIDX172908656414` (`EMAILP`),
+  ADD KEY `WDIDX172908656415` (`SECTEUR_PRO`),
+  ADD KEY `WDIDX172908656516` (`ID2GENRE_CONTACT`),
+  ADD KEY `WDIDX172908656517` (`REFEXTERNE`),
+  ADD KEY `WDIDX172908656518` (`LOGIN`),
+  ADD KEY `CC_NOMPRENOM` (`NOMFAMILLE`,`PRENOM`),
+  ADD KEY `CC_US_NOMCL` (`USCRE`,`NOMCLAS`),
+  ADD KEY `CC_US_RSN` (`USCRE`,`RAISON_SOCIALE`),
+  ADD KEY `CC_AR_NOMCL` (`IARCHIVE`,`NOMCLAS`),
+  ADD KEY `CC_IDORIGCRE` (`IDORIG`,`DHCRE`);
+
+--
+-- Index pour la table `INGREDIENT`
+--
+ALTER TABLE `INGREDIENT`
+  ADD PRIMARY KEY (`IDINGREDIENT`),
+  ADD KEY `WDIDX16663059550` (`CD_PRODUIT`),
+  ADD KEY `WDIDX16663059551` (`IDPROJET`),
+  ADD KEY `WDIDX16663059562` (`IDTACHE`),
+  ADD KEY `WDIDX16663059563` (`IDINTERVENTION`),
+  ADD KEY `WDIDX16663059564` (`DT_DEBUT`),
+  ADD KEY `CC_GENRE_DT_PROD` (`ID2GENRE_INGREDIENT`,`DT_DEBUT`,`CD_PRODUIT`);
+
+--
+-- Index pour la table `MACHINE_MNT`
+--
+ALTER TABLE `MACHINE_MNT`
+  ADD PRIMARY KEY (`IDMACHINE`),
+  ADD UNIQUE KEY `CC_CDSERIE` (`CD_MACHINE`,`NUM_SERIE`),
+  ADD KEY `WDIDX172647415415` (`CD_MACHINE`),
+  ADD KEY `WDIDX172647415416` (`MODELE`),
+  ADD KEY `WDIDX172647415417` (`IDCONTACT`),
+  ADD KEY `WDIDX172647415418` (`DT_PROCH_MNT`),
+  ADD KEY `WDIDX172647415419` (`ID2GENRE_MACHINE`),
+  ADD KEY `WDIDX172647415420` (`NUM_SERIE`),
+  ADD KEY `WDIDX172647415421` (`IDSOCIETE`),
+  ADD KEY `WDIDX172647415422` (`IARCHIVE`),
+  ADD KEY `WDIDX172647415423` (`CPOSTAL`),
+  ADD KEY `WDIDX172647415424` (`VILLE`);
+
+--
+-- Index pour la table `PRODUIT`
+--
+ALTER TABLE `PRODUIT`
+  ADD PRIMARY KEY (`IDPRODUIT`),
+  ADD UNIQUE KEY `CD_PRODUIT` (`CD_PRODUIT`),
+  ADD UNIQUE KEY `CC_FOU_PRO` (`IDSOCIETE`,`CD_PRODUIT`),
+  ADD KEY `WDIDX16633635480` (`IDSOCIETE`),
+  ADD KEY `WDIDX16633635481` (`LIB_PRODUIT`),
+  ADD KEY `WDIDX16633635492` (`IDFAMPROD`),
+  ADD KEY `WDIDX16633635493` (`PU_VENTE_HT`),
+  ADD KEY `WDIDX16633635494` (`EAN13`),
+  ADD KEY `WDIDX16633635495` (`IDSSFAMPROD`),
+  ADD KEY `WDIDX16633635496` (`CD_PRODUIT_FOU`),
+  ADD KEY `WDIDX16633635497` (`MARQUE`),
+  ADD KEY `WDIDX16633635498` (`DHCRE`),
+  ADD KEY `CC_FAM_PROD` (`IDFAMPROD`,`CD_PRODUIT`),
+  ADD KEY `CC_CAT_CD` (`IHORSCATALOGUE`,`CD_PRODUIT`),
+  ADD KEY `CC_FOU_FAM_PROD` (`IDSOCIETE`,`IDFAMPROD`,`CD_PRODUIT`),
+  ADD KEY `CC_IDORIGCRE` (`IDORIG`,`DHCRE`),
+  ADD KEY `CC_ARCHCOMCD` (`IHORSCATALOGUE`,`TYP_COMMERCIALISAT`,`CD_PRODUIT`);
+
+--
+-- Index pour la table `SOCIETE`
+--
+ALTER TABLE `SOCIETE`
+  ADD PRIMARY KEY (`IDSOCIETE`),
+  ADD KEY `WDIDX16696311670` (`RAISON_SOCIALE`),
+  ADD KEY `WDIDX16696311671` (`CPOSTALP`),
+  ADD KEY `WDIDX16696311672` (`VILLEP`),
+  ADD KEY `WDIDX16696311673` (`CDPAYSP`),
+  ADD KEY `WDIDX16696311674` (`IDCONTACT_CDE`),
+  ADD KEY `CC_FOUR_RAIS` (`IFOURNISSEUR`,`RAISON_SOCIALE`);
+
+--
+-- Index pour la table `USER`
+--
+ALTER TABLE `USER`
+  ADD PRIMARY KEY (`IDUSER`),
+  ADD UNIQUE KEY `CDUSER` (`CDUSER`),
+  ADD KEY `WDIDX17223382960` (`NOMFAMILLE`);
+
+--
+-- Index pour la table `users`
+--
+ALTER TABLE `users`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `users_email_unique` (`email`),
+  ADD UNIQUE KEY `CDUSER` (`CDUSER`);
+
+--
+-- Index pour la table `VEHICULE`
+--
+ALTER TABLE `VEHICULE`
+  ADD PRIMARY KEY (`IDVEHICULE`),
+  ADD UNIQUE KEY `IDMACHINE` (`IDMACHINE`);
+
+--
+-- AUTO_INCREMENT pour les tables déchargées
+--
+
+--
+-- AUTO_INCREMENT pour la table `ACTION`
+--
+ALTER TABLE `ACTION`
+  MODIFY `IDACTION` bigint NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT pour la table `INGREDIENT`
+--
+ALTER TABLE `INGREDIENT`
+  MODIFY `IDINGREDIENT` bigint NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT pour la table `MACHINE_MNT`
+--
+ALTER TABLE `MACHINE_MNT`
+  MODIFY `IDMACHINE` bigint NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT pour la table `USER`
+--
+ALTER TABLE `USER`
+  MODIFY `IDUSER` bigint NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT pour la table `users`
+--
+ALTER TABLE `users`
+  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT pour la table `VEHICULE`
+--
+ALTER TABLE `VEHICULE`
+  MODIFY `IDVEHICULE` bigint NOT NULL AUTO_INCREMENT;
+COMMIT;
+
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
