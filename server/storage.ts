@@ -61,6 +61,8 @@ export interface IStorage {
   getContact(id: number): Promise<Contact | undefined>;
   getAllContacts(): Promise<Contact[]>;
   createContact(contact: InsertContact): Promise<Contact>;
+  updateContact(id: number, contact: Partial<InsertContact>): Promise<Contact | undefined>;
+  deleteContact(id: number): Promise<boolean>;
 
   // Machines
   getMachine(id: number): Promise<MachineMnt | undefined>;
@@ -321,6 +323,26 @@ export class MySQLStorage implements IStorage {
     const insertId = result[0].insertId as number;
     const newContact = await this.getContact(insertId);
     return newContact!;
+  }
+
+  async updateContact(id: number, contact: Partial<InsertContact>): Promise<Contact | undefined> {
+    try {
+      await db.update(contacts).set(contact).where(eq(contacts.IDCONTACT, id));
+      return await this.getContact(id);
+    } catch (error) {
+      console.error('Erreur updateContact:', error);
+      return undefined;
+    }
+  }
+
+  async deleteContact(id: number): Promise<boolean> {
+    try {
+      const result = await db.delete(contacts).where(eq(contacts.IDCONTACT, id));
+      return (result as any).affectedRows > 0;
+    } catch (error) {
+      console.error('Erreur deleteContact:', error);
+      return false;
+    }
   }
 
   // Machines
