@@ -1,63 +1,93 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, ReactNode } from 'react';
 
-interface AuthContextType {
-  user: any | null;
-  login: (userData: any) => void;
-  logout: () => void;
-  loading: boolean;
+interface User {
+  // Données de la table USER
+  IDUSER: number;
+  EMAILP: string;
+  NOMFAMILLE: string;
+  PRENOM: string;
+  CDUSER: string;
+  IADMIN: number;
+  IAUTORISE: number;
+  FONCTION_PRO?: string;
+  TELBUR?: string;
+  PASSWORD?: string; // Présent mais ne sera jamais exposé côté client
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+interface AuthContextType {
+  user: User | null;
+}
 
+// Contexte minimal
+const AuthContext = createContext<AuthContextType>({ user: null });
+
+// Provider très simple - juste pour éviter les erreurs de contexte
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<any | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const response = await fetch('/api/current-user');
-        if (response.ok) {
-          const userData = await response.json();
-          setUser(userData);
-        } else {
-          setUser(null);
-        }
-      } catch (error) {
-        console.error('Failed to fetch current user:', error);
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUser();
-  }, []);
-
-  const login = (userData: any) => {
-    setUser(userData);
-  };
-
-  const logout = async () => {
-    try {
-      await fetch('/api/logout');
-      setUser(null);
-    } catch (error) {
-      console.error('Logout failed:', error);
-    }
-  };
-
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
+    <AuthContext.Provider value={{ user: null }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+// Hook simple qui ne fait que retourner la valeur du contexte
+export const useAuth = (): AuthContextType => {
+  return useContext(AuthContext);
+};
+
+// ===== FONCTIONS UTILITAIRES SIMPLES =====
+
+// Vérifier si l'utilisateur est connecté (simple check API)
+export const checkAuthStatus = async (): Promise<{ isAuthenticated: boolean; user?: User }> => {
+  try {
+    const response = await fetch('/api/current-user', {
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    
+    if (response.ok) {
+      const userData = await response.json();
+      return { isAuthenticated: true, user: userData };
+    } else {
+      return { isAuthenticated: false };
+    }
+  } catch (error) {
+    console.error('Erreur lors de la vérification d\'authentification:', error);
+    return { isAuthenticated: false };
   }
-  return context;
+};
+
+// Login avec email et password de la table USER
+export const loginUser = async (email: string, password: string): Promise<{ success: boolean; user?: User; error?: string }> => {
+  try {
+    const response = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ email, password }),
+    });
+
+    if (response.ok) {
+      const userData = await response.json();
+      return { success: true, user: userData };
+    } else {
+      const errorData = await response.json().catch(() => ({}));
+      return { success: false, error: errorData.message || 'Email ou mot de passe incorrect' };
+    }
+  } catch (error) {
+    return { success: false, error: 'Erreur de connexion au serveur' };
+  }
+};
+
+// Logout simple
+export const logoutUser = async (): Promise<void> => {
+  try {
+    await fetch('/api/logout', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch (error) {
+    console.error('Erreur lors de la déconnexion:', error);
+  }
 };

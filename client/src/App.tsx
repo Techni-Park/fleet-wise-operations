@@ -1,9 +1,9 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Routes, Route } from "react-router-dom";
+
 import Index from "./pages/Index";
 import Vehicles from "./pages/Vehicles";
 import VehicleDetails from "./pages/VehicleDetails";
@@ -29,18 +29,21 @@ import CreateClient from "./pages/CreateClient";
 import EditClient from "./pages/EditClient";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
+import Profile from "./pages/Profile";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <Routes>
+const App = () => {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/test-db" element={<DatabaseTest />} />
           <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
           <Route path="/vehicles" element={<ProtectedRoute><Vehicles /></ProtectedRoute>} />
           <Route path="/vehicles/create" element={<ProtectedRoute><CreateVehicle /></ProtectedRoute>} />
@@ -56,7 +59,9 @@ const App = () => (
           <Route path="/users/create" element={<ProtectedRoute><CreateUser /></ProtectedRoute>} />
           <Route path="/users/:id/edit" element={<ProtectedRoute><EditUser /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="/db-test" element={<ProtectedRoute><DatabaseTest /></ProtectedRoute>} />
+          <Route path="/database-test" element={<ProtectedRoute><DatabaseTest /></ProtectedRoute>} />
           <Route path="/real-data" element={<ProtectedRoute><RealData /></ProtectedRoute>} />
           <Route path="/mysql" element={<ProtectedRoute><MySQLDashboard /></ProtectedRoute>} />
           <Route path="/clients" element={<ProtectedRoute><Clients /></ProtectedRoute>} />
@@ -66,8 +71,9 @@ const App = () => (
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

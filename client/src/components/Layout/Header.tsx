@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Bell, Search, User, Moon, Sun, Menu, LogOut, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -6,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import UserMenu from '../ui/UserMenu';
 
 interface HeaderProps {
   onMenuToggle?: () => void;
@@ -15,17 +15,12 @@ const Header = ({ onMenuToggle }: HeaderProps) => {
   const [isDark, setIsDark] = React.useState(false);
   const [isSearchOpen, setIsSearchOpen] = React.useState(false);
   const isMobile = useIsMobile();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   const toggleTheme = () => {
     setIsDark(!isDark);
     document.documentElement.classList.toggle('dark');
-  };
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
   };
 
   return (
@@ -98,24 +93,7 @@ const Header = ({ onMenuToggle }: HeaderProps) => {
 
           {/* User Profile / Login */}
           {user ? (
-            <div className={`flex items-center space-x-3 px-2 lg:px-4 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700 ${
-              isMobile ? 'hidden sm:flex' : 'flex'
-            }`}>
-              <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                <User className="w-4 h-4 text-white" />
-              </div>
-              <div className="hidden lg:block">
-                <p className="text-sm font-medium text-gray-900 dark:text-white">
-                  {user.NOMFAMILLE} {user.PRENOM}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {user.EMAIL}
-                </p>
-              </div>
-              <Button variant="ghost" size="icon" onClick={handleLogout} className="ml-2">
-                <LogOut className="w-5 h-5" />
-              </Button>
-            </div>
+            <UserMenu user={user} isMobile={isMobile} />
           ) : (
             <Button variant="ghost" size="icon" onClick={() => navigate('/login')} className="hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200">
               <LogIn className="w-5 h-5" />

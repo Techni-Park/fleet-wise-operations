@@ -12,9 +12,16 @@ import {
 export interface IStorage {
   // Test de connexion
   testConnection(): Promise<any[]>;
-  // Users
+  
+  // Users (table users pour authentification)
+  getUserFromUsersTable(id: number): Promise<User | undefined>;
+  getUserByEmailFromUsersTable(email: string): Promise<User | undefined>;
+  getUserWithJointure(usersId: number): Promise<any | undefined>;
+  
+  // UserSystem (table USER pour données complètes)
   getUser(id: number): Promise<UserSystem | undefined>;
   getUserByCDUSER(cduser: string): Promise<UserSystem | undefined>;
+  getUserByEmail(email: string): Promise<UserSystem | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, user: Partial<InsertUser>): Promise<User | undefined>;
   deleteUser(id: number): Promise<boolean>;
@@ -101,7 +108,50 @@ export class MySQLStorage implements IStorage {
     const result = await db.execute(sql`SHOW TABLES`);
     return result;
   }
-  // Users
+
+  // Users (table users pour authentification)
+  async getUserFromUsersTable(id: number): Promise<User | undefined> {
+    const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
+    return result[0];
+  }
+
+  async getUserByEmailFromUsersTable(email: string): Promise<User | undefined> {
+    const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
+    return result[0];
+  }
+
+  async getUserWithJointure(usersId: number): Promise<any | undefined> {
+    try {
+      // Jointure entre users et USER via CDUSER
+      const result = await db.execute(sql`
+        SELECT 
+          u.id,
+          u.email,
+          u.first_name,
+          u.last_name,
+          u.CDUSER,
+          u.active,
+          us.IDUSER,
+          us.NOMFAMILLE,
+          us.PRENOM,
+          us.EMAIL as USER_EMAIL,
+          us.IADMIN,
+          us.IAUTORISE,
+          us.FONCTION_PRO,
+          us.TELBUR
+        FROM users u
+        LEFT JOIN USER us ON u.CDUSER = us.CDUSER
+        WHERE u.id = ${usersId}
+        LIMIT 1
+      `);
+      return result[0]?.[0];
+    } catch (error) {
+      console.error('Erreur getUserWithJointure:', error);
+      return undefined;
+    }
+  }
+
+  // UserSystem (table USER pour données complètes)
   async getUser(id: number): Promise<UserSystem | undefined> {
     const result = await db.select().from(userSystem).where(eq(userSystem.IDUSER, id)).limit(1);
     return result[0];
@@ -112,16 +162,21 @@ export class MySQLStorage implements IStorage {
     return result[0];
   }
 
+  async getUserByEmail(email: string): Promise<UserSystem | undefined> {
+    const result = await db.select().from(userSystem).where(eq(userSystem.EMAILP, email)).limit(1);
+    return result[0];
+  }
+
   async createUser(user: InsertUser): Promise<User> {
     const result = await db.insert(users).values(user);
     const insertId = result[0].insertId as number;
-    const newUser = await this.getUser(insertId);
+    const newUser = await this.getUserFromUsersTable(insertId);
     return newUser!;
   }
 
   async updateUser(id: number, user: Partial<InsertUser>): Promise<User | undefined> {
     await db.update(users).set(user).where(eq(users.id, id));
-    return this.getUser(id);
+    return this.getUserFromUsersTable(id);
   }
 
   async deleteUser(id: number): Promise<boolean> {
@@ -412,81 +467,19 @@ export class MySQLStorage implements IStorage {
     return newSociete!;
   }
 
-  // Vehicules avec liaison MACHINE_MNT
-  async getVehicule(id: number): Promise<any | undefined> {
-    try {
-      // Jointure entre VEHICULE et MACHINE_MNT
-      const result = await db.execute(sql`
-        SELECT 
-          v.*,
-          m.CD_MACHINE,
-          m.LIB_MACHINE,
-          m.MARQUE,
-          m.MODELE,
-          m.NUM_SERIE,
-          m.TYPE_MACHINE,
-          m.KILOMETRAGE,
-          m.DT_PROCH_MNT,
-          m.DT_EXP_GARANTIE,
-          m.OBSERVATIONS
-        FROM VEHICULE v
-        LEFT JOIN MACHINE_MNT m ON v.IDMACHINE = m.IDMACHINE
-        WHERE v.IDVEHICULE = ${id}
-        LIMIT 1
-      `);
-      return result[0]?.[0];
-    } catch (error) {
-      console.error('Erreur getVehicule:', error);
-      return undefined;
-    }
+  // Vehicules
+  async getVehicule(id: number): Promise<Vehicule | undefined> {
+    const result = await db.select().from(vehicules).where(eq(vehicules.IDVEHICULE, id)).limit(1);
+    return result[0];
   }
 
-  async getAllVehicules(): Promise<any[]> {
-    try {
-      // Jointure pour récupérer les véhicules avec leurs machines
-      const result = await db.execute(sql`
-        SELECT 
-          v.IDVEHICULE,
-          v.IMMAT,
-          v.CARBURANT,
-          v.KMACTUEL,
-          v.DT_PREMCIRC,
-          v.DT_CTRLTECH,
-          v.DT_DERNIEREMAINT,
-          v.NUMCONTRASS,
-          v.DT_ECHASS,
-          m.IDMACHINE,
-          m.CD_MACHINE,
-          m.LIB_MACHINE,
-          m.MARQUE,
-          m.MODELE,
-          m.NUM_SERIE,
-          m.TYPE_MACHINE,
-          m.KILOMETRAGE,
-          m.DT_PROCH_MNT,
-          m.DT_EXP_GARANTIE,
-          m.ID2_ETATMACHINE,
-          m.OBSERVATIONS
-        FROM VEHICULE v
-        LEFT JOIN MACHINE_MNT m ON v.IDMACHINE = m.IDMACHINE
-        ORDER BY v.IDVEHICULE DESC
-        LIMIT 100
-      `);
-      return result[0] as any[];
-    } catch (error) {
-      console.error('Erreur getAllVehicules:', error);
-      return [];
-    }
+  async getAllVehicules(): Promise<Vehicule[]> {
+    return db.select().from(vehicules);
   }
 
   async createVehicule(vehicule: InsertVehicule): Promise<Vehicule> {
-    try {
-      const result = await db.insert(vehicules).values(vehicule).returning();
-      return result[0];
-    } catch (error) {
-      console.error('Erreur createVehicule:', error);
-      throw error;
-    }
+    const result = await db.insert(vehicules).values(vehicule).returning();
+    return result[0];
   }
 
   // Anomalies

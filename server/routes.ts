@@ -17,7 +17,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         tableNames: tables.map(t => t.Tables_in_gestinter_test || Object.values(t)[0])
       });
     } catch (error) {
-      res.status(500).json({ success: false, error: error.message });
+      res.status(500).json({ success: false, error: (error as Error).message });
     }
   });
 
@@ -27,7 +27,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const machines = await storage.getAllMachines();
       res.json(machines);
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: (error as Error).message });
     }
   });
 
@@ -36,7 +36,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const contacts = await storage.getAllContacts();
       res.json(contacts);
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: (error as Error).message });
     }
   });
 
@@ -45,7 +45,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const anomalies = await storage.getAllAnomalies();
       res.json(anomalies);
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: (error as Error).message });
     }
   });
   // Vehicles API
@@ -110,7 +110,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(interventions);
     } catch (error) {
       console.error('Erreur API interventions:', error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: (error as Error).message });
     }
   });
 
@@ -512,7 +512,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(req.user);
   });
 
-  app.get("/api/logout", (req, res) => {
+  app.post("/api/logout", (req, res) => {
     req.logout((err) => {
       if (err) {
         return res.status(500).json({ message: "Logout failed" });
@@ -538,6 +538,338 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // 4. Send an email to the user with a link containing the token
     console.log("Forgot password request for:", req.body.email);
     res.json({ message: "If an account with that email exists, a password reset link has been sent." });
+  });
+
+  // Route de test pour bcrypt
+  app.get("/api/test-bcrypt", async (req, res) => {
+    try {
+      console.log('=== DÉBUT TEST BCRYPT ===');
+      
+      // Test d'abord si bcrypt est disponible avec dynamic import
+      let bcrypt;
+      try {
+        bcrypt = await import('bcrypt');
+        console.log('✅ bcrypt module trouvé');
+      } catch (importError) {
+        console.log('❌ bcrypt module NOT FOUND:', (importError as Error).message);
+        return res.json({
+          success: false,
+          error: 'bcrypt module non installé',
+          message: 'bcrypt n\'est pas installé. Lancez: npm install bcrypt @types/bcrypt',
+          importError: (importError as Error).message,
+          bcryptInstalled: false
+        });
+      }
+      
+      const testPassword = "123456";
+      const storedHash = "$2y$10$ZglZoahK99IfUXzzerUQfOQT4HwNw33a0MUwRiii7dT4.3xU8uhzS";
+      
+      console.log('Test bcrypt - Mot de passe:', testPassword);
+      console.log('Test bcrypt - Hash stocké:', storedHash);
+      
+      const isValid = await bcrypt.compare(testPassword, storedHash);
+      console.log('Test bcrypt - Résultat:', isValid);
+      console.log('=== FIN TEST BCRYPT ===');
+      
+      res.json({
+        success: true,
+        testPassword: testPassword,
+        storedHash: storedHash,
+        isValid: isValid,
+        message: isValid ? "✅ Le mot de passe '123456' correspond au hash" : "❌ Le mot de passe '123456' ne correspond PAS au hash",
+        bcryptInstalled: true
+      });
+    } catch (error) {
+      console.error('Erreur test bcrypt:', error);
+      res.json({
+        success: false,
+        error: (error as Error).message,
+        errorStack: (error as Error).stack,
+        message: "Erreur lors du test bcrypt: " + (error as Error).message,
+        bcryptInstalled: false
+      });
+    }
+  });
+
+  // Route de test pour plusieurs mots de passe courants
+  app.get("/api/test-common-passwords", async (req, res) => {
+    try {
+      console.log('=== TEST MOTS DE PASSE COURANTS ===');
+      
+      // Test d'abord si bcrypt est disponible
+      let bcrypt;
+      try {
+        bcrypt = await import('bcrypt');
+        console.log('✅ bcrypt module trouvé');
+      } catch (importError) {
+        return res.json({
+          success: false,
+          error: 'bcrypt module non installé',
+          message: 'bcrypt n\'est pas installé. Lancez: npm install bcrypt @types/bcrypt'
+        });
+      }
+      
+      const storedHash = "$2y$10$ZglZoahK99IfUXzzerUQfOQT4HwNw33a0MUwRiii7dT4.3xU8uhzS";
+      const commonPasswords = [
+        "123456",
+        "admin",
+        "password",
+        "admin123",
+        "123456789",
+        "gestinter",
+        "test",
+        "dev",
+        "team",
+        "",
+        "123",
+        "admin@123",
+        "fleet",
+        "wise"
+      ];
+      
+      console.log('Test avec', commonPasswords.length, 'mots de passe courants...');
+      
+      const results = [];
+      for (const password of commonPasswords) {
+        try {
+          const isValid = await bcrypt.compare(password, storedHash);
+          results.push({
+            password: password || '[VIDE]',
+            isValid: isValid
+          });
+          
+          if (isValid) {
+            console.log('🎉 MOT DE PASSE TROUVÉ:', password || '[VIDE]');
+          }
+        } catch (error) {
+          results.push({
+            password: password || '[VIDE]',
+            isValid: false,
+            error: (error as Error).message
+          });
+        }
+      }
+      
+      const validPassword = results.find(r => r.isValid);
+      
+      res.json({
+        success: true,
+        message: validPassword 
+          ? `🎉 Mot de passe trouvé : "${validPassword.password}"` 
+          : '❌ Aucun des mots de passe courants ne correspond',
+        storedHash: storedHash,
+        testedPasswords: results.length,
+        validPassword: validPassword?.password || null,
+        results: results
+      });
+    } catch (error) {
+      console.error('Erreur test mots de passe courants:', error);
+      res.json({
+        success: false,
+        error: (error as Error).message,
+        message: "Erreur lors du test: " + (error as Error).message
+      });
+    }
+  });
+
+  // Route de test pour la table users
+  app.get("/api/test-users-table", async (req, res) => {
+    try {
+      console.log('=== TEST TABLE USERS ===');
+      // Simulation du test car getAllFromUsersTable n'existe pas encore
+      const testUser = await storage.getUserFromUsersTable(1);
+      
+      res.json({
+        success: true,
+        message: testUser ? "Table users accessible" : "Table users trouvée mais vide",
+        data: testUser ? {
+          id: testUser.id,
+          email: testUser.email,
+          firstName: testUser.firstName,
+          lastName: testUser.lastName,
+          CDUSER: testUser.CDUSER,
+          active: testUser.active,
+          password: testUser.password ? '[HASH PRÉSENT]' : '[PAS DE HASH]'
+        } : null
+      });
+    } catch (error) {
+      console.error('Erreur test table users:', error);
+      res.json({
+        success: false,
+        error: (error as Error).message,
+        message: "Erreur lors du test de la table users: " + (error as Error).message
+      });
+    }
+  });
+
+  // Route de test pour la table USER
+  app.get("/api/test-user-table", async (req, res) => {
+    try {
+      console.log('=== TEST TABLE USER ===');
+      const users = await storage.getAllUsers();
+      console.log('Nombre d\'utilisateurs USER trouvés:', users.length);
+      
+      res.json({
+        success: true,
+        message: `Table USER trouvée avec ${users.length} utilisateur(s)`,
+        count: users.length,
+        data: users.slice(0, 5) // Limiter à 5 premiers pour l'affichage
+      });
+    } catch (error) {
+      console.error('Erreur test table USER:', error);
+      res.json({
+        success: false,
+        error: (error as Error).message,
+        message: "Erreur lors du test de la table USER: " + (error as Error).message
+      });
+    }
+  });
+
+  // Route de test pour la jointure users + USER
+  app.get("/api/test-jointure", async (req, res) => {
+    try {
+      console.log('=== TEST JOINTURE USERS + USER ===');
+      
+      // Tester avec l'utilisateur ID 1 de la table users
+      const firstUser = await storage.getUserFromUsersTable(1);
+      if (!firstUser) {
+        return res.json({
+          success: false,
+          message: "Aucun utilisateur trouvé avec ID 1 dans la table users",
+          data: null
+        });
+      }
+      console.log('Test jointure avec utilisateur ID:', firstUser.id);
+      
+      const fullUserData = await storage.getUserWithJointure(firstUser.id);
+      
+      res.json({
+        success: true,
+        message: fullUserData ? "Jointure réussie" : "Jointure échouée",
+        userFromUsersTable: {
+          id: firstUser.id,
+          email: firstUser.email,
+          CDUSER: firstUser.CDUSER,
+          active: firstUser.active
+        },
+        joinedData: fullUserData
+      });
+    } catch (error) {
+      console.error('Erreur test jointure:', error);
+      res.json({
+        success: false,
+        error: (error as Error).message,
+        message: "Erreur lors du test de jointure: " + (error as Error).message
+      });
+    }
+  });
+
+  // Route de test pour l'authentification avec table USER (mot de passe en clair)
+  app.get("/api/test-user-auth", async (req, res) => {
+    try {
+      console.log('=== TEST AUTHENTIFICATION TABLE USER ===');
+      
+      // Tester avec les données que vous avez
+      const testEmail = "dev@techni-park.com";
+      const testPassword = "DEV";
+      
+      console.log('Test authentification pour:', testEmail);
+      
+      const user = await storage.getUserByEmail(testEmail);
+      if (!user) {
+        return res.json({
+          success: false,
+          message: `Utilisateur non trouvé pour l'email: ${testEmail}`,
+          testEmail: testEmail,
+          testPassword: testPassword
+        });
+      }
+      
+      console.log('Utilisateur trouvé:', { 
+        IDUSER: user.IDUSER, 
+        EMAILP: user.EMAILP, 
+        NOMFAMILLE: user.NOMFAMILLE,
+        PRENOM: user.PRENOM,
+        CDUSER: user.CDUSER,
+        IAUTORISE: user.IAUTORISE 
+      });
+      
+      // Tester l'autorisation
+      const isAuthorized = user.IAUTORISE === 1;
+      console.log('Utilisateur autorisé (IAUTORISE = 1):', isAuthorized);
+      
+      // Tester le mot de passe
+      const passwordMatch = user.PASSWORD === testPassword;
+      console.log('Mot de passe stocké:', user.PASSWORD);
+      console.log('Mot de passe testé:', testPassword);
+      console.log('Mot de passe correspond:', passwordMatch);
+      
+      res.json({
+        success: true,
+        message: 'Test d\'authentification terminé',
+        testEmail: testEmail,
+        testPassword: testPassword,
+        userFound: true,
+        userEmail: user.EMAILP,
+        userNom: user.NOMFAMILLE,
+        userPrenom: user.PRENOM,
+        userCDUSER: user.CDUSER,
+        isAuthorized: isAuthorized,
+        passwordInDB: user.PASSWORD,
+        passwordMatch: passwordMatch,
+        canLogin: isAuthorized && passwordMatch,
+        finalResult: isAuthorized && passwordMatch ? 
+          "✅ L'utilisateur peut se connecter" : 
+          "❌ L'utilisateur ne peut PAS se connecter"
+      });
+    } catch (error) {
+      console.error('Erreur test authentification USER:', error);
+      res.json({
+        success: false,
+        error: (error as Error).message,
+        message: "Erreur lors du test: " + (error as Error).message
+      });
+    }
+  });
+
+  // Route pour lister tous les utilisateurs de la table USER
+  app.get("/api/list-all-users", async (req, res) => {
+    try {
+      console.log('=== LISTE TOUS LES UTILISATEURS TABLE USER ===');
+      
+      const allUsers = await storage.getAllUsers();
+      console.log('Nombre d\'utilisateurs trouvés dans USER:', allUsers.length);
+      
+      // Masquer les mots de passe et ne montrer que les infos importantes
+      const safeUsers = allUsers.map(user => ({
+        IDUSER: user.IDUSER,
+        EMAILP: user.EMAILP,
+        NOMFAMILLE: user.NOMFAMILLE,
+        PRENOM: user.PRENOM,
+        CDUSER: user.CDUSER,
+        IADMIN: user.IADMIN,
+        IAUTORISE: user.IAUTORISE,
+        FONCTION_PRO: user.FONCTION_PRO,
+        PASSWORD: user.PASSWORD ? '[PRÉSENT: ' + user.PASSWORD.substring(0, 3) + '...]' : '[VIDE]'
+      }));
+      
+      res.json({
+        success: true,
+        message: `${allUsers.length} utilisateur(s) trouvé(s) dans la table USER`,
+        count: allUsers.length,
+        users: safeUsers,
+        emailsList: allUsers.map(u => u.EMAILP).filter(email => email), // Liste des EMAILP uniquement
+        searchEmail: "dev@techni-park.com",
+        emailExists: allUsers.some(u => u.EMAILP === "dev@techni-park.com")
+      });
+    } catch (error) {
+      console.error('Erreur liste utilisateurs USER:', error);
+      res.json({
+        success: false,
+        error: (error as Error).message,
+        message: "Erreur lors de la récupération: " + (error as Error).message
+      });
+    }
   });
 
   const httpServer = createServer(app);

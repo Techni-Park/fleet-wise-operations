@@ -1,36 +1,60 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import { storage } from "./storage";
-import { UserSystem } from "../shared/schema";
 
 passport.use(new LocalStrategy(
-  { usernameField: 'CDUSER' }, // Use CDUSER as the username field
-  async (CDUSER, password, done) => {
+  { usernameField: 'email' }, // Use EMAIL from USER table
+  async (email, password, done) => {
     try {
-      const user = await storage.getUserByCDUSER(CDUSER);
+      console.log('Tentative de connexion avec table USER pour:', email);
+      
+      const user = await storage.getUserByEmail(email);
       if (!user) {
-        return done(null, false, { message: 'Incorrect username.' });
+        console.log('Utilisateur non trouvé dans la table USER pour l\'email:', email);
+        return done(null, false, { message: 'Email incorrect.' });
       }
-      // In a real application, you would hash and compare passwords securely
-      if (user.PASSWORD !== password) { // This is a placeholder, replace with secure password comparison
-        return done(null, false, { message: 'Incorrect password.' });
+      
+      console.log('Utilisateur trouvé dans USER:', { IDUSER: user.IDUSER, EMAILP: user.EMAILP, IAUTORISE: user.IAUTORISE });
+      
+      // Vérifier si l'utilisateur est autorisé (IAUTORISE = 1)
+      if (user.IAUTORISE !== 1) {
+        console.log('Utilisateur non autorisé (IAUTORISE != 1) pour:', email);
+        return done(null, false, { message: 'Compte non autorisé.' });
       }
+      
+      // Comparer le mot de passe en clair (pas de hachage)
+      console.log('Comparaison mot de passe en clair...');
+      console.log('Mot de passe saisi:', password);
+      console.log('Mot de passe stocké:', user.PASSWORD);
+      
+      if (user.PASSWORD !== password) {
+        console.log('Mot de passe incorrect pour:', email);
+        return done(null, false, { message: 'Mot de passe incorrect.' });
+      }
+      
+      console.log('Authentification réussie pour:', email);
+      
       return done(null, user);
     } catch (err) {
+      console.error('Erreur lors de l\'authentification:', err);
       return done(err);
     }
   }
 ));
 
 passport.serializeUser((user, done) => {
-  done(null, (user as UserSystem).IDUSER);
+  console.log('Sérialisation utilisateur:', (user as any).IDUSER);
+  done(null, (user as any).IDUSER); // Utiliser IDUSER de la table USER
 });
 
-passport.deserializeUser(async (id: number, done) => {
+passport.deserializeUser(async (idUser: number, done) => {
   try {
-    const user = await storage.getUser(id);
+    console.log('Désérialisation utilisateur:', idUser);
+    const user = await storage.getUser(idUser);
+    console.log('Données désérialisées:', user ? 'Trouvées' : 'Non trouvées');
     done(null, user);
   } catch (err) {
+    console.error('Erreur lors de la désérialisation:', err);
     done(err);
   }
 });
