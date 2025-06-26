@@ -1,34 +1,33 @@
-import React, { useState, useEffect } from 'react';
-import { Users, Plus, Search, Filter, Eye, Edit, Trash2, Phone, Mail, MapPin, Building, Loader, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Users, Plus, Search, Filter, Eye, Edit, Trash2, Phone, Mail, MapPin, Building, Loader, RefreshCw, ChevronLeft, ChevronRight, List, Grid } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import AppLayout from '@/components/Layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 
 const Clients = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [contacts, setContacts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [view, setView] = useState('grid'); // 'grid' or 'list'
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 12, // Adjusted for better grid layout
+    total: 0,
+  });
 
-  const loadContacts = async (showRefresh = false) => {
+  const loadContacts = useCallback(async (showRefresh = false) => {
     if (showRefresh) setRefreshing(true);
     else setLoading(true);
 
     try {
-      const response = await fetch('/api/contacts');
+      const response = await fetch(`/api/contacts?page=${pagination.page}&limit=${pagination.limit}`);
       const data = await response.json();
-      setContacts(Array.isArray(data) ? data : []);
+      setContacts(Array.isArray(data.contacts) ? data.contacts : []);
+      setPagination(prev => ({ ...prev, total: data.total }));
     } catch (error) {
       console.error('Erreur lors du chargement des contacts:', error);
       setContacts([]);
@@ -36,23 +35,20 @@ const Clients = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [pagination.page, pagination.limit]);
 
   useEffect(() => {
     loadContacts();
-  }, []);
+  }, [loadContacts]);
 
-  // Fonction pour formater le type de contact
   const formatContactType = (type: number) => {
     const typeMap: { [key: number]: { label: string; variant: string } } = {
       0: { label: 'Particulier', variant: 'default' },
       1: { label: 'Professionnel', variant: 'secondary' },
-      2: { label: 'Entreprise', variant: 'outline' }
     };
     return typeMap[type] || { label: 'Non défini', variant: 'secondary' };
   };
 
-  // Filtrage des contacts
   const filteredContacts = contacts.filter(contact =>
     (contact.NOMFAMILLE?.toLowerCase().includes(searchTerm.toLowerCase()) ||
      contact.PRENOM?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -79,6 +75,10 @@ const Clients = () => {
     }
   };
 
+  const handlePageChange = (newPage: number) => {
+    setPagination(prev => ({ ...prev, page: newPage }));
+  };
+
   if (loading) {
     return (
       <AppLayout>
@@ -92,243 +92,186 @@ const Clients = () => {
     );
   }
 
+  const totalPages = Math.ceil(pagination.total / pagination.limit);
+
+  const renderContactCard = (contact: any, isListView: boolean) => {
+    const contactType = formatContactType(contact.ICLTPRO);
+
+    // Determine which contact details to use based on ICLTPRO
+    const tel1 = contact.ICLTPRO === 1 ? contact.TELP1 : contact.TEL1;
+    const tel2 = contact.ICLTPRO === 1 ? contact.TELP2 : contact.TEL2;
+    const email = contact.ICLTPRO === 1 ? contact.EMAILP : contact.EMAIL;
+    const address1 = contact.ICLTPRO === 1 ? contact.ADRESSEP1 : contact.ADRESSE1;
+    const address2 = contact.ICLTPRO === 1 ? contact.ADRESSEP2 : contact.ADRESSE2;
+    const postalCode = contact.ICLTPRO === 1 ? contact.CPOSTALP : contact.CPOSTAL;
+    const city = contact.ICLTPRO === 1 ? contact.VILLEP : contact.VILLE;
+    const region = contact.ICLTPRO === 1 ? contact.CDREGIONP : contact.CDREGION;
+
+    const fullAddress = `${address1 || ''} ${address2 || ''} ${postalCode || ''} ${city || ''} ${region || ''}`.trim();
+    const googleMapsLink = fullAddress ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}` : '#';
+
+    const formatGender = (genderId: number) => {
+      switch (genderId) {
+        case 1: return 'Homme';
+        case 2: return 'Femme';
+        default: return 'Non spécifié';
+      }
+    };
+
+    const cardClass = isListView
+      ? "flex flex-col sm:flex-row w-full"
+      : "flex flex-col";
+
+    return (
+      <Card key={contact.IDCONTACT} className={cardClass}>
+        <div className={`flex-grow ${isListView ? 'sm:w-2/3' : ''}`}>
+          <CardHeader>
+            <div className="flex items-start justify-between gap-4">
+              <CardTitle className="truncate">
+                {contact.RAISON_SOCIALE ? (
+                  <>
+                    {contact.RAISON_SOCIALE}
+                    <div className="text-sm font-normal text-gray-500">
+                      {contact.PRENOM} {contact.NOMFAMILLE}
+                    </div>
+                  </>
+                ) : (
+                  `${contact.PRENOM} ${contact.NOMFAMILLE}`
+                )}
+              </CardTitle>
+              <div className="flex flex-col items-end gap-1">
+                <Badge variant={contactType.variant as any} className="flex-shrink-0">{contactType.label}</Badge>
+                {contact.interventionCount !== undefined && (
+                  <Badge variant="outline" className="flex-shrink-0">
+                    Interventions: {contact.interventionCount}
+                  </Badge>
+                )}
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2 text-sm text-gray-600">
+              <div className="flex items-center">
+                <Mail className="w-4 h-4 mr-2 flex-shrink-0" />
+                <a href={`mailto:${email}`} className="truncate text-blue-600 hover:underline">
+                  {email || 'N/A'}
+                </a>
+              </div>
+              <div className="flex items-center">
+                <Phone className="w-4 h-4 mr-2 flex-shrink-0" />
+                <span>{tel1 || 'N/A'}</span>
+              </div>
+              {tel2 && (
+                <div className="flex items-center">
+                  <Phone className="w-4 h-4 mr-2 flex-shrink-0" />
+                  <span>{tel2}</span>
+                </div>
+              )}
+              <div className="flex items-start">
+                <MapPin className="w-4 h-4 mr-2 mt-1 flex-shrink-0" />
+                <span>
+                  {address1 && <div>{address1}</div>}
+                  {address2 && <div>{address2}</div>}
+                  {(postalCode || city) && <div>{postalCode} {city}</div>}
+                  {region && <div>{region}</div>}
+                  {fullAddress && (
+                    <a href={googleMapsLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                      Voir sur Google Maps
+                    </a>
+                  )}
+                </span>
+              </div>
+              <div className="flex items-center">
+                <Users className="w-4 h-4 mr-2 flex-shrink-0" />
+                <span>Genre: {formatGender(contact.ID2GENRE_CONTACT)}</span>
+              </div>
+            </div>
+          </CardContent>
+        </div>
+        <div className={`flex p-4 border-t sm:border-t-0 sm:border-l ${isListView ? 'sm:w-1/3 sm:flex-col sm:justify-center' : 'justify-end'}`}>
+          <div className={`flex ${isListView ? 'flex-col space-y-2' : 'space-x-2'}`}>
+            <Link to={`/clients/${contact.IDCONTACT}`} className="w-full">
+              <Button variant="outline" size="sm" className="w-full flex justify-center items-center"><Eye className="w-4 h-4 mr-2" /> Voir</Button>
+            </Link>
+            <Link to={`/clients/${contact.IDCONTACT}/edit`} className="w-full">
+              <Button variant="outline" size="sm" className="w-full flex justify-center items-center"><Edit className="w-4 h-4 mr-2" /> Modifier</Button>
+            </Link>
+            <Button variant="destructive" size="sm" onClick={() => handleDelete(contact.IDCONTACT)} className="w-full flex justify-center items-center">
+              <Trash2 className="w-4 h-4 mr-2" /> Supprimer
+            </Button>
+          </div>
+        </div>
+      </Card>
+    );
+  };
+
   return (
     <AppLayout>
       <div className="space-y-6">
-        {/* En-tête avec actions */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
-            <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">
-              Clients
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-2">
-              {contacts.length} contacts dans la base MySQL
-            </p>
+            <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">Clients</h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-2">{pagination.total} contacts</p>
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
-            <Button 
-              onClick={() => loadContacts(true)} 
-              disabled={refreshing}
-              variant="outline"
-            >
+            <Button onClick={() => loadContacts(true)} disabled={refreshing} variant="outline">
               <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
               Actualiser
             </Button>
             <Link to="/clients/create">
               <Button className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700">
                 <Plus className="w-4 h-4 mr-2" />
-                Nouveau contact
+                Nouveau
               </Button>
             </Link>
           </div>
         </div>
 
-        {/* Statistiques */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{contacts.length}</p>
-                </div>
-                <Users className="w-8 h-8 text-blue-600" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Particuliers</p>
-                  <p className="text-2xl font-bold text-green-600">
-                    {contacts.filter(c => c.ICLTPRO === 0).length}
-                  </p>
-                </div>
-                <Users className="w-8 h-8 text-green-600" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Professionnels</p>
-                  <p className="text-2xl font-bold text-orange-600">
-                    {contacts.filter(c => c.ICLTPRO === 1).length}
-                  </p>
-                </div>
-                <Building className="w-8 h-8 text-orange-600" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Avec email</p>
-                  <p className="text-2xl font-bold text-purple-600">
-                    {contacts.filter(c => c.EMAIL && c.EMAIL.trim() !== '').length}
-                  </p>
-                </div>
-                <Mail className="w-8 h-8 text-purple-600" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Barre de recherche et filtres */}
         <Card>
           <CardContent className="p-6">
             <div className="flex flex-col lg:flex-row gap-4">
-              <div className="flex-1">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <Input
-                    placeholder="Rechercher par nom, prénom, société, email, ville..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Input
+                  placeholder="Rechercher..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
               </div>
-              <Button variant="outline">
-                <Filter className="w-4 h-4 mr-2" />
-                Filtres
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button variant={view === 'grid' ? 'secondary' : 'outline'} onClick={() => setView('grid')}><Grid className="w-4 h-4" /></Button>
+                <Button variant={view === 'list' ? 'secondary' : 'outline'} onClick={() => setView('list')}><List className="w-4 h-4" /></Button>
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Tableau des contacts */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Liste des contacts</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Contact</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Coordonnées</TableHead>
-                    <TableHead>Adresse</TableHead>
-                    <TableHead>Région</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredContacts.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8 text-gray-500">
-                        {searchTerm ? 'Aucun contact trouvé pour cette recherche' : 'Aucun contact trouvé'}
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredContacts.map((contact) => {
-                      const contactType = formatContactType(contact.ICLTPRO);
-                      
-                      return (
-                        <TableRow key={contact.IDCONTACT}>
-                          <TableCell>
-                            <div className="font-medium text-gray-900 dark:text-white">
-                              #{contact.IDCONTACT}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div>
-                              <div className="font-medium text-gray-900 dark:text-white">
-                                {contact.RAISON_SOCIALE ? (
-                                  contact.RAISON_SOCIALE
-                                ) : (
-                                  `${contact.PRENOM || ''} ${contact.NOMFAMILLE || ''}`.trim() || 'Nom non renseigné'
-                                )}
-                              </div>
-                              {contact.RAISON_SOCIALE && (contact.PRENOM || contact.NOMFAMILLE) && (
-                                <div className="text-sm text-gray-500">
-                                  {contact.PRENOM} {contact.NOMFAMILLE}
-                                </div>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={contactType.variant as any}>
-                              {contactType.label}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="space-y-1">
-                              {contact.TEL1 && (
-                                <div className="flex items-center text-sm">
-                                  <Phone className="w-3 h-3 mr-1 text-gray-400" />
-                                  {contact.TEL1}
-                                </div>
-                              )}
-                              {contact.EMAIL && (
-                                <div className="flex items-center text-sm">
-                                  <Mail className="w-3 h-3 mr-1 text-gray-400" />
-                                  <a href={`mailto:${contact.EMAIL}`} className="text-blue-600 hover:underline">
-                                    {contact.EMAIL}
-                                  </a>
-                                </div>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-sm">
-                              {contact.ADRESSE && (
-                                <div className="flex items-start">
-                                  <MapPin className="w-3 h-3 mr-1 text-gray-400 mt-0.5" />
-                                  <div>
-                                    <div>{contact.ADRESSE}</div>
-                                    <div>{contact.CP} {contact.VILLE}</div>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-sm">
-                              {contact.CDREGION || '-'}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex space-x-2">
-                              <Link to={`/clients/${contact.IDCONTACT}`}>
-                                <Button variant="ghost" size="sm" title="Voir le détail">
-                                  <Eye className="w-4 h-4" />
-                                </Button>
-                              </Link>
-                              <Link to={`/clients/${contact.IDCONTACT}/edit`}>
-                                <Button variant="ghost" size="sm" title="Modifier">
-                                  <Edit className="w-4 h-4" />
-                                </Button>
-                              </Link>
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                onClick={() => handleDelete(contact.IDCONTACT)}
-                                title="Supprimer"
-                                className="text-red-600 hover:text-red-800"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
-                  )}
-                </TableBody>
-              </Table>
+        {filteredContacts.length === 0 ? (
+            <div className="text-center py-12">
+                <p className="text-gray-500">{searchTerm ? 'Aucun contact trouvé pour cette recherche' : 'Aucun contact à afficher'}</p>
             </div>
-          </CardContent>
-        </Card>
+        ) : (
+            <div className={view === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6' : 'space-y-4'}>
+                {filteredContacts.map((contact) => renderContactCard(contact, view === 'list'))}
+            </div>
+        )}
+
+        {totalPages > 1 && (
+            <div className="flex items-center justify-center pt-6">
+                <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={() => handlePageChange(pagination.page - 1)} disabled={pagination.page <= 1}>
+                        <ChevronLeft className="w-4 h-4 mr-1" />
+                        Précédent
+                    </Button>
+                    <span className="text-sm text-gray-600">Page {pagination.page} sur {totalPages}</span>
+                    <Button variant="outline" size="sm" onClick={() => handlePageChange(pagination.page + 1)} disabled={pagination.page >= totalPages}>
+                        Suivant
+                        <ChevronRight className="w-4 h-4 ml-1" />
+                    </Button>
+                </div>
+            </div>
+        )}
       </div>
     </AppLayout>
   );

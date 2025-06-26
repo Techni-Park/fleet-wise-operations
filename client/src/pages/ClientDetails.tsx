@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Edit, Phone, Mail, MapPin, Building, User, Calendar, Truck, FileText, AlertTriangle, Loader } from 'lucide-react';
+import { ArrowLeft, Edit, Phone, Mail, MapPin, Building, User, Calendar, Truck, FileText, AlertTriangle, Loader, Globe, Briefcase, NotebookText } from 'lucide-react';
 import AppLayout from '@/components/Layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -20,7 +20,9 @@ const ClientDetails = () => {
   const [contact, setContact] = useState<any>(null);
   const [interventions, setInterventions] = useState<any[]>([]);
   const [vehicules, setVehicules] = useState<any[]>([]);
+  const [collaborators, setCollaborators] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingCollaborators, setLoadingCollaborators] = useState(false);
 
   useEffect(() => {
     loadContactData();
@@ -35,6 +37,18 @@ const ClientDetails = () => {
       if (contactResponse.ok) {
         const contactData = await contactResponse.json();
         setContact(contactData);
+
+        // Charger les collaborateurs si c'est un professionnel et qu'il a une raison sociale
+        if (contactData.ICLTPRO === 1 && contactData.RAISON_SOCIALE) {
+          setLoadingCollaborators(true);
+          const collaboratorsResponse = await fetch(`/api/contacts/collaborators/${encodeURIComponent(contactData.RAISON_SOCIALE)}/${contactData.IDCONTACT}`);
+          if (collaboratorsResponse.ok) {
+            const collaboratorsData = await collaboratorsResponse.json();
+            console.log("Collaborators data from API:", collaboratorsData); // Debugging line
+            setCollaborators(Array.isArray(collaboratorsData) ? collaboratorsData : []);
+          }
+          setLoadingCollaborators(false);
+        }
       }
 
       // Charger les interventions liées au contact
@@ -79,6 +93,14 @@ const ClientDetails = () => {
     return statusMap[status] || { label: 'Inconnu', variant: 'secondary' };
   };
 
+  const formatGender = (genderId: number) => {
+    switch (genderId) {
+      case 1: return 'Homme';
+      case 2: return 'Femme';
+      default: return 'Non spécifié';
+    }
+  };
+
   if (loading) {
     return (
       <AppLayout>
@@ -110,6 +132,21 @@ const ClientDetails = () => {
     );
   }
 
+  const tel1 = contact.ICLTPRO === 1 ? contact.TELP1 : contact.TEL1;
+  const tel2 = contact.ICLTPRO === 1 ? contact.TELP2 : contact.TEL2;
+  const tel3 = contact.ICLTPRO === 1 ? contact.TELP3 : contact.TEL3;
+  const email = contact.ICLTPRO === 1 ? contact.EMAILP : contact.EMAIL;
+  const website = contact.ICLTPRO === 1 ? contact.WEBSITEP : contact.WEBSITE;
+  const address1 = contact.ICLTPRO === 1 ? contact.ADRESSEP1 : contact.ADRESSE1;
+  const address2 = contact.ICLTPRO === 1 ? contact.ADRESSEP2 : contact.ADRESSE2;
+  const postalCode = contact.ICLTPRO === 1 ? contact.CPOSTALP : contact.CPOSTAL;
+  const city = contact.ICLTPRO === 1 ? contact.VILLEP : contact.VILLE;
+  const region = contact.ICLTPRO === 1 ? contact.CDREGIONP : contact.CDREGION;
+  const country = contact.ICLTPRO === 1 ? contact.CDPAYSP : contact.CDPAYS;
+
+  const fullAddress = `${address1 || ''} ${address2 || ''} ${postalCode || ''} ${city || ''} ${country || ''}`.trim();
+  const googleMapsLink = fullAddress ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}` : '#';
+
   return (
     <AppLayout>
       <div className="space-y-6">
@@ -124,7 +161,11 @@ const ClientDetails = () => {
             </Link>
             <div>
               <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">
-                {contact.RAISON_SOCIALE || `${contact.PRENOM || ''} ${contact.NOMFAMILLE || ''}`.trim() || 'Contact sans nom'}
+                {contact.RAISON_SOCIALE ? (
+                  <>{contact.RAISON_SOCIALE}<br/><span className="text-lg font-normal">{contact.PRENOM} {contact.NOMFAMILLE}</span></>
+                ) : (
+                  `${contact.PRENOM || ''} ${contact.NOMFAMILLE || ''}`.trim() || 'Contact sans nom'
+                )}
               </h1>
               <p className="text-gray-600 dark:text-gray-400">
                 Contact #{contact.IDCONTACT}
@@ -174,43 +215,131 @@ const ClientDetails = () => {
                       {contact.PRENOM} {contact.NOMFAMILLE}
                     </div>
                   </div>
+
+                  {contact.DTNAISS && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Date de naissance</label>
+                      <div className="mt-1 flex items-center">
+                        <Calendar className="w-4 h-4 mr-2 text-gray-400" />
+                        {formatDate(contact.DTNAISS)}
+                      </div>
+                    </div>
+                  )}
+
+                  {contact.FONCTION_PRO && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Fonction</label>
+                      <div className="mt-1 flex items-center">
+                        <Briefcase className="w-4 h-4 mr-2 text-gray-400" />
+                        {contact.FONCTION_PRO}
+                      </div>
+                    </div>
+                  )}
+
+                  {contact.REFEXTERNE && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Référence externe</label>
+                      <div className="mt-1 flex items-center">
+                        <NotebookText className="w-4 h-4 mr-2 text-gray-400" />
+                        {contact.REFEXTERNE}
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Genre</label>
+                    <div className="mt-1 flex items-center">
+                      <User className="w-4 h-4 mr-2 text-gray-400" />
+                      {formatGender(contact.ID2GENRE_CONTACT)}
+                    </div>
+                  </div>
                 </div>
 
                 <div className="space-y-4">
-                  {contact.TEL1 && (
+                  {tel1 && (
                     <div>
                       <label className="text-sm font-medium text-gray-500">Téléphone principal</label>
                       <div className="mt-1 flex items-center">
                         <Phone className="w-4 h-4 mr-2 text-gray-400" />
-                        <a href={`tel:${contact.TEL1}`} className="text-blue-600 hover:underline">
-                          {contact.TEL1}
+                        <a href={`tel:${tel1}`} className="text-blue-600 hover:underline">
+                          {tel1}
                         </a>
                       </div>
                     </div>
                   )}
 
-                  {contact.EMAIL && (
+                  {tel2 && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Téléphone secondaire</label>
+                      <div className="mt-1 flex items-center">
+                        <Phone className="w-4 h-4 mr-2 text-gray-400" />
+                        <a href={`tel:${tel2}`} className="text-blue-600 hover:underline">
+                          {tel2}
+                        </a>
+                      </div>
+                    </div>
+                  )}
+
+                  {tel3 && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Téléphone mobile</label>
+                      <div className="mt-1 flex items-center">
+                        <Phone className="w-4 h-4 mr-2 text-gray-400" />
+                        <a href={`tel:${tel3}`} className="text-blue-600 hover:underline">
+                          {tel3}
+                        </a>
+                      </div>
+                    </div>
+                  )}
+
+                  {email && (
                     <div>
                       <label className="text-sm font-medium text-gray-500">Email</label>
                       <div className="mt-1 flex items-center">
                         <Mail className="w-4 h-4 mr-2 text-gray-400" />
-                        <a href={`mailto:${contact.EMAIL}`} className="text-blue-600 hover:underline">
-                          {contact.EMAIL}
+                        <a href={`mailto:${email}`} className="text-blue-600 hover:underline">
+                          {email}
                         </a>
                       </div>
                     </div>
                   )}
 
-                  {contact.ADRESSE && (
+                  {website && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Site Web</label>
+                      <div className="mt-1 flex items-center">
+                        <Globe className="w-4 h-4 mr-2 text-gray-400" />
+                        <a href={website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                          {website}
+                        </a>
+                      </div>
+                    </div>
+                  )}
+
+                  {fullAddress && (
                     <div>
                       <label className="text-sm font-medium text-gray-500">Adresse</label>
                       <div className="mt-1 flex items-start">
                         <MapPin className="w-4 h-4 mr-2 text-gray-400 mt-0.5" />
                         <div>
-                          <div>{contact.ADRESSE}</div>
-                          <div>{contact.CP} {contact.VILLE}</div>
-                          {contact.CDREGION && <div>Région: {contact.CDREGION}</div>}
+                          {address1 && <div>{address1}</div>}
+                          {address2 && <div>{address2}</div>}
+                          {(postalCode || city) && <div>{postalCode} {city}</div>}
+                          {region && <div>{region}</div>}
+                          {country && <div>{country}</div>}
+                          <a href={googleMapsLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                            Voir sur Google Maps
+                          </a>
                         </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {contact.COMMENTAIRE && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Observations</label>
+                      <div className="mt-1 text-gray-700 dark:text-gray-300">
+                        {contact.COMMENTAIRE}
                       </div>
                     </div>
                   )}
@@ -268,6 +397,7 @@ const ClientDetails = () => {
               <TabsList className="grid w-full grid-cols-5 rounded-none border-b">
                 <TabsTrigger value="interventions">Interventions ({interventions.length})</TabsTrigger>
                 <TabsTrigger value="vehicules">Véhicules ({vehicules.length})</TabsTrigger>
+                <TabsTrigger value="collaborateurs">Collaborateurs ({collaborators.length})</TabsTrigger>
                 <TabsTrigger value="contrats">Contrats (0)</TabsTrigger>
                 <TabsTrigger value="documents">Documents (0)</TabsTrigger>
                 <TabsTrigger value="alertes">Alertes (0)</TabsTrigger>
@@ -342,6 +472,50 @@ const ClientDetails = () => {
                               {vehicule.KMACTUEL ? `${vehicule.KMACTUEL.toLocaleString()} km` : '-'}
                             </TableCell>
                             <TableCell>{formatDate(vehicule.DT_CTRLTECH)}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="collaborateurs" className="p-6">
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Collaborateurs de {contact.RAISON_SOCIALE}</h3>
+                  {loadingCollaborators ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader className="w-6 h-6 animate-spin mr-2" /> Chargement des collaborateurs...
+                    </div>
+                  ) : collaborators.length === 0 ? (
+                    <p className="text-gray-500 text-center py-8">Aucun collaborateur trouvé pour cette entreprise</p>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Nom</TableHead>
+                          <TableHead>Prénom</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Téléphone</TableHead>
+                          <TableHead>Fonction</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {collaborators.map((collab) => (
+                          <TableRow key={collab.IDCONTACT}>
+                            <TableCell>{collab.NOMFAMILLE}</TableCell>
+                            <TableCell>{collab.PRENOM}</TableCell>
+                            <TableCell>{collab.EMAILP || collab.EMAIL || '-'}</TableCell>
+                            <TableCell>{collab.TELP1 || collab.TEL1 || '-'}</TableCell>
+                            <TableCell>{collab.FONCTION_PRO || '-'}</TableCell>
+                            <TableCell>
+                              <Link to={`/clients/${collab.IDCONTACT}`}>
+                                <Button variant="ghost" size="sm" title="Voir le détail">
+                                  <Eye className="w-4 h-4" />
+                                </Button>
+                              </Link>
+                            </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>

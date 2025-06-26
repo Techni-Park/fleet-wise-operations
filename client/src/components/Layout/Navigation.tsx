@@ -15,6 +15,7 @@ const Navigation = ({ isOpen = true, onToggle }: NavigationProps) => {
 
   const navigationItems = [
     { icon: Home, label: 'Tableau de bord', path: '/' },
+    { icon: Users, label: 'Clients', path: '/clients' },
     { icon: Car, label: 'Véhicules', path: '/vehicles' },
     { icon: Wrench, label: 'Interventions', path: '/interventions' },
     { icon: Calendar, label: 'Planning', path: '/planning' },

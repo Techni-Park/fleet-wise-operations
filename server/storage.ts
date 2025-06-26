@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "./db";
 import { 
   users, vehicles, interventions, alerts, documents, actions, anomalies, contacts, ingredients, machinesMnt, produits, societes, userSystem, vehicules,
@@ -13,8 +13,8 @@ export interface IStorage {
   // Test de connexion
   testConnection(): Promise<any[]>;
   // Users
-  getUser(id: number): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
+  getUser(id: number): Promise<UserSystem | undefined>;
+  getUserByCDUSER(cduser: string): Promise<UserSystem | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, user: Partial<InsertUser>): Promise<User | undefined>;
   deleteUser(id: number): Promise<boolean>;
@@ -59,10 +59,11 @@ export interface IStorage {
 
   // Contacts
   getContact(id: number): Promise<Contact | undefined>;
-  getAllContacts(): Promise<Contact[]>;
+  getAllContacts(page: number, limit: number): Promise<{ contacts: Contact[], total: number }>;
   createContact(contact: InsertContact): Promise<Contact>;
   updateContact(id: number, contact: Partial<InsertContact>): Promise<Contact | undefined>;
   deleteContact(id: number): Promise<boolean>;
+  getCollaborators(companyName: string, currentContactId: number): Promise<Contact[]>;
 
   // Machines
   getMachine(id: number): Promise<MachineMnt | undefined>;
@@ -101,13 +102,13 @@ export class MySQLStorage implements IStorage {
     return result;
   }
   // Users
-  async getUser(id: number): Promise<User | undefined> {
-    const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
+  async getUser(id: number): Promise<UserSystem | undefined> {
+    const result = await db.select().from(userSystem).where(eq(userSystem.IDUSER, id)).limit(1);
     return result[0];
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    const result = await db.select().from(users).where(eq(users.username, username)).limit(1);
+  async getUserByCDUSER(cduser: string): Promise<UserSystem | undefined> {
+    const result = await db.select().from(userSystem).where(eq(userSystem.CDUSER, cduser)).limit(1);
     return result[0];
   }
 
@@ -314,8 +315,23 @@ export class MySQLStorage implements IStorage {
     return result[0];
   }
 
-  async getAllContacts(): Promise<Contact[]> {
-    return db.select().from(contacts);
+  async getAllContacts(page: number = 1, limit: number = 50): Promise<{ contacts: any[], total: number }> {
+    const offset = (page - 1) * limit;
+    
+    const query = sql`
+      SELECT c.*, (SELECT COUNT(*) FROM INTERVENTION i WHERE i.IDCONTACT = c.IDCONTACT) as interventionCount
+      FROM CONTACT c
+      ORDER BY c.IDCONTACT DESC
+      LIMIT ${limit} OFFSET ${offset}
+    `;
+    
+    const contactList = await db.execute(query);
+    
+    const totalRecordsQuery = sql`SELECT count(*) as count FROM CONTACT`;
+    const totalRecordsResult = await db.execute(totalRecordsQuery);
+    const total = (totalRecordsResult[0] as any[])[0].count;
+
+    return { contacts: contactList[0] as any[], total };
   }
 
   async createContact(contact: InsertContact): Promise<Contact> {
@@ -505,6 +521,12 @@ export class MySQLStorage implements IStorage {
     const insertId = result[0].insertId as number;
     const newIngredient = await this.getIngredient(insertId);
     return newIngredient!;
+  }
+
+  async getCollaborators(companyName: string, currentContactId: number): Promise<Contact[]> {
+    const result = await db.select().from(contacts)
+      .where(sql`RAISON_SOCIALE = ${companyName} AND IDCONTACT != ${currentContactId}`);
+    return result[0] as Contact[];
   }
 }
 

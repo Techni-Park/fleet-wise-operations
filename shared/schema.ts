@@ -4,16 +4,19 @@ import { z } from "zod";
 
 export const users = mysqlTable("users", {
   id: int("id").primaryKey().autoincrement(),
-  username: varchar("username", { length: 50 }).notNull().unique(),
-  password: varchar("password", { length: 255 }).notNull(),
-  email: varchar("email", { length: 100 }).notNull().unique(),
-  role: mysqlEnum("role", ["admin", "manager", "technician", "driver"]).notNull().default("driver"),
-  firstName: varchar("first_name", { length: 50 }),
-  lastName: varchar("last_name", { length: 50 }),
-  phone: varchar("phone", { length: 20 }),
-  status: mysqlEnum("status", ["active", "inactive", "pending"]).notNull().default("active"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
+  active: tinyint("active", { unsigned: true }).notNull().default(0),
+  CDUSER: varchar("CDUSER", { length: 10 }),
+  firstName: varchar("first_name", { length: 191 }).notNull(),
+  lastName: varchar("last_name", { length: 191 }).notNull(),
+  email: varchar("email", { length: 191 }).notNull().unique(),
+  password: varchar("password", { length: 191 }).notNull(),
+  rememberToken: varchar("remember_token", { length: 100 }),
+  lastLogin: datetime("last_login"),
+  ip: varchar("ip", { length: 20 }),
+  idagenda: varchar("idagenda", { length: 100 }).notNull(),
+  createdAt: timestamp("created_at"),
+  updatedAt: timestamp("updated_at"),
+  deletedAt: timestamp("deleted_at"),
 });
 
 export const vehicles = mysqlTable("vehicles", {

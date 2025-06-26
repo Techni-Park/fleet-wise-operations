@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
+
 const Interventions = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [interventions, setInterventions] = useState<any[]>([]);
@@ -183,114 +184,72 @@ const Interventions = () => {
           </CardContent>
         </Card>
 
-        {/* Tableau des interventions */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Liste des interventions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Libellé</TableHead>
-                    <TableHead>Demandeur</TableHead>
-                    <TableHead>Statut</TableHead>
-                    <TableHead>Utilisateur</TableHead>
-                    <TableHead>Date début</TableHead>
-                    <TableHead>Date fin</TableHead>
-                    <TableHead>Machine</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredInterventions.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={9} className="text-center py-8 text-gray-500">
-                        Aucune intervention trouvée
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredInterventions.map((intervention) => {
-                      const status = formatStatus(intervention.ST_INTER);
-                      return (
-                        <TableRow key={intervention.IDINTERVENTION}>
-                          <TableCell>
-                            <div className="font-medium text-gray-900 dark:text-white">
-                              #{intervention.IDINTERVENTION}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div>
-                              <div className="font-medium text-gray-900 dark:text-white">
-                                {intervention.LIB50 || '-'}
-                              </div>
-                              {intervention.USDEF_LIB && (
-                                <div className="text-sm text-gray-500">
-                                  {intervention.USDEF_LIB}
-                                </div>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="font-medium">{intervention.DEMANDEUR || '-'}</div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={status.variant as any}>
-                              {status.label}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div>
-                              <div className="font-medium">{intervention.CDUSER || '-'}</div>
-                              {intervention.US_TEAM && (
-                                <div className="text-sm text-gray-500">{intervention.US_TEAM}</div>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div>
-                              <div>{formatDate(intervention.DT_INTER_DBT)}</div>
-                              {intervention.HR_DEBUT && (
-                                <div className="text-sm text-gray-500">{intervention.HR_DEBUT}</div>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div>
-                              <div>{formatDate(intervention.DT_INTER_FIN)}</div>
-                              {intervention.HR_FIN && (
-                                <div className="text-sm text-gray-500">{intervention.HR_FIN}</div>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {intervention.CLE_MACHINE_CIBLE || '-'}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex space-x-2">
-                              <Link to={`/interventions/${intervention.IDINTERVENTION}`}>
-                                <Button variant="ghost" size="sm">
-                                  <Eye className="w-4 h-4" />
-                                </Button>
-                              </Link>
-                              <Link to={`/interventions/${intervention.IDINTERVENTION}/edit`}>
-                                <Button variant="ghost" size="sm">
-                                  <Edit className="w-4 h-4" />
-                                </Button>
-                              </Link>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
-                  )}
-                </TableBody>
-              </Table>
+        {/* Liste des interventions en cartes */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {filteredInterventions.length === 0 ? (
+            <div className="col-span-full text-center py-8 text-gray-500">
+              Aucune intervention trouvée
             </div>
-          </CardContent>
-        </Card>
+          ) : (
+            filteredInterventions.map((intervention) => {
+              const status = formatStatus(intervention.ST_INTER);
+              return (
+                <Card key={intervention.IDINTERVENTION} className="flex flex-col">
+                  <CardHeader>
+                    <CardTitle className="flex items-start justify-between gap-4">
+                      <span className="truncate">
+                        {intervention.LIB50 || 'Libellé non renseigné'}
+                      </span>
+                      <Badge variant={status.variant as any} className="flex-shrink-0">
+                        {status.label}
+                      </Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="flex-grow space-y-2 text-sm text-gray-600">
+                    <div className="flex items-center">
+                      <User className="w-4 h-4 mr-2 flex-shrink-0" />
+                      <span>Demandeur: {intervention.DEMANDEUR || '-'}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <Calendar className="w-4 h-4 mr-2 flex-shrink-0" />
+                      <span>Début: {formatDate(intervention.DT_INTER_DBT)} {intervention.HR_DEBUT}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <Calendar className="w-4 h-4 mr-2 flex-shrink-0" />
+                      <span>Fin: {formatDate(intervention.DT_INTER_FIN)} {intervention.HR_FIN}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <Clock className="w-4 h-4 mr-2 flex-shrink-0" />
+                      <span>Utilisateur: {intervention.CDUSER || '-'}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <Car className="w-4 h-4 mr-2 flex-shrink-0" />
+                      <span>Machine Cible: {intervention.CLE_MACHINE_CIBLE || '-'}</span>
+                    </div>
+                    {intervention.USDEF_LIB && (
+                      <div className="flex items-center">
+                        <Info className="w-4 h-4 mr-2 flex-shrink-0" />
+                        <span>{intervention.USDEF_LIB}</span>
+                      </div>
+                    )}
+                  </CardContent>
+                  <div className="flex justify-end p-4 border-t">
+                    <Link to={`/interventions/${intervention.IDINTERVENTION}`}>
+                      <Button variant="ghost" size="sm" title="Voir le détail">
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                    </Link>
+                    <Link to={`/interventions/${intervention.IDINTERVENTION}/edit`}>
+                      <Button variant="ghost" size="sm" title="Modifier">
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                    </Link>
+                  </div>
+                </Card>
+              );
+            })
+          )}
+        </div>
       </div>
     </AppLayout>
   );

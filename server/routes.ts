@@ -1,5 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import passport from "passport";
+import "./passport-config"; // Import the passport configuration
 import { storage } from "./storage";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -204,6 +206,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put("/api/users/:id", async (req, res) => {
+    try {
+      const user = await storage.updateUser(parseInt(req.params.id), req.body);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      res.json(user);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update user" });
+    }
+  });
+
+  app.delete("/api/users/:id", async (req, res) => {
+    try {
+      const deleted = await storage.deleteUser(parseInt(req.params.id));
+      if (!deleted) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete user" });
+    }
+  });
+
   // Documents API
   app.get("/api/documents", async (req, res) => {
     try {
@@ -290,13 +316,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/contacts/collaborators/:companyName/:currentContactId", async (req, res) => {
+    try {
+      const collaborators = await storage.getCollaborators(req.params.companyName, parseInt(req.params.currentContactId));
+      res.json(collaborators);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch collaborators" });
+    }
+  });
+
   // Contacts API
   app.get("/api/contacts", async (req, res) => {
     try {
-      const contacts = await storage.getAllContacts();
-      res.json(contacts);
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 50;
+      const { contacts, total } = await storage.getAllContacts(page, limit);
+      res.json({ contacts, total, page, limit });
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch contacts" });
+    }
+  });
+
+  app.get("/api/contacts/:id", async (req, res) => {
+    try {
+      const contact = await storage.getContact(parseInt(req.params.id));
+      if (!contact) {
+        return res.status(404).json({ error: "Contact not found" });
+      }
+      res.json(contact);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch contact" });
     }
   });
 
@@ -306,6 +355,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(contact);
     } catch (error) {
       res.status(500).json({ error: "Failed to create contact" });
+    }
+  });
+
+  app.put("/api/contacts/:id", async (req, res) => {
+    try {
+      const contact = await storage.updateContact(parseInt(req.params.id), req.body);
+      if (!contact) {
+        return res.status(404).json({ error: "Contact not found" });
+      }
+      res.json(contact);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update contact" });
+    }
+  });
+
+  app.delete("/api/contacts/:id", async (req, res) => {
+    try {
+      const deleted = await storage.deleteContact(parseInt(req.params.id));
+      if (!deleted) {
+        return res.status(404).json({ error: "Contact not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete contact" });
     }
   });
 
@@ -319,7 +392,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Vehicules API - données combinées VEHICULE + MACHINE_MNT
+  // Vehicules API
   app.get("/api/vehicules", async (req, res) => {
     try {
       const vehicules = await storage.getAllVehicules();
@@ -432,6 +505,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch ingredients" });
     }
+  });
+
+  // Authentication routes
+  app.post("/api/login", passport.authenticate("local"), (req, res) => {
+    res.json(req.user);
+  });
+
+  app.get("/api/logout", (req, res) => {
+    req.logout((err) => {
+      if (err) {
+        return res.status(500).json({ message: "Logout failed" });
+      }
+      res.json({ message: "Logged out successfully" });
+    });
+  });
+
+  app.get("/api/current-user", (req, res) => {
+    if (req.isAuthenticated()) {
+      res.json(req.user);
+    } else {
+      res.status(401).json({ message: "Not authenticated" });
+    }
+  });
+
+  // Placeholder for forgot password route
+  app.post("/api/forgot-password", async (req, res) => {
+    // In a real application, you would handle password reset logic here:
+    // 1. Validate email
+    // 2. Generate a unique token
+    // 3. Save the token with an expiry to the database associated with the user's email
+    // 4. Send an email to the user with a link containing the token
+    console.log("Forgot password request for:", req.body.email);
+    res.json({ message: "If an account with that email exists, a password reset link has been sent." });
   });
 
   const httpServer = createServer(app);
