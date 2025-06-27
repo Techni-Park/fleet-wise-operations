@@ -288,20 +288,15 @@ export class MySQLStorage implements IStorage {
 
   async getAllInterventions(page: number = 1, limit: number = 12): Promise<{ interventions: Intervention[], total: number }> {
     try {
-      console.log('🔍 getAllInterventions appelé avec page:', page, 'limit:', limit);
-      
       // Calcul de l'offset
       const offset = (page - 1) * limit;
-      console.log('📊 Offset calculé:', offset);
       
-      // D'abord, testons une requête simple pour vérifier qu'il y a des données
+      // Compter le total d'abord
       const simpleCountQuery = sql`SELECT COUNT(*) as total FROM INTERVENTION`;
       const simpleCountResult = await db.execute(simpleCountQuery);
       const totalInterventions = (simpleCountResult[0] as any[])[0]?.total || 0;
-      console.log('📈 Total interventions dans la table:', totalInterventions);
       
       if (totalInterventions === 0) {
-        console.log('⚠️ Aucune intervention trouvée dans la table INTERVENTION');
         return { interventions: [], total: 0 };
       }
       
@@ -334,56 +329,32 @@ export class MySQLStorage implements IStorage {
         LIMIT ${limit} OFFSET ${offset}
       `;
       
-      console.log('🔍 Exécution de la requête principale...');
       const interventionsResult = await db.execute(query);
       const interventions = (interventionsResult[0] as any[]) || [];
-      console.log('📋 Nombre d\'interventions récupérées:', interventions.length);
-      
-      if (interventions.length > 0) {
-        console.log('✅ Première intervention récupérée:', {
-          id: interventions[0].IDINTERVENTION,
-          lib50: interventions[0].LIB50,
-          contact: interventions[0].CONTACT_NOM,
-          vehicule: interventions[0].VEHICULE_LIB_MACHINE
-        });
-      }
       
       return {
         interventions: interventions,
         total: totalInterventions
       };
     } catch (error) {
-      console.error('❌ Erreur getAllInterventions avec pagination:', error);
+      console.error('Erreur getAllInterventions avec pagination:', error);
       
       // Fallback: essayer une requête simple sans jointures
       try {
-        console.log('🔄 Tentative de récupération simple sans jointures...');
         const fallbackQuery = sql`SELECT * FROM INTERVENTION ORDER BY IDINTERVENTION DESC LIMIT ${limit} OFFSET ${(page - 1) * limit}`;
         const fallbackResult = await db.execute(fallbackQuery);
         const fallbackInterventions = (fallbackResult[0] as any[]) || [];
         
-        console.log('🔄 Fallback - Interventions brutes récupérées:', fallbackInterventions.length);
-        if (fallbackInterventions.length > 0) {
-          console.log('🔍 Première intervention fallback:', {
-            id: fallbackInterventions[0].IDINTERVENTION,
-            lib50: fallbackInterventions[0].LIB50,
-            idcontact: fallbackInterventions[0].IDCONTACT,
-            cle_machine: fallbackInterventions[0].CLE_MACHINE_CIBLE
-          });
-        }
-        
         const countQuery = sql`SELECT COUNT(*) as total FROM INTERVENTION`;
         const countResult = await db.execute(countQuery);
         const total = (countResult[0] as any[])[0]?.total || 0;
-        
-        console.log('🔄 Fallback réussi, interventions récupérées:', fallbackInterventions.length);
         
         return {
           interventions: fallbackInterventions,
           total: total
         };
       } catch (fallbackError) {
-        console.error('❌ Erreur fallback:', fallbackError);
+        console.error('Erreur fallback:', fallbackError);
         return { interventions: [], total: 0 };
       }
     }

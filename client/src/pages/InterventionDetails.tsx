@@ -431,14 +431,17 @@ const InterventionDetails = () => {
 
         {/* Onglets pour le contenu détaillé */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-7">
+          <TabsList className="grid w-full grid-cols-10 text-xs">
             <TabsTrigger value="details">Détails</TabsTrigger>
-            <TabsTrigger value="rapport">Rapport</TabsTrigger>
-            <TabsTrigger value="checklist">Check List</TabsTrigger>
-            <TabsTrigger value="customfields">Champs custom</TabsTrigger>
             <TabsTrigger value="instructions">Instructions</TabsTrigger>
-            <TabsTrigger value="formulaires">Formulaires</TabsTrigger>
+            <TabsTrigger value="customfields">Champs custom</TabsTrigger>
             <TabsTrigger value="anomalies">Anomalies</TabsTrigger>
+            <TabsTrigger value="pointages">Pointages</TabsTrigger>
+            <TabsTrigger value="ressources">Ressources</TabsTrigger>
+            <TabsTrigger value="checklist">Check List</TabsTrigger>
+            <TabsTrigger value="rapport">Rapport</TabsTrigger>
+            <TabsTrigger value="formulaires">Formulaires</TabsTrigger>
+            <TabsTrigger value="chat">Chat</TabsTrigger>
           </TabsList>
 
           <TabsContent value="details" className="space-y-6">
@@ -954,6 +957,293 @@ const InterventionDetails = () => {
                 <Plus className="w-4 h-4 mr-2" />
                 Signaler une nouvelle anomalie
               </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      <TabsContent value="pointages">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Clock className="w-5 h-5 mr-2" />
+              Pointages temps
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-6">
+              {/* Formulaire de pointage */}
+              <Card className="bg-blue-50 dark:bg-blue-950">
+                <CardHeader>
+                  <CardTitle className="text-lg">Nouveau pointage</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <Label htmlFor="task-name">Tâche</Label>
+                      <Input id="task-name" placeholder="Nom de la tâche" />
+                    </div>
+                    <div>
+                      <Label htmlFor="time-spent">Temps passé (h)</Label>
+                      <Input id="time-spent" type="number" step="0.5" placeholder="1.5" />
+                    </div>
+                    <div className="flex items-end">
+                      <Button className="w-full">
+                        <Plus className="w-4 h-4 mr-2" />
+                        Ajouter pointage
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <Label htmlFor="task-description">Description (optionnel)</Label>
+                    <Textarea id="task-description" placeholder="Détails de la tâche effectuée..." rows={2} />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Liste des pointages */}
+              <div className="space-y-4">
+                <h4 className="font-medium">Pointages enregistrés</h4>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 border rounded">
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <h5 className="font-medium">Diagnostic initial</h5>
+                        <Badge variant="outline">1.5h</Badge>
+                      </div>
+                      <p className="text-sm text-gray-600 mt-1">Analyse des symptômes et codes d'erreur</p>
+                      <p className="text-xs text-gray-500 mt-1">Technicien: J. Dupont - 14:30-16:00</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between p-3 border rounded">
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <h5 className="font-medium">Réparation moteur</h5>
+                        <Badge variant="outline">3.0h</Badge>
+                      </div>
+                      <p className="text-sm text-gray-600 mt-1">Remplacement de la courroie et révision</p>
+                      <p className="text-xs text-gray-500 mt-1">Technicien: M. Martin - 08:00-11:00</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
+                  <span className="font-medium">Temps total:</span>
+                  <Badge className="bg-blue-100 text-blue-800">4.5h</Badge>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      <TabsContent value="ressources">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Settings className="w-5 h-5 mr-2" />
+              Ressources & Prestations
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-6">
+              {/* Ajout de ressources */}
+              <Card className="bg-green-50 dark:bg-green-950">
+                <CardHeader>
+                  <CardTitle className="text-lg">Ajouter une ressource</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                      <Label htmlFor="resource-type">Type</Label>
+                      <select id="resource-type" className="w-full p-2 border rounded">
+                        <option value="prestation">Prestation</option>
+                        <option value="fourniture">Fourniture</option>
+                        <option value="piece">Pièce détachée</option>
+                      </select>
+                    </div>
+                    <div>
+                      <Label htmlFor="resource-name">Nom/Description</Label>
+                      <Input id="resource-name" placeholder="Ex: Filtre à huile" />
+                    </div>
+                    <div>
+                      <Label htmlFor="resource-qty">Quantité</Label>
+                      <Input id="resource-qty" type="number" placeholder="1" />
+                    </div>
+                    <div className="flex items-end">
+                      <Button className="w-full">
+                        <Plus className="w-4 h-4 mr-2" />
+                        Ajouter
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    <div>
+                      <Label htmlFor="resource-price">Prix unitaire (€)</Label>
+                      <Input id="resource-price" type="number" step="0.01" placeholder="25.90" />
+                    </div>
+                    <div>
+                      <Label htmlFor="resource-ref">Référence</Label>
+                      <Input id="resource-ref" placeholder="REF-123456" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Liste des ressources */}
+              <div className="space-y-4">
+                <h4 className="font-medium">Ressources utilisées</h4>
+                
+                {/* Prestations */}
+                <div>
+                  <h5 className="text-sm font-medium text-gray-700 mb-2">Prestations</h5>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between p-3 border rounded">
+                      <div className="flex-1">
+                        <p className="font-medium">Diagnostic électronique</p>
+                        <p className="text-sm text-gray-600">1 unité × 75.00€</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-medium">75.00€</p>
+                        <Badge variant="outline" className="text-xs">Prestation</Badge>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Fournitures */}
+                <div>
+                  <h5 className="text-sm font-medium text-gray-700 mb-2">Fournitures</h5>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between p-3 border rounded">
+                      <div className="flex-1">
+                        <p className="font-medium">Huile moteur 5W30</p>
+                        <p className="text-sm text-gray-600">5 litres × 8.50€ - Réf: OIL-5W30</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-medium">42.50€</p>
+                        <Badge variant="outline" className="text-xs">Fourniture</Badge>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between p-3 border rounded">
+                      <div className="flex-1">
+                        <p className="font-medium">Filtre à huile</p>
+                        <p className="text-sm text-gray-600">1 unité × 15.90€ - Réf: FIL-001</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-medium">15.90€</p>
+                        <Badge variant="outline" className="text-xs">Fourniture</Badge>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Total */}
+                <div className="flex items-center justify-between p-4 bg-gray-50 rounded font-medium">
+                  <span>Total ressources:</span>
+                  <span className="text-lg">133.40€</span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      <TabsContent value="chat">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <MessageSquare className="w-5 h-5 mr-2" />
+              Chat intervention
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {/* Zone de chat */}
+              <div className="border rounded-lg p-4 bg-gray-50 dark:bg-gray-900 h-96 overflow-y-auto">
+                <div className="space-y-3">
+                  <div className="flex items-start space-x-3">
+                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                      JD
+                    </div>
+                    <div className="flex-1">
+                      <div className="bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-medium text-sm">J. Dupont</span>
+                          <span className="text-xs text-gray-500">14:30</span>
+                        </div>
+                        <p className="text-sm">Bonjour, je commence le diagnostic. Le client signale des vibrations anormales.</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start space-x-3">
+                    <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                      MM
+                    </div>
+                    <div className="flex-1">
+                      <div className="bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-medium text-sm">M. Martin</span>
+                          <span className="text-xs text-gray-500">14:45</span>
+                        </div>
+                        <p className="text-sm">OK, vérifie d'abord l'équilibrage des roues et l'état des amortisseurs.</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start space-x-3">
+                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                      JD
+                    </div>
+                    <div className="flex-1">
+                      <div className="bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-medium text-sm">J. Dupont</span>
+                          <span className="text-xs text-gray-500">15:10</span>
+                        </div>
+                        <p className="text-sm">Problème identifié : amortisseur avant droit défaillant. Je vais commander la pièce.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Zone de saisie */}
+              <div className="flex space-x-2">
+                <Input 
+                  placeholder="Tapez votre message..." 
+                  className="flex-1"
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      // TODO: Ajouter le message
+                    }
+                  }}
+                />
+                <Button>
+                  <Send className="w-4 h-4" />
+                </Button>
+              </div>
+
+              {/* Participants */}
+              <div className="border-t pt-4">
+                <h5 className="font-medium mb-2">Participants</h5>
+                <div className="flex space-x-2">
+                  <div className="flex items-center space-x-1">
+                    <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs">
+                      JD
+                    </div>
+                    <span className="text-sm">J. Dupont</span>
+                    <Badge variant="outline" className="text-xs">Technicien</Badge>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-white text-xs">
+                      MM
+                    </div>
+                    <span className="text-sm">M. Martin</span>
+                    <Badge variant="outline" className="text-xs">Superviseur</Badge>
+                  </div>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>

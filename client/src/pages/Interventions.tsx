@@ -27,36 +27,20 @@ const Interventions = () => {
     if (showRefresh) setRefreshing(true);
     else setLoading(true);
 
-    console.log('🔍 Client: Chargement des interventions, page:', pagination.page, 'limit:', pagination.limit);
-
     try {
-      const url = `/api/interventions?page=${pagination.page}&limit=${pagination.limit}`;
-      console.log('🌐 Client: URL de requête:', url);
-      
-      const response = await fetch(url, {
+      const response = await fetch(`/api/interventions?page=${pagination.page}&limit=${pagination.limit}`, {
         credentials: 'include'
       });
       
-      console.log('📡 Client: Statut de la réponse:', response.status);
-      
       if (response.ok) {
         const data = await response.json();
-        console.log('📋 Client: Données reçues:', {
-          interventionsCount: data.interventions?.length || 0,
-          total: data.total,
-          isArray: Array.isArray(data.interventions),
-          firstIntervention: data.interventions?.[0]
-        });
-        
         setInterventions(Array.isArray(data.interventions) ? data.interventions : []);
         setPagination(prev => ({ ...prev, total: data.total || 0 }));
       } else {
-        const errorText = await response.text();
-        console.error('❌ Client: Erreur de réponse:', response.status, errorText);
         throw new Error(`Erreur HTTP: ${response.status}`);
       }
     } catch (error) {
-      console.error('❌ Client: Erreur lors du chargement des interventions:', error);
+      console.error('Erreur lors du chargement des interventions:', error);
       setInterventions([]);
     } finally {
       setLoading(false);
@@ -172,87 +156,88 @@ const Interventions = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <div className={`grid gap-3 text-sm ${isListView ? 'grid-cols-2 lg:grid-cols-4' : 'grid-cols-1'}`}>
-              {/* Client */}
-              <div className="flex items-center">
-                <User className="w-4 h-4 mr-2 flex-shrink-0" />
-                <span className="truncate">
-                  {intervention.CONTACT_RAISON_SOCIALE || 
-                   formatFullName(intervention.CONTACT_NOM, intervention.CONTACT_PRENOM) || 
-                   'Client non défini'}
-                </span>
-              </div>
-
-              {/* Véhicule */}
-              <div className="flex items-center">
-                <Car className="w-4 h-4 mr-2 flex-shrink-0" />
-                <span className="truncate">
-                  {intervention.VEHICULE_LIB_MACHINE || 
-                   `${intervention.VEHICULE_MARQUE || ''} ${intervention.VEHICULE_MODELE || ''}`.trim() ||
-                   'Véhicule non défini'}
-                </span>
-              </div>
-
-              {/* Technicien */}
-              <div className="flex items-center">
-                <AlertTriangle className="w-4 h-4 mr-2 flex-shrink-0" />
-                <span className="truncate">
-                  {formatFullName(intervention.TECHNICIEN_NOM, intervention.TECHNICIEN_PRENOM) || 
-                   intervention.CDUSER || 
-                   'Non assigné'}
-                </span>
-              </div>
-
-              {/* Date */}
-              <div className="flex items-center">
-                <Calendar className="w-4 h-4 mr-2 flex-shrink-0" />
-                <span>{formatDate(intervention.DT_INTER_DBT)}</span>
-              </div>
-
-              {/* Type d'intervention */}
-              <div className="flex items-center">
-                <Info className="w-4 h-4 mr-2 flex-shrink-0" />
-                <span>{getInterventionType(intervention.ID2GENRE_INTER)}</span>
-              </div>
-
-              {/* Heure */}
-              {intervention.HR_DEBUT && (
-                <div className="flex items-center">
-                  <Clock className="w-4 h-4 mr-2 flex-shrink-0" />
-                  <span>{intervention.HR_DEBUT}</span>
+            {/* Informations principales - priorité administrative */}
+            <div className="space-y-3">
+              {/* Client et Date - info prioritaire */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center min-w-0 flex-1">
+                  <User className="w-4 h-4 mr-2 text-blue-600 flex-shrink-0" />
+                  <span className="truncate font-medium">
+                    {intervention.CONTACT_RAISON_SOCIALE || 
+                     formatFullName(intervention.CONTACT_NOM, intervention.CONTACT_PRENOM) || 
+                     'Client non défini'}
+                  </span>
                 </div>
-              )}
+                <div className="flex items-center text-gray-600 ml-2">
+                  <Calendar className="w-4 h-4 mr-1" />
+                  <span className="text-sm">{formatDate(intervention.DT_INTER_DBT)}</span>
+                </div>
+              </div>
+
+              {/* Véhicule et Technicien */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                <div className="flex items-center">
+                  <Car className="w-4 h-4 mr-2 text-green-600 flex-shrink-0" />
+                  <span className="truncate">
+                    {intervention.VEHICULE_LIB_MACHINE || 
+                     `${intervention.VEHICULE_MARQUE || ''} ${intervention.VEHICULE_MODELE || ''}`.trim() ||
+                     'Véhicule non défini'}
+                  </span>
+                </div>
+                <div className="flex items-center">
+                  <AlertTriangle className="w-4 h-4 mr-2 text-orange-600 flex-shrink-0" />
+                  <span className="truncate">
+                    {formatFullName(intervention.TECHNICIEN_NOM, intervention.TECHNICIEN_PRENOM) || 
+                     'Non assigné'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Détails secondaires */}
+              <div className="flex items-center justify-between text-xs text-gray-500">
+                <div className="flex items-center">
+                  <Info className="w-3 h-3 mr-1" />
+                  <span>{getInterventionType(intervention.ID2GENRE_INTER)}</span>
+                </div>
+                {intervention.HR_DEBUT && (
+                  <div className="flex items-center">
+                    <Clock className="w-3 h-3 mr-1" />
+                    <span>{intervention.HR_DEBUT}</span>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Description si disponible */}
             {intervention.LIB_INTERVENTION && (
-              <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
-                <p className="truncate">{intervention.LIB_INTERVENTION}</p>
+              <div className="mt-3 p-2 bg-gray-50 dark:bg-gray-800 rounded text-sm">
+                <p className="text-gray-700 dark:text-gray-300 line-clamp-2">{intervention.LIB_INTERVENTION}</p>
               </div>
             )}
           </CardContent>
         </div>
 
         {/* Actions */}
-        <div className={`flex p-4 border-t sm:border-t-0 sm:border-l ${isListView ? 'sm:w-1/3 sm:flex-col sm:justify-center' : 'justify-end'}`}>
-          <div className={`flex ${isListView ? 'flex-col space-y-2' : 'space-x-2'}`}>
+        <div className={`flex p-3 border-t sm:border-t-0 sm:border-l ${isListView ? 'sm:w-1/4 sm:flex-col sm:justify-center' : 'justify-end'}`}>
+          <div className={`flex ${isListView ? 'flex-col space-y-1' : 'space-x-1'}`}>
             <Link to={`/interventions/${intervention.IDINTERVENTION}`} className="w-full">
-              <Button variant="outline" size="sm" className="w-full flex justify-center items-center">
-                <Eye className="w-4 h-4 mr-2" /> Voir
+              <Button variant="outline" size="sm" className="w-full px-2" title="Voir les détails">
+                <Eye className="w-4 h-4" />
               </Button>
             </Link>
             <Link to={`/interventions/${intervention.IDINTERVENTION}/edit`} className="w-full">
-              <Button variant="outline" size="sm" className="w-full flex justify-center items-center">
-                <Edit className="w-4 h-4 mr-2" /> Modifier
+              <Button variant="outline" size="sm" className="w-full px-2" title="Modifier l'intervention">
+                <Edit className="w-4 h-4" />
               </Button>
             </Link>
             <Button 
               variant="destructive" 
               size="sm" 
               onClick={() => handleDelete(intervention.IDINTERVENTION)}
-              className="w-full flex justify-center items-center"
+              className="w-full px-2"
+              title="Supprimer l'intervention"
             >
-              <Trash2 className="w-4 h-4 mr-2" /> Supprimer
+              <Trash2 className="w-4 h-4" />
             </Button>
           </div>
         </div>
@@ -287,14 +272,16 @@ const Interventions = () => {
               onClick={() => loadInterventions(true)} 
               disabled={refreshing} 
               variant="outline"
+              size="sm"
+              className="px-2"
+              title="Actualiser la liste"
             >
-              <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-              Actualiser
+              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
             </Button>
             <Link to="/interventions/create">
-              <Button className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700">
+              <Button className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700" size="sm" title="Créer une nouvelle intervention">
                 <Plus className="w-4 h-4 mr-2" />
-                Nouvelle intervention
+                Nouvelle
               </Button>
             </Link>
           </div>
@@ -317,12 +304,18 @@ const Interventions = () => {
                 <Button 
                   variant={viewMode === 'grid' ? 'secondary' : 'outline'} 
                   onClick={() => setViewMode('grid')}
+                  size="sm"
+                  className="px-2"
+                  title="Affichage en grille"
                 >
                   <Grid3X3 className="w-4 h-4" />
                 </Button>
                 <Button 
                   variant={viewMode === 'list' ? 'secondary' : 'outline'} 
                   onClick={() => setViewMode('list')}
+                  size="sm"
+                  className="px-2"
+                  title="Affichage en liste"
                 >
                   <List className="w-4 h-4" />
                 </Button>
