@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import InterventionAnomalies from '@/components/Interventions/InterventionAnomalies';
 import InterventionCustomFields from '@/components/Interventions/InterventionCustomFields';
@@ -43,6 +44,12 @@ const InterventionDetails = () => {
   const [showEmojiPicker, setShowEmojiPicker] = useState<number | null>(null);
   const [messageReactions, setMessageReactions] = useState<{[key: number]: string[]}>({});
   const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  // États pour les commentaires d'upload
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [uploadDialogType, setUploadDialogType] = useState<'chat' | 'rapport'>('chat');
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [uploadComment, setUploadComment] = useState('');
 
   useEffect(() => {
     if (id) {
@@ -198,46 +205,21 @@ const InterventionDetails = () => {
     }
   };
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleReportFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    setUploadingFile(true);
-    try {
-      // Pour l'instant, simuler l'upload en créant juste l'entrée document
-      const response = await fetch(`/api/interventions/${id}/documents`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          LIB100: file.name,
-          FILEREF: file.name,
-          COMMENTAIRE: `Photo/document: ${file.name}`,
-          CDUSER: 'WEB', // TODO: utiliser l'utilisateur connecté
-          ID2GENRE_DOCUMENT: file.type.includes('image') ? 1 : 2, // 1=Image, 2=Document
-        }),
-      });
-
-      if (response.ok) {
-        loadDocuments();
-        toast({
-          title: "Succès",
-          description: "Fichier ajouté",
-        });
-      }
-    } catch (error) {
-      console.error('Erreur upload:', error);
-      toast({
-        title: "Erreur",
-        description: "Impossible d'ajouter le fichier",
-        variant: "destructive",
-      });
-    } finally {
-      setUploadingFile(false);
-    }
+    // Ouvrir le dialog de commentaire
+    setPendingFile(file);
+    setUploadDialogType('rapport');
+    setUploadComment('');
+    setShowUploadDialog(true);
+    
+    // Réinitialiser l'input file
+    event.target.value = '';
   };
+
+  const handleFileUpload = handleReportFileUpload;
 
   // Fonctions pour le Chat
   const handleAddChatMessage = async () => {
@@ -312,49 +294,103 @@ const InterventionDetails = () => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    setUploadingChatFile(true);
-    try {
-      // Utiliser FormData pour l'upload
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('cduser', user?.CDUSER || 'WEB');
-      if (replyingTo?.IDACTION) {
-        formData.append('replyTo', replyingTo.IDACTION.toString());
-      }
+    // Ouvrir le dialog de commentaire
+    setPendingFile(file);
+    setUploadDialogType('chat');
+    setUploadComment('');
+    setShowUploadDialog(true);
+    
+    // Réinitialiser l'input file
+    event.target.value = '';
+  };
 
-      const response = await fetch(`/api/interventions/${id}/chat/upload`, {
-        method: 'POST',
-        credentials: 'include',
-        body: formData, // Ne pas définir Content-Type, le navigateur le fait automatiquement
-      });
+  const confirmFileUpload = async () => {
+    if (!pendingFile) return;
 
-      if (response.ok) {
-        const result = await response.json();
-        console.log('Upload réussi:', result);
-        
-        setReplyingTo(null);
-        loadChatMessages();
-        loadDocuments();
-        toast({
-          title: "Succès",
-          description: file.type.includes('image') ? "Photo partagée" : "Document partagé",
+    if (uploadDialogType === 'chat') {
+      setUploadingChatFile(true);
+      try {
+        // Utiliser FormData pour l'upload
+        const formData = new FormData();
+        formData.append('file', pendingFile);
+        formData.append('cduser', user?.CDUSER || 'WEB');
+        formData.append('comment', uploadComment || '');
+        if (replyingTo?.IDACTION) {
+          formData.append('replyTo', replyingTo.IDACTION.toString());
+        }
+
+        const response = await fetch(`/api/interventions/${id}/chat/upload`, {
+          method: 'POST',
+          credentials: 'include',
+          body: formData,
         });
-      } else {
-        const error = await response.json();
-        throw new Error(error.error || 'Erreur d\'upload');
+
+        if (response.ok) {
+          const result = await response.json();
+          console.log('Upload réussi:', result);
+          
+          setReplyingTo(null);
+          loadChatMessages();
+          loadDocuments();
+          toast({
+            title: "Succès",
+            description: pendingFile.type.includes('image') ? "Photo partagée" : "Document partagé",
+          });
+        } else {
+          const error = await response.json();
+          throw new Error(error.error || 'Erreur d\'upload');
+        }
+      } catch (error) {
+        console.error('Erreur partage fichier:', error);
+        toast({
+          title: "Erreur",
+          description: "Impossible de partager le fichier",
+          variant: "destructive",
+        });
+      } finally {
+        setUploadingChatFile(false);
       }
-    } catch (error) {
-      console.error('Erreur partage fichier:', error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de partager le fichier",
-        variant: "destructive",
-      });
-    } finally {
-      setUploadingChatFile(false);
-      // Réinitialiser l'input file
-      event.target.value = '';
+    } else {
+      // Upload pour rapport/photos
+      setUploadingFile(true);
+      try {
+        const formData = new FormData();
+        formData.append('file', pendingFile);
+        formData.append('cduser', user?.CDUSER || 'WEB');
+        formData.append('comment', uploadComment || '');
+
+        const response = await fetch(`/api/interventions/${id}/photos/upload`, {
+          method: 'POST',
+          credentials: 'include',
+          body: formData,
+        });
+
+        if (response.ok) {
+          loadDocuments();
+          toast({
+            title: "Succès",
+            description: "Photo ajoutée au rapport",
+          });
+        } else {
+          const error = await response.json();
+          throw new Error(error.error || 'Erreur d\'upload');
+        }
+      } catch (error) {
+        console.error('Erreur upload photo rapport:', error);
+        toast({
+          title: "Erreur",
+          description: "Impossible d'ajouter la photo",
+          variant: "destructive",
+        });
+      } finally {
+        setUploadingFile(false);
+      }
     }
+
+    // Fermer le dialog
+    setShowUploadDialog(false);
+    setPendingFile(null);
+    setUploadComment('');
   };
 
   const getInitials = (nom: string, prenom: string) => {
@@ -1686,6 +1722,69 @@ const InterventionDetails = () => {
       </TabsContent>
         </Tabs>
       </div>
+
+      {/* Dialog pour ajouter un commentaire lors de l'upload */}
+      <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>
+              {uploadDialogType === 'chat' ? 'Partager un fichier' : 'Ajouter une photo/document'}
+            </DialogTitle>
+            <DialogDescription>
+              {pendingFile && (
+                <div className="flex items-center space-x-2 mt-2 p-2 bg-gray-50 rounded">
+                  <FileIcon className="w-4 h-4" />
+                  <span className="text-sm font-medium">{pendingFile.name}</span>
+                  <Badge variant="outline">
+                    {(pendingFile.size / 1024 / 1024).toFixed(2)} MB
+                  </Badge>
+                </div>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="upload-comment">Commentaire (optionnel)</Label>
+              <Textarea
+                id="upload-comment"
+                placeholder={uploadDialogType === 'chat' 
+                  ? "Ajoutez un message avec ce fichier..." 
+                  : "Décrivez cette photo/document..."
+                }
+                value={uploadComment}
+                onChange={(e) => setUploadComment(e.target.value)}
+                rows={3}
+                className="resize-none"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setShowUploadDialog(false);
+                setPendingFile(null);
+                setUploadComment('');
+              }}
+            >
+              Annuler
+            </Button>
+            <Button
+              type="button"
+              onClick={confirmFileUpload}
+              disabled={uploadingFile || uploadingChatFile}
+            >
+              {uploadingFile || uploadingChatFile ? (
+                <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-2"></div>
+              ) : null}
+              {uploadDialogType === 'chat' ? 'Partager' : 'Ajouter'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 };

@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import passport from "passport";
 import multer from "multer";
 import * as path from "path";
+import * as fs from "fs";
 import "./passport-config"; // Import the passport configuration
 import { storage } from "./storage";
 
@@ -216,7 +217,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Sauvegarder la photo dans le sous-dossier INT{id} avec TRGCIBLE = INTxxx et IDCONTACT
-      const document = await storage.savePhotoToInterventionReport(interventionId, file, cduser);
+      const comment = req.body.comment || '';
+      const document = await storage.savePhotoToInterventionReport(interventionId, file, cduser, comment);
       console.log('📷 Photo rapport créée:', { 
         id: document.IDDOCUMENT, 
         trgcible: document.TRGCIBLE,
@@ -292,10 +294,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('📄 Document créé:', { id: document.IDDOCUMENT, fileref: document.FILEREF });
 
       // 2. Créer l'action dans le chat
+      const comment = req.body.comment || '';
       const actionData = {
         CLE_PIECE_CIBLE: `INT${interventionId}`,
         LIB100: file.mimetype.startsWith('image/') ? 'Photo partagée' : 'Document partagé',
-        COMMENTAIRE: `${file.mimetype.startsWith('image/') ? 'Photo' : 'Document'}: ${file.originalname}`,
+        COMMENTAIRE: comment || `${file.mimetype.startsWith('image/') ? 'Photo' : 'Document'}: ${file.originalname}`,
         CDUSER: cduser,
         TYPACT: 10,
         ID2GENRE_ACTION: 1,
@@ -345,12 +348,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Construire le chemin du fichier
-      const fs = require('fs');
-      const path = require('path');
       let fullPath: string;
       
-      if (document.FILEREF.startsWith('/assets/')) {
-        // Nouveau système : fichiers dans /dist/public/assets/
+      if (document.FILEREF.startsWith('/photos/')) {
+        // Nouveau système : fichiers dans /dist/public/assets/photos/
+        fullPath = path.join(process.cwd(), 'dist', 'public', 'assets', document.FILEREF);
+      } else if (document.FILEREF.startsWith('/assets/')) {
+        // Système intermédiaire : fichiers dans /dist/public/assets/
         fullPath = path.join(process.cwd(), 'dist', 'public', document.FILEREF);
       } else {
         // Ancien système : fichiers dans uploads/

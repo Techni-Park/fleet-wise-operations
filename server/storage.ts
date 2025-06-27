@@ -131,7 +131,7 @@ export interface IStorage {
 
   // Gestion des fichiers physiques
   saveFileToIntervention(interventionId: number, file: Express.Multer.File, cduser: string): Promise<Document>;
-  savePhotoToInterventionReport(interventionId: number, file: Express.Multer.File, cduser: string): Promise<Document>;
+  savePhotoToInterventionReport(interventionId: number, file: Express.Multer.File, cduser: string, comment?: string): Promise<Document>;
 }
 
 export class MySQLStorage implements IStorage {
@@ -1180,12 +1180,20 @@ export class MySQLStorage implements IStorage {
         console.log(`📋 Récupération projet/tâche pour document depuis intervention ${interventionId}:`, { idprojet, idtache });
       }
 
-      // 1. Créer le dossier de l'intervention s'il n'existe pas
-      const interventionDir = path.join(process.cwd(), 'dist', 'public', 'assets', 'photos', `INT${interventionId}`);
+      // 1. Créer le dossier racine et le dossier de l'intervention s'ils n'existent pas
+      const baseDir = path.join(process.cwd(), 'dist', 'public', 'assets', 'photos');
+      const interventionDir = path.join(baseDir, `INT${interventionId}`);
       
+      // S'assurer que le dossier de base existe
+      if (!fs.existsSync(baseDir)) {
+        fs.mkdirSync(baseDir, { recursive: true });
+        console.log(`📁 Dossier de base créé: ${baseDir}`);
+      }
+      
+      // S'assurer que le dossier d'intervention existe
       if (!fs.existsSync(interventionDir)) {
         fs.mkdirSync(interventionDir, { recursive: true });
-        console.log(`Dossier créé: ${interventionDir}`);
+        console.log(`📁 Dossier intervention créé: ${interventionDir}`);
       }
 
       // 2. Générer un nom de fichier unique avec extension
@@ -1199,7 +1207,7 @@ export class MySQLStorage implements IStorage {
       console.log(`Fichier sauvegardé: ${filePath}`);
 
       // 4. Créer l'entrée en base de données
-      const fileRef = `/assets/photos/INT${interventionId}/${fileName}`;
+      const fileRef = `/photos/INT${interventionId}/${fileName}`;
       // Générer un IDDOCUMENT unique basé sur timestamp + random
       const iddocument = Date.now() + Math.floor(Math.random() * 1000);
       
@@ -1232,7 +1240,7 @@ export class MySQLStorage implements IStorage {
   }
 
   // Gestion des fichiers physiques pour l'onglet Rapport/Photos (TRGCIBLE = INTxxx)
-  async savePhotoToInterventionReport(interventionId: number, file: Express.Multer.File, cduser: string): Promise<Document> {
+  async savePhotoToInterventionReport(interventionId: number, file: Express.Multer.File, cduser: string, comment?: string): Promise<Document> {
     try {
       // 0. Récupérer les informations complètes de l'intervention (IDPROJET, IDTACHE, IDCONTACT)
       const intervention = await this.getIntervention(interventionId);
@@ -1247,9 +1255,17 @@ export class MySQLStorage implements IStorage {
         console.log(`📋 Récupération infos pour photo rapport depuis intervention ${interventionId}:`, { idprojet, idtache, idcontact });
       }
 
-      // 1. Créer le sous-dossier spécifique à l'intervention
-      const interventionDir = path.join(process.cwd(), 'dist', 'public', 'assets', 'photos', `INT${interventionId}`);
+      // 1. Créer le dossier racine et le sous-dossier spécifique à l'intervention
+      const baseDir = path.join(process.cwd(), 'dist', 'public', 'assets', 'photos');
+      const interventionDir = path.join(baseDir, `INT${interventionId}`);
       
+      // S'assurer que le dossier de base existe
+      if (!fs.existsSync(baseDir)) {
+        fs.mkdirSync(baseDir, { recursive: true });
+        console.log(`📁 Dossier de base créé: ${baseDir}`);
+      }
+      
+      // S'assurer que le sous-dossier d'intervention existe
       if (!fs.existsSync(interventionDir)) {
         fs.mkdirSync(interventionDir, { recursive: true });
         console.log(`📁 Sous-dossier créé pour intervention: ${interventionDir}`);
@@ -1266,14 +1282,14 @@ export class MySQLStorage implements IStorage {
       console.log(`📷 Photo sauvegardée dans sous-dossier: ${filePath}`);
 
       // 4. Créer l'entrée en base de données avec TRGCIBLE = INTxxx
-      const fileRef = `/assets/photos/INT${interventionId}/${fileName}`;
+      const fileRef = `/photos/INT${interventionId}/${fileName}`;
       const iddocument = Date.now() + Math.floor(Math.random() * 1000);
       
       const insertData = {
         IDDOCUMENT: iddocument,
         LIB100: file.originalname,
         FILEREF: fileRef, // Chemin relatif incluant le sous-dossier
-        COMMENTAIRE: `Photo rapport: ${file.originalname}`,
+        COMMENTAIRE: comment || `Photo rapport: ${file.originalname}`,
         CDUSER: cduser,
         ID2GENRE_DOCUMENT: file.mimetype.startsWith('image/') ? 1 : 2,
         TRGCIBLE: `INT${interventionId}`, // Lié directement à l'intervention (pas à une action)
