@@ -224,6 +224,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Téléchargement de documents
+  app.get("/api/documents/:id/download", async (req, res) => {
+    try {
+      const document = await storage.getDocument(parseInt(req.params.id));
+      if (!document) {
+        return res.status(404).json({ error: "Document non trouvé" });
+      }
+
+      // Construire le chemin du fichier
+      const filePath = `uploads/${document.FILEREF}`;
+      const fs = require('fs');
+      const path = require('path');
+      const fullPath = path.join(process.cwd(), filePath);
+
+      // Vérifier si le fichier existe
+      if (!fs.existsSync(fullPath)) {
+        return res.status(404).json({ error: "Fichier non trouvé sur le serveur" });
+      }
+
+      // Définir le type de contenu
+      const ext = path.extname(document.FILEREF).toLowerCase();
+      const mimeTypes: { [key: string]: string } = {
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.png': 'image/png',
+        '.gif': 'image/gif',
+        '.pdf': 'application/pdf',
+        '.doc': 'application/msword',
+        '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        '.txt': 'text/plain',
+        '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      };
+
+      const contentType = mimeTypes[ext] || 'application/octet-stream';
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Disposition', `inline; filename="${document.LIB100}"`);
+
+      // Envoyer le fichier
+      res.sendFile(fullPath);
+    } catch (error) {
+      console.error('Erreur téléchargement document:', error);
+      res.status(500).json({ error: (error as Error).message });
+    }
+  });
+
   // Alerts API
   app.get("/api/alerts", async (req, res) => {
     try {
