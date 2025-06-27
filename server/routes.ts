@@ -203,6 +203,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Chat d'intervention
+  app.get("/api/interventions/:id/chat", async (req, res) => {
+    try {
+      const messages = await storage.getChatMessages(parseInt(req.params.id));
+      res.json(messages);
+    } catch (error) {
+      console.error('Erreur API messages chat intervention:', error);
+      res.status(500).json({ error: (error as Error).message });
+    }
+  });
+
+  app.post("/api/interventions/:id/chat", async (req, res) => {
+    try {
+      const message = await storage.createChatMessage(parseInt(req.params.id), req.body);
+      res.status(201).json(message);
+    } catch (error) {
+      console.error('Erreur création message chat intervention:', error);
+      res.status(500).json({ error: (error as Error).message });
+    }
+  });
+
   // Alerts API
   app.get("/api/alerts", async (req, res) => {
     try {

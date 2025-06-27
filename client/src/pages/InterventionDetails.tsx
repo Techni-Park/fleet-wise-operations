@@ -4,7 +4,8 @@ import {
   Calendar, Clock, User, MapPin, Edit, Trash2, ArrowLeft, 
   Phone, Mail, Car, AlertTriangle, FileText, Settings, 
   Image, MessageSquare, Send, Upload, Download, Eye,
-  Camera, PlusCircle, FileIcon, Save, Plus
+  Camera, PlusCircle, FileIcon, Save, Plus, Paperclip,
+  Reply, X, Check, CheckCheck
 } from 'lucide-react';
 import AppLayout from '@/components/Layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -32,11 +33,18 @@ const InterventionDetails = () => {
   const [newComment, setNewComment] = useState('');
   const [uploadingFile, setUploadingFile] = useState(false);
 
+  // États pour le Chat
+  const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [newChatMessage, setNewChatMessage] = useState('');
+  const [replyingTo, setReplyingTo] = useState<any>(null);
+  const [uploadingChatFile, setUploadingChatFile] = useState(false);
+
   useEffect(() => {
     if (id) {
       loadIntervention();
       loadDocuments();
       loadComments();
+      loadChatMessages();
     }
   }, [id]);
 
@@ -88,6 +96,20 @@ const InterventionDetails = () => {
       }
     } catch (error) {
       console.error('Erreur lors du chargement des commentaires:', error);
+    }
+  };
+
+  const loadChatMessages = async () => {
+    try {
+      const response = await fetch(`/api/interventions/${id}/chat`, {
+        credentials: 'include'
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setChatMessages(data);
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des messages du chat:', error);
     }
   };
 
@@ -192,6 +214,123 @@ const InterventionDetails = () => {
     } finally {
       setUploadingFile(false);
     }
+  };
+
+  // Fonctions pour le Chat
+  const handleAddChatMessage = async () => {
+    if (!newChatMessage.trim()) return;
+
+    try {
+      const response = await fetch(`/api/interventions/${id}/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          TRGCIBLE: `INT${id}`,
+          LIB100: 'Message chat',
+          COMMENTAIRE: newChatMessage,
+          CDUSER: 'WEB', // TODO: utiliser l'utilisateur connecté
+          REPLY_TO: replyingTo?.IDACTION || null,
+        }),
+      });
+
+      if (response.ok) {
+        setNewChatMessage('');
+        setReplyingTo(null);
+        loadChatMessages();
+        toast({
+          title: "Succès",
+          description: "Message envoyé",
+        });
+      }
+    } catch (error) {
+      console.error('Erreur envoi message:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible d'envoyer le message",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleChatFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploadingChatFile(true);
+    try {
+      // 1. Créer d'abord l'action dans le chat
+      const actionResponse = await fetch(`/api/interventions/${id}/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          TRGCIBLE: `INT${id}`,
+          LIB100: file.type.includes('image') ? 'Photo partagée' : 'Document partagé',
+          COMMENTAIRE: `${file.type.includes('image') ? 'Photo' : 'Document'}: ${file.name}`,
+          CDUSER: 'WEB', // TODO: utiliser l'utilisateur connecté
+          REPLY_TO: replyingTo?.IDACTION || null,
+        }),
+      });
+
+      if (actionResponse.ok) {
+        const actionData = await actionResponse.json();
+        
+        // 2. Créer l'entrée document liée à l'action
+        const documentResponse = await fetch(`/api/interventions/${id}/documents`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            LIB100: file.name,
+            FILEREF: file.name,
+            COMMENTAIRE: `Partagé dans le chat: ${file.name}`,
+            CDUSER: 'WEB',
+            ID2GENRE_DOCUMENT: file.type.includes('image') ? 1 : 2, // 1=Image, 2=Document
+            TRGCIBLE: `ACT${actionData.IDACTION}`, // Lier le document à l'action
+          }),
+        });
+
+        if (documentResponse.ok) {
+          setReplyingTo(null);
+          loadChatMessages();
+          loadDocuments();
+          toast({
+            title: "Succès",
+            description: file.type.includes('image') ? "Photo partagée" : "Document partagé",
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Erreur partage fichier:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de partager le fichier",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingChatFile(false);
+    }
+  };
+
+  const getInitials = (nom: string, prenom: string) => {
+    const initials = `${prenom?.charAt(0) || ''}${nom?.charAt(0) || ''}`;
+    return initials.toUpperCase() || '??';
+  };
+
+  const getAvatarColor = (userId: string) => {
+    const colors = [
+      'bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-red-500', 
+      'bg-orange-500', 'bg-pink-500', 'bg-indigo-500', 'bg-teal-500'
+    ];
+    const hash = userId?.split('').reduce((a, b) => a + b.charCodeAt(0), 0) || 0;
+    return colors[hash % colors.length];
   };
 
   // Fonctions utilitaires
@@ -1100,100 +1239,224 @@ const InterventionDetails = () => {
       </TabsContent>
 
       <TabsContent value="chat">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <MessageSquare className="w-5 h-5 mr-2" />
-              Chat intervention
+        <Card className="h-[600px] flex flex-col">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center justify-between">
+              <span className="flex items-center">
+                <MessageSquare className="w-5 h-5 mr-2" />
+                Chat intervention
+              </span>
+              <Badge variant="outline" className="text-xs">
+                {chatMessages.length} messages
+              </Badge>
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {/* Zone de chat */}
-              <div className="border rounded-lg p-4 bg-gray-50 dark:bg-gray-900 h-96 overflow-y-auto">
-                <div className="space-y-3">
-                  <div className="flex items-start space-x-3">
-                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
-                      JD
-                    </div>
-                    <div className="flex-1">
-                      <div className="bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="font-medium text-sm">J. Dupont</span>
-                          <span className="text-xs text-gray-500">14:30</span>
-                        </div>
-                        <p className="text-sm">Bonjour, je commence le diagnostic. Le client signale des vibrations anormales.</p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-start space-x-3">
-                    <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
-                      MM
-                    </div>
-                    <div className="flex-1">
-                      <div className="bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="font-medium text-sm">M. Martin</span>
-                          <span className="text-xs text-gray-500">14:45</span>
-                        </div>
-                        <p className="text-sm">OK, vérifie d'abord l'équilibrage des roues et l'état des amortisseurs.</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start space-x-3">
-                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
-                      JD
-                    </div>
-                    <div className="flex-1">
-                      <div className="bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="font-medium text-sm">J. Dupont</span>
-                          <span className="text-xs text-gray-500">15:10</span>
-                        </div>
-                        <p className="text-sm">Problème identifié : amortisseur avant droit défaillant. Je vais commander la pièce.</p>
-                      </div>
-                    </div>
+          
+          <CardContent className="flex-1 flex flex-col p-0">
+            {/* Zone de réponse active */}
+            {replyingTo && (
+              <div className="px-4 py-2 bg-blue-50 dark:bg-blue-900/20 border-b flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Reply className="w-4 h-4 text-blue-600" />
+                  <div>
+                    <p className="text-xs text-blue-600 font-medium">
+                      Répondre à {formatFullName(replyingTo.NOMFAMILLE, replyingTo.PRENOM) || replyingTo.CDUSER}
+                    </p>
+                    <p className="text-xs text-gray-600 truncate max-w-[200px]">
+                      {replyingTo.COMMENTAIRE}
+                    </p>
                   </div>
                 </div>
-              </div>
-
-              {/* Zone de saisie */}
-              <div className="flex space-x-2">
-                <Input 
-                  placeholder="Tapez votre message..." 
-                  className="flex-1"
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
-                      // TODO: Ajouter le message
-                    }
-                  }}
-                />
-                <Button>
-                  <Send className="w-4 h-4" />
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setReplyingTo(null)}
+                >
+                  <X className="w-4 h-4" />
                 </Button>
               </div>
+            )}
 
-              {/* Participants */}
-              <div className="border-t pt-4">
-                <h5 className="font-medium mb-2">Participants</h5>
-                <div className="flex space-x-2">
-                  <div className="flex items-center space-x-1">
-                    <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs">
-                      JD
-                    </div>
-                    <span className="text-sm">J. Dupont</span>
-                    <Badge variant="outline" className="text-xs">Technicien</Badge>
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-white text-xs">
-                      MM
-                    </div>
-                    <span className="text-sm">M. Martin</span>
-                    <Badge variant="outline" className="text-xs">Superviseur</Badge>
-                  </div>
+            {/* Zone de chat */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {chatMessages.length === 0 ? (
+                <div className="text-center text-gray-500 py-8">
+                  <MessageSquare className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                  <p>Aucun message dans le chat</p>
+                  <p className="text-sm">Commencez la conversation !</p>
                 </div>
+              ) : (
+                chatMessages.map((message, index) => {
+                  const isCurrentUser = message.CDUSER === 'WEB'; // TODO: comparer avec l'utilisateur connecté
+                  const showAvatar = index === 0 || chatMessages[index - 1].CDUSER !== message.CDUSER;
+                  const userName = formatFullName(message.NOMFAMILLE, message.PRENOM) || message.CDUSER;
+                  const initials = getInitials(message.NOMFAMILLE, message.PRENOM);
+                  const avatarColor = getAvatarColor(message.CDUSER);
+
+                  return (
+                    <div key={message.IDACTION} className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`flex max-w-[80%] ${isCurrentUser ? 'flex-row-reverse' : 'flex-row'} items-end space-x-2`}>
+                        {/* Avatar */}
+                        {!isCurrentUser && (
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-medium ${avatarColor} ${showAvatar ? '' : 'invisible'}`}>
+                            {initials}
+                          </div>
+                        )}
+                        
+                        <div className="flex flex-col space-y-1">
+                          {/* Nom utilisateur pour les messages des autres */}
+                          {!isCurrentUser && showAvatar && (
+                            <span className="text-xs text-gray-600 ml-2 font-medium">
+                              {userName}
+                            </span>
+                          )}
+                          
+                          {/* Message de réponse */}
+                          {message.REPLY_TO && (
+                            <div className={`text-xs bg-gray-100 dark:bg-gray-700 rounded p-2 mb-1 border-l-2 border-blue-500 ${isCurrentUser ? 'mr-2' : 'ml-2'}`}>
+                              <p className="font-medium text-blue-600">
+                                Réponse à {formatFullName(message.REPLY_USER_NOM, message.REPLY_USER_PRENOM) || message.REPLY_CDUSER}
+                              </p>
+                              <p className="text-gray-600 truncate">{message.REPLY_COMMENTAIRE}</p>
+                            </div>
+                          )}
+                          
+                          {/* Bulle de message */}
+                          <div className={`relative rounded-lg p-3 ${
+                            isCurrentUser 
+                              ? 'bg-blue-600 text-white' 
+                              : 'bg-white dark:bg-gray-800 border'
+                          }`}>
+                            {/* Contenu du message */}
+                            <div className="space-y-2">
+                              {/* Message texte */}
+                              {message.COMMENTAIRE && (
+                                <p className="text-sm whitespace-pre-wrap">
+                                  {message.COMMENTAIRE}
+                                </p>
+                              )}
+                              
+                              {/* Fichiers attachés */}
+                              {message.DOCUMENTS && message.DOCUMENTS.length > 0 && (
+                                <div className="space-y-2">
+                                  {message.DOCUMENTS.map((doc: any, docIndex: number) => (
+                                    <div key={docIndex} className={`flex items-center space-x-2 p-2 rounded border ${
+                                      isCurrentUser ? 'border-blue-300 bg-blue-500' : 'border-gray-200 bg-gray-50'
+                                    }`}>
+                                      {doc.ID2GENRE_DOCUMENT === 1 ? (
+                                        <div className="flex items-center space-x-2">
+                                          <Image className="w-4 h-4" />
+                                          <span className="text-xs font-medium">{doc.LIB100}</span>
+                                        </div>
+                                      ) : (
+                                        <div className="flex items-center space-x-2">
+                                          <FileIcon className="w-4 h-4" />
+                                          <span className="text-xs font-medium">{doc.LIB100}</span>
+                                        </div>
+                                      )}
+                                      <Button variant="ghost" size="sm" className="p-1 h-auto">
+                                        <Download className="w-3 h-3" />
+                                      </Button>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                            
+                            {/* Heure et statut */}
+                            <div className={`flex items-center justify-end space-x-1 mt-2 ${
+                              isCurrentUser ? 'text-blue-100' : 'text-gray-500'
+                            }`}>
+                              <span className="text-xs">
+                                {formatDateTime(message.DHCRE).split(' ')[1]}
+                              </span>
+                              {isCurrentUser && (
+                                <div className="flex">
+                                  {message.STATUS === 'sent' ? (
+                                    <Check className="w-3 h-3" />
+                                  ) : message.STATUS === 'delivered' ? (
+                                    <CheckCheck className="w-3 h-3" />
+                                  ) : (
+                                    <CheckCheck className="w-3 h-3 text-blue-300" />
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                            
+                            {/* Bouton de réponse */}
+                            {!isCurrentUser && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="absolute -right-8 top-2 p-1 h-auto opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={() => setReplyingTo(message)}
+                              >
+                                <Reply className="w-3 h-3" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Zone de saisie */}
+            <div className="border-t p-4">
+              <div className="flex items-end space-x-2">
+                {/* Bouton d'attachement */}
+                <div className="flex flex-col space-y-1">
+                  <input
+                    type="file"
+                    id="chat-file-upload"
+                    className="hidden"
+                    accept="image/*,.pdf,.doc,.docx,.txt,.xlsx"
+                    onChange={handleChatFileUpload}
+                    disabled={uploadingChatFile}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => document.getElementById('chat-file-upload')?.click()}
+                    disabled={uploadingChatFile}
+                    className="px-3"
+                  >
+                    {uploadingChatFile ? (
+                      <div className="w-4 h-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600"></div>
+                    ) : (
+                      <Paperclip className="w-4 h-4" />
+                    )}
+                  </Button>
+                </div>
+
+                {/* Zone de texte */}
+                <div className="flex-1">
+                  <Textarea
+                    placeholder="Tapez votre message..."
+                    value={newChatMessage}
+                    onChange={(e) => setNewChatMessage(e.target.value)}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleAddChatMessage();
+                      }
+                    }}
+                    rows={1}
+                    className="resize-none min-h-[40px] max-h-[120px]"
+                  />
+                </div>
+
+                {/* Bouton d'envoi */}
+                <Button
+                  onClick={handleAddChatMessage}
+                  disabled={!newChatMessage.trim()}
+                  size="sm"
+                  className="px-4"
+                >
+                  <Send className="w-4 h-4" />
+                </Button>
               </div>
             </div>
           </CardContent>

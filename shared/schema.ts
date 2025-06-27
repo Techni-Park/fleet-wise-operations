@@ -126,6 +126,8 @@ export const actions = mysqlTable("ACTION", {
   IDACTION_PREC: int("IDACTION_PREC").default(0),
   IRAPPELFAIT: tinyint("IRAPPELFAIT").default(0),
   ID2ZONE_GEO: tinyint("ID2ZONE_GEO").default(0),
+  TRGCIBLE: varchar("TRGCIBLE", { length: 11 }).default(""),
+  REPLY_TO: bigint("REPLY_TO", { mode: "number" }),
 });
 
 // Table ANOMALIE

@@ -122,6 +122,10 @@ export interface IStorage {
   // Commentaires d'intervention (utilisation de la table ACTION pour les rapports)
   getInterventionComments(interventionId: number): Promise<Action[]>;
   createInterventionComment(interventionId: number, commentData: any): Promise<Action>;
+
+  // Chat d'intervention (utilisation de la table ACTION avec TRGCIBLE = INTxxx)
+  getChatMessages(interventionId: number): Promise<Action[]>;
+  createChatMessage(interventionId: number, messageData: any): Promise<Action>;
 }
 
 export class MySQLStorage implements IStorage {
@@ -946,6 +950,144 @@ export class MySQLStorage implements IStorage {
         .where(eq(customFields.id, id));
     } catch (error) {
       console.error('Erreur updateCustomFieldOrder:', error);
+      throw error;
+    }
+  }
+
+  // Documents pour interventions
+  async getDocumentsByIntervention(interventionId: number): Promise<Document[]> {
+    try {
+      const result = await db.execute(sql`
+        SELECT d.*, u.NOMFAMILLE, u.PRENOM
+        FROM DOCUMENT d
+        LEFT JOIN USER u ON d.CDUSER = u.CDUSER
+        WHERE d.TRGCIBLE = ${`INT${interventionId}`} OR d.TRGCIBLE LIKE ${`ACT%`}
+        ORDER BY d.DHCRE DESC
+      `);
+             return (result[0] as any[]) || [];
+    } catch (error) {
+      console.error('Erreur getDocumentsByIntervention:', error);
+      return [];
+    }
+  }
+
+  async createInterventionDocument(interventionId: number, documentData: any): Promise<Document> {
+    try {
+      const insertData = {
+        ...documentData,
+        TRGCIBLE: documentData.TRGCIBLE || `INT${interventionId}`,
+        DHCRE: new Date(),
+        DHMODIF: new Date()
+      };
+
+      const result = await db.insert(documents).values(insertData);
+      const insertId = result[0].insertId as number;
+      const newDocument = await this.getDocument(insertId);
+      return newDocument!;
+    } catch (error) {
+      console.error('Erreur createInterventionDocument:', error);
+      throw error;
+    }
+  }
+
+  // Commentaires d'intervention (utilisation de la table ACTION pour les rapports)
+  async getInterventionComments(interventionId: number): Promise<Action[]> {
+    try {
+      const result = await db.execute(sql`
+        SELECT a.*, u.NOMFAMILLE, u.PRENOM
+        FROM ACTION a
+        LEFT JOIN USER u ON a.CDUSER = u.CDUSER
+        WHERE a.TRGCIBLE = ${`INT${interventionId}`} 
+        AND a.LIB100 = 'Commentaire intervention'
+        ORDER BY a.DHCRE DESC
+      `);
+             return (result[0] as any[]) || [];
+    } catch (error) {
+      console.error('Erreur getInterventionComments:', error);
+      return [];
+    }
+  }
+
+  async createInterventionComment(interventionId: number, commentData: any): Promise<Action> {
+    try {
+      const insertData = {
+        ...commentData,
+        TRGCIBLE: `INT${interventionId}`,
+        DHCRE: new Date(),
+        DHMODIF: new Date()
+      };
+
+      const result = await db.insert(actions).values(insertData);
+      const insertId = result[0].insertId as number;
+      const newAction = await this.getAction(insertId);
+      return newAction!;
+    } catch (error) {
+      console.error('Erreur createInterventionComment:', error);
+      throw error;
+    }
+  }
+
+  // Chat d'intervention (utilisation de la table ACTION avec TRGCIBLE = INTxxx)
+  async getChatMessages(interventionId: number): Promise<Action[]> {
+    try {
+      const result = await db.execute(sql`
+        SELECT 
+          a.*,
+          u.NOMFAMILLE,
+          u.PRENOM,
+          ru.NOMFAMILLE as REPLY_USER_NOM,
+          ru.PRENOM as REPLY_USER_PRENOM,
+          ra.CDUSER as REPLY_CDUSER,
+          ra.COMMENTAIRE as REPLY_COMMENTAIRE,
+          JSON_ARRAYAGG(
+            CASE WHEN d.IDDOCUMENT IS NOT NULL THEN
+              JSON_OBJECT(
+                'IDDOCUMENT', d.IDDOCUMENT,
+                'LIB100', d.LIB100,
+                'FILEREF', d.FILEREF,
+                'ID2GENRE_DOCUMENT', d.ID2GENRE_DOCUMENT,
+                'DHCRE', d.DHCRE
+              )
+            END
+          ) as DOCUMENTS
+        FROM ACTION a
+        LEFT JOIN USER u ON a.CDUSER = u.CDUSER
+        LEFT JOIN ACTION ra ON a.REPLY_TO = ra.IDACTION
+        LEFT JOIN USER ru ON ra.CDUSER = ru.CDUSER
+        LEFT JOIN DOCUMENT d ON d.TRGCIBLE = CONCAT('ACT', a.IDACTION)
+        WHERE a.TRGCIBLE = ${`INT${interventionId}`} 
+        AND a.LIB100 IN ('Message chat', 'Photo partagée', 'Document partagé')
+        GROUP BY a.IDACTION
+        ORDER BY a.DHCRE ASC
+      `);
+      
+      // Traiter les documents JSON pour chaque message
+             const messages = (result[0] as any[]) || [];
+      return messages.map(message => ({
+        ...message,
+        DOCUMENTS: message.DOCUMENTS ? JSON.parse(message.DOCUMENTS).filter((doc: any) => doc !== null) : []
+      }));
+    } catch (error) {
+      console.error('Erreur getChatMessages:', error);
+      return [];
+    }
+  }
+
+  async createChatMessage(interventionId: number, messageData: any): Promise<Action> {
+    try {
+      const insertData = {
+        ...messageData,
+        TRGCIBLE: messageData.TRGCIBLE || `INT${interventionId}`,
+        DHCRE: new Date(),
+        DHMODIF: new Date()
+      };
+
+      const result = await db.insert(actions).values(insertData);
+      const insertId = result[0].insertId as number;
+      const newAction = await this.getAction(insertId);
+      return newAction!;
+    } catch (error) {
+      console.error('Erreur createChatMessage:', error);
       throw error;
     }
   }
