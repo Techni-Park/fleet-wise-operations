@@ -1364,17 +1364,27 @@ const InterventionDetails = () => {
                           
 
                           
-                          {/* Message de réponse */}
+                          {/* Message de réponse style WhatsApp */}
                           {message.IDACTION_PREC && message.IDACTION_PREC !== 0 && (
-                            <div className={`text-xs rounded-lg p-3 mb-2 border-l-4 ${
+                            <div className={`mb-3 pl-3 border-l-4 py-2 rounded-r-lg ${
                               isCurrentUser 
-                                ? 'bg-green-400 border-green-200 text-green-50' 
-                                : 'bg-gray-50 dark:bg-gray-700 border-green-500 text-gray-600 dark:text-gray-300'
+                                ? 'border-green-300 bg-green-600/10' 
+                                : 'border-blue-400 bg-blue-50/80 dark:bg-blue-900/20'
                             }`}>
-                              <p className={`font-medium ${isCurrentUser ? 'text-green-100' : 'text-green-600'}`}>
-                                Réponse à {formatFullName(message.PARENT_USER_NOM, message.PARENT_USER_PRENOM) || 'Utilisateur'}
+                              <p className={`text-xs font-semibold mb-1 ${
+                                isCurrentUser ? 'text-green-200' : 'text-blue-600 dark:text-blue-400'
+                              }`}>
+                                {formatFullName(message.PARENT_USER_NOM, message.PARENT_USER_PRENOM) || 'Utilisateur'}
                               </p>
-                              <p className={`truncate ${isCurrentUser ? 'text-green-100' : 'text-gray-600 dark:text-gray-400'}`}>
+                              <p className={`text-xs opacity-90 ${
+                                isCurrentUser ? 'text-green-100' : 'text-gray-700 dark:text-gray-300'
+                              }`} 
+                                 style={{
+                                   display: '-webkit-box',
+                                   WebkitLineClamp: 2,
+                                   WebkitBoxOrient: 'vertical',
+                                   overflow: 'hidden'
+                                 }}>
                                 {message.PARENT_COMMENTAIRE}
                               </p>
                             </div>
