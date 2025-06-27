@@ -522,11 +522,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Custom Fields API
-  app.get("/api/custom-fields/:entityTypeId", async (req, res) => {
+  app.get("/api/custom-fields", async (req, res) => {
     try {
-      const fields = await storage.getCustomFieldsByEntityType(parseInt(req.params.entityTypeId));
+      const entityTypeId = req.query.entity_type_id ? parseInt(req.query.entity_type_id as string) : 1;
+      const fields = await storage.getCustomFieldsByEntityType(entityTypeId);
       res.json(fields);
     } catch (error) {
+      console.error('Erreur lors de la récupération des champs personnalisés:', error);
       res.status(500).json({ error: "Failed to fetch custom fields" });
     }
   });

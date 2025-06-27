@@ -110,6 +110,10 @@ export interface IStorage {
   getCustomFieldValuesForEntity(entityId: number): Promise<CustomFieldValue[]>;
   saveCustomFieldValue(entityId: number, customFieldId: number, valeur: string): Promise<CustomFieldValue>;
   deleteCustomFieldValue(entityId: number, customFieldId: number): Promise<boolean>;
+  createCustomField(field: Omit<CustomField, 'id' | 'created_at' | 'updated_at'>): Promise<CustomField>;
+  updateCustomField(id: number, field: Partial<CustomField>): Promise<void>;
+  deleteCustomField(id: number): Promise<boolean>;
+  updateCustomFieldOrder(id: number, ordre: number): Promise<void>;
 }
 
 export class MySQLStorage implements IStorage {
