@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { 
   Calendar, Clock, User, MapPin, Edit, Trash2, ArrowLeft, 
   Phone, Mail, Car, AlertTriangle, FileText, Settings, 
@@ -23,6 +24,7 @@ const InterventionDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [intervention, setIntervention] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('details');
@@ -249,10 +251,10 @@ const InterventionDetails = () => {
         },
         credentials: 'include',
         body: JSON.stringify({
-          CLE_MACHINE_CIBLE: `INT${id}`,
+          CLE_PIECE_CIBLE: `INT${id}`,
           LIB100: 'Message chat',
           COMMENTAIRE: newChatMessage,
-          CDUSER: 'WEB', // TODO: utiliser l'utilisateur connecté
+          CDUSER: user?.CDUSER || 'WEB',
           IDACTION_PREC: replyingTo?.IDACTION || 0,
         }),
       });
@@ -320,10 +322,10 @@ const InterventionDetails = () => {
         },
         credentials: 'include',
         body: JSON.stringify({
-          CLE_MACHINE_CIBLE: `INT${id}`,
+          CLE_PIECE_CIBLE: `INT${id}`,
           LIB100: file.type.includes('image') ? 'Photo partagée' : 'Document partagé',
           COMMENTAIRE: `${file.type.includes('image') ? 'Photo' : 'Document'}: ${file.name}`,
-          CDUSER: 'WEB', // TODO: utiliser l'utilisateur connecté
+          CDUSER: user?.CDUSER || 'WEB',
           IDACTION_PREC: replyingTo?.IDACTION || 0,
         }),
       });
@@ -1339,8 +1341,7 @@ const InterventionDetails = () => {
               ) : (
                 chatMessages.map((message, index) => {
                   // Déterminer si c'est l'utilisateur actuel (utiliser le CDUSER réel)
-                  const currentUserCode = 'WEB'; // TODO: récupérer depuis le contexte d'authentification
-                  const isCurrentUser = message.CDUSER === currentUserCode;
+                  const isCurrentUser = message.CDUSER === (user?.CDUSER || 'WEB');
                   const showAvatar = index === 0 || chatMessages[index - 1].CDUSER !== message.CDUSER;
                   const userName = formatFullName(message.NOMFAMILLE, message.PRENOM) || message.CDUSER || 'Utilisateur';
                   const initials = getInitials(message.NOMFAMILLE, message.PRENOM) || message.CDUSER?.substring(0, 2).toUpperCase() || 'U';

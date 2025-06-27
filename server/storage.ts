@@ -1059,7 +1059,7 @@ export class MySQLStorage implements IStorage {
         LEFT JOIN ACTION pa ON a.IDACTION_PREC = pa.IDACTION
         LEFT JOIN USER pu ON pa.CDUSER = pu.CDUSER
         LEFT JOIN DOCUMENT d ON d.TRGCIBLE = CONCAT('ACT', a.IDACTION)
-        WHERE a.CLE_MACHINE_CIBLE = ${`INT${interventionId}`}
+        WHERE a.CLE_PIECE_CIBLE = ${`INT${interventionId}`}
         AND a.TYPACT = 10
         GROUP BY a.IDACTION
         ORDER BY a.DHCRE ASC
@@ -1088,7 +1088,7 @@ export class MySQLStorage implements IStorage {
         LIB100: messageData.LIB100 || 'Message chat',
         COMMENTAIRE: messageData.COMMENTAIRE || '',
         CDUSER: messageData.CDUSER || 'WEB',
-        CLE_MACHINE_CIBLE: messageData.CLE_MACHINE_CIBLE || `INT${interventionId}`,
+        CLE_PIECE_CIBLE: messageData.CLE_PIECE_CIBLE || `INT${interventionId}`,
         TYPACT: 10, // Messages chat
         ID2GENRE_ACTION: 1, // Genre pour chat
         IDACTION_PREC: messageData.IDACTION_PREC || 0, // Message auquel on répond (0 si pas de réponse)
