@@ -21,6 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import InterventionAnomalies from '@/components/Interventions/InterventionAnomalies';
 import InterventionCustomFields from '@/components/Interventions/InterventionCustomFields';
+import InterventionFormsTab from '@/components/Interventions/InterventionFormsTab';
 
 const InterventionDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -1108,7 +1109,10 @@ const InterventionDetails = () => {
           </TabsContent>
 
           <TabsContent value="anomalies">
-            <InterventionAnomalies interventionId={intervention.IDINTERVENTION} />
+            <InterventionAnomalies 
+              interventionId={intervention.IDINTERVENTION.toString()} 
+              vehicleId={intervention.CLE_MACHINE_CIBLE || "0"} 
+            />
           </TabsContent>
 
           <TabsContent value="checklist">
@@ -1307,133 +1311,23 @@ const InterventionDetails = () => {
           <TabsContent value="formulaires">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center">
-                  <FileText className="w-5 h-5 mr-2" />
-                  Formulaires
+                <CardTitle className="flex items-center justify-between">
+                  <span className="flex items-center">
+                    <FileText className="w-5 h-5 mr-2" />
+                    Formulaires personnalisés
+                  </span>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => navigate('/settings/forms')}
+                  >
+                    <Settings className="w-4 h-4 mr-2" />
+                    Gérer les formulaires
+                  </Button>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center">
-                          <FileText className="w-8 h-8 text-blue-500 mr-3" />
-                          <div>
-                            <h5 className="font-medium">Rapport de maintenance</h5>
-                            <p className="text-sm text-gray-600">Formulaire standard de maintenance</p>
-                          </div>
-                        </div>
-                        <Badge variant="outline" className="text-xs">PDF</Badge>
-                      </div>
-                      <div className="flex justify-between items-center mt-3">
-                        <span className="text-xs text-gray-500">Dernière modification: Jamais</span>
-                        <div className="flex space-x-2">
-                          <Button variant="outline" size="sm">
-                            <Edit className="w-4 h-4 mr-1" />
-                            Remplir
-                          </Button>
-                          <Button variant="outline" size="sm">
-                            <Download className="w-4 h-4 mr-1" />
-                            Télécharger
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center">
-                          <FileText className="w-8 h-8 text-green-500 mr-3" />
-                          <div>
-                            <h5 className="font-medium">Fiche de contrôle qualité</h5>
-                            <p className="text-sm text-gray-600">Contrôles post-intervention</p>
-                          </div>
-                        </div>
-                        <Badge variant="outline" className="text-xs">PDF</Badge>
-                      </div>
-                      <div className="flex justify-between items-center mt-3">
-                        <span className="text-xs text-gray-500">Dernière modification: Jamais</span>
-                        <div className="flex space-x-2">
-                          <Button variant="outline" size="sm">
-                            <Edit className="w-4 h-4 mr-1" />
-                            Remplir
-                          </Button>
-                          <Button variant="outline" size="sm">
-                            <Download className="w-4 h-4 mr-1" />
-                            Télécharger
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center">
-                          <FileText className="w-8 h-8 text-orange-500 mr-3" />
-                          <div>
-                            <h5 className="font-medium">Bordereau de livraison</h5>
-                            <p className="text-sm text-gray-600">Pièces et fournitures utilisées</p>
-                          </div>
-                        </div>
-                        <Badge variant="outline" className="text-xs">PDF</Badge>
-                      </div>
-                      <div className="flex justify-between items-center mt-3">
-                        <span className="text-xs text-gray-500">Dernière modification: Jamais</span>
-                        <div className="flex space-x-2">
-                          <Button variant="outline" size="sm">
-                            <Edit className="w-4 h-4 mr-1" />
-                            Remplir
-                          </Button>
-                          <Button variant="outline" size="sm">
-                            <Download className="w-4 h-4 mr-1" />
-                            Télécharger
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center">
-                          <FileText className="w-8 h-8 text-purple-500 mr-3" />
-                          <div>
-                            <h5 className="font-medium">Fiche client</h5>
-                            <p className="text-sm text-gray-600">Satisfaction et remarques client</p>
-                          </div>
-                        </div>
-                        <Badge variant="outline" className="text-xs">PDF</Badge>
-                      </div>
-                      <div className="flex justify-between items-center mt-3">
-                        <span className="text-xs text-gray-500">Dernière modification: Jamais</span>
-                        <div className="flex space-x-2">
-                          <Button variant="outline" size="sm">
-                            <Edit className="w-4 h-4 mr-1" />
-                            Remplir
-                          </Button>
-                          <Button variant="outline" size="sm">
-                            <Download className="w-4 h-4 mr-1" />
-                            Télécharger
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                    <div className="flex items-center">
-                      <FileText className="w-5 h-5 text-blue-600 mr-2" />
-                      <h5 className="font-medium text-blue-900">Formulaires personnalisés</h5>
-                    </div>
-                    <p className="text-sm text-blue-700 mt-1">
-                      Vous pouvez créer et gérer vos propres formulaires dans les paramètres de l'application.
-                    </p>
-                    <Button variant="outline" size="sm" className="mt-3">
-                      <Plus className="w-4 h-4 mr-2" />
-                      Créer un formulaire
-                    </Button>
-                  </div>
-                </div>
+                <InterventionFormsTab interventionId={intervention?.IDINTERVENTION} />
               </CardContent>
             </Card>
           </TabsContent>

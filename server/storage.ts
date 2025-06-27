@@ -3,13 +3,14 @@ import { db } from "./db";
 import * as fs from "fs";
 import * as path from "path";
 import { 
-  users, vehicles, interventions, alerts, documents, actions, anomalies, contacts, ingredients, machinesMnt, produits, societes, userSystem, vehicules, customFields, customFieldValues, z83Interventions,
+  users, vehicles, interventions, alerts, documents, actions, anomalies, contacts, ingredients, machinesMnt, produits, societes, userSystem, vehicules, customFields, customFieldsValues, z83Interventions, forms, formsFields, formsFieldsValues,
   type User, type InsertUser, type Vehicle, type InsertVehicle, type Intervention, type InsertIntervention, 
   type Alert, type InsertAlert, type Document, type InsertDocument, type Action, type InsertAction,
   type Anomalie, type InsertAnomalie, type Contact, type InsertContact, type Ingredient, type InsertIngredient,
   type MachineMnt, type InsertMachineMnt, type Produit, type InsertProduit, type Societe, type InsertSociete,
   type UserSystem, type InsertUserSystem, type Vehicule, type InsertVehicule, type CustomField, type InsertCustomField,
-  type CustomFieldValue, type InsertCustomFieldValue, type Z83Intervention, type InsertZ83Intervention
+  type CustomFieldValue, type InsertCustomFieldValue, type Z83Intervention, type InsertZ83Intervention,
+  type Form, type InsertForm, type FormField, type InsertFormField, type FormFieldValue, type InsertFormFieldValue
 } from "@shared/schema";
 
 export interface IStorage {
@@ -136,6 +137,25 @@ export interface IStorage {
   // Z83_INTERVENTION - Instructions avancées
   getZ83Intervention(interventionId: number): Promise<Z83Intervention | undefined>;
   createOrUpdateZ83Intervention(interventionId: number, instructions: string, userId: string): Promise<Z83Intervention>;
+
+  // Custom Forms
+  getFormsByEntityType(entityTypeId: number): Promise<Form[]>;
+  getFormWithFields(formId: number): Promise<Form & { fields: FormField[] } | undefined>;
+  createForm(formData: Omit<Form, 'id' | 'created_at' | 'updated_at'>): Promise<Form>;
+  updateForm(formId: number, formData: Partial<Form>): Promise<Form | undefined>;
+  deleteForm(formId: number): Promise<boolean>;
+  
+  // Form Fields
+  getFormFields(formId: number): Promise<FormField[]>;
+  createFormField(fieldData: Omit<FormField, 'id' | 'created_at' | 'updated_at'>): Promise<FormField>;
+  updateFormField(fieldId: number, fieldData: Partial<FormField>): Promise<FormField | undefined>;
+  deleteFormField(fieldId: number): Promise<boolean>;
+  reorderFormFields(formId: number, fieldOrders: { id: number; ordre: number; groupe?: string; ordre_groupe?: number }[]): Promise<boolean>;
+  
+  // Form Values
+  getFormValues(formId: number, entityId: number): Promise<{ [fieldId: number]: string }>;
+  saveFormValues(formId: number, entityId: number, values: { [fieldId: number]: string }, createdBy: string): Promise<boolean>;
+  getFilledFormsForEntity(entityTypeId: number, entityId: number): Promise<Array<Form & { values: { [fieldId: number]: string } }>>;
 }
 
 export class MySQLStorage implements IStorage {
@@ -900,8 +920,8 @@ export class MySQLStorage implements IStorage {
 
   async getCustomFieldValuesForEntity(entityId: number): Promise<CustomFieldValue[]> {
     try {
-      const result = await db.select().from(customFieldValues)
-        .where(eq(customFieldValues.entity_id, entityId));
+      const result = await db.select().from(customFieldsValues)
+        .where(eq(customFieldsValues.entity_id, entityId));
       return result;
     } catch (error) {
       console.error('Erreur getCustomFieldValuesForEntity:', error);
@@ -912,30 +932,30 @@ export class MySQLStorage implements IStorage {
   async saveCustomFieldValue(entityId: number, customFieldId: number, valeur: string): Promise<CustomFieldValue> {
     try {
       // Vérifier si la valeur existe déjà
-      const existing = await db.select().from(customFieldValues)
+      const existing = await db.select().from(customFieldsValues)
         .where(sql`entity_id = ${entityId} AND custom_field_id = ${customFieldId}`)
         .limit(1);
 
       if (existing.length > 0) {
         // Mettre à jour
-        await db.update(customFieldValues)
+        await db.update(customFieldsValues)
           .set({ valeur, updated_at: new Date() })
           .where(sql`entity_id = ${entityId} AND custom_field_id = ${customFieldId}`);
         
-        const updated = await db.select().from(customFieldValues)
+        const updated = await db.select().from(customFieldsValues)
           .where(sql`entity_id = ${entityId} AND custom_field_id = ${customFieldId}`)
           .limit(1);
         return updated[0];
       } else {
         // Créer
-        const result = await db.insert(customFieldValues).values({
+        const result = await db.insert(customFieldsValues).values({
           entity_id: entityId,
           custom_field_id: customFieldId,
           valeur
         });
         const insertId = result[0].insertId as number;
-        const newValue = await db.select().from(customFieldValues)
-          .where(eq(customFieldValues.id, insertId))
+        const newValue = await db.select().from(customFieldsValues)
+          .where(eq(customFieldsValues.id, insertId))
           .limit(1);
         return newValue[0];
       }
@@ -947,7 +967,7 @@ export class MySQLStorage implements IStorage {
 
   async deleteCustomFieldValue(entityId: number, customFieldId: number): Promise<boolean> {
     try {
-      const result = await db.delete(customFieldValues)
+      const result = await db.delete(customFieldsValues)
         .where(sql`entity_id = ${entityId} AND custom_field_id = ${customFieldId}`);
       return result[0].affectedRows > 0;
     } catch (error) {
@@ -984,8 +1004,8 @@ export class MySQLStorage implements IStorage {
   async deleteCustomField(id: number): Promise<boolean> {
     try {
       // Supprimer d'abord toutes les valeurs associées
-      await db.delete(customFieldValues)
-        .where(eq(customFieldValues.custom_field_id, id));
+      await db.delete(customFieldsValues)
+        .where(eq(customFieldsValues.custom_field_id, id));
       
       // Puis supprimer le champ
       const result = await db.delete(customFields)
@@ -1410,6 +1430,238 @@ export class MySQLStorage implements IStorage {
     } catch (error) {
       console.error('Erreur lors de la création/mise à jour des instructions Z83:', error);
       throw error;
+    }
+  }
+
+  // Custom Forms
+  async getFormsByEntityType(entityTypeId: number): Promise<Form[]> {
+    try {
+      const result = await db.select().from(forms)
+        .where(eq(forms.entity_type_id, entityTypeId))
+        .orderBy(forms.id);
+      return result;
+    } catch (error) {
+      console.error('Erreur getFormsByEntityType:', error);
+      return [];
+    }
+  }
+
+  async getFormWithFields(formId: number): Promise<Form & { fields: FormField[] } | undefined> {
+    try {
+      // Récupérer le formulaire
+      const formResult = await db.select().from(forms)
+        .where(eq(forms.id, formId))
+        .limit(1);
+      
+      if (formResult.length === 0) {
+        return undefined;
+      }
+      
+      // Récupérer les champs du formulaire
+      const fieldsResult = await db.select().from(formsFields)
+        .where(eq(formsFields.idforms, formId))
+        .orderBy(formsFields.ordre_groupe, formsFields.ordre);
+      
+      return { 
+        ...formResult[0], 
+        fields: fieldsResult 
+      };
+    } catch (error) {
+      console.error('Erreur getFormWithFields:', error);
+      return undefined;
+    }
+  }
+
+  async createForm(formData: Omit<Form, 'id' | 'created_at' | 'updated_at'>): Promise<Form> {
+    try {
+      const result = await db.insert(forms).values(formData);
+      const insertId = result[0].insertId as number;
+      const newForm = await db.select().from(forms)
+        .where(eq(forms.id, insertId))
+        .limit(1);
+      return newForm[0];
+    } catch (error) {
+      console.error('Erreur createForm:', error);
+      throw error;
+    }
+  }
+
+  async updateForm(formId: number, formData: Partial<Form>): Promise<Form | undefined> {
+    try {
+      await db.update(forms)
+        .set({ ...formData, updated_at: new Date() })
+        .where(eq(forms.id, formId));
+      
+      const updated = await db.select().from(forms)
+        .where(eq(forms.id, formId))
+        .limit(1);
+      return updated[0];
+    } catch (error) {
+      console.error('Erreur updateForm:', error);
+      return undefined;
+    }
+  }
+
+  async deleteForm(formId: number): Promise<boolean> {
+    try {
+      // Supprimer d'abord les valeurs des champs
+      await db.delete(formsFieldsValues)
+        .where(sql`forms_field_id IN (SELECT id FROM forms_fields WHERE idforms = ${formId})`);
+      
+      // Supprimer les champs du formulaire
+      await db.delete(formsFields)
+        .where(eq(formsFields.idforms, formId));
+      
+      // Supprimer le formulaire
+      const result = await db.delete(forms)
+        .where(eq(forms.id, formId));
+      return result[0].affectedRows > 0;
+    } catch (error) {
+      console.error('Erreur deleteForm:', error);
+      return false;
+    }
+  }
+  
+  // Form Fields
+  async getFormFields(formId: number): Promise<FormField[]> {
+    try {
+      const result = await db.select().from(formsFields)
+        .where(eq(formsFields.idforms, formId))
+        .orderBy(formsFields.ordre_groupe, formsFields.ordre);
+      return result;
+    } catch (error) {
+      console.error('Erreur getFormFields:', error);
+      return [];
+    }
+  }
+
+  async createFormField(fieldData: Omit<FormField, 'id' | 'created_at' | 'updated_at'>): Promise<FormField> {
+    try {
+      const result = await db.insert(formsFields).values(fieldData);
+      const insertId = result[0].insertId as number;
+      const newField = await db.select().from(formsFields)
+        .where(eq(formsFields.id, insertId))
+        .limit(1);
+      return newField[0];
+    } catch (error) {
+      console.error('Erreur createFormField:', error);
+      throw error;
+    }
+  }
+
+  async updateFormField(fieldId: number, fieldData: Partial<FormField>): Promise<FormField | undefined> {
+    try {
+      await db.update(formsFields)
+        .set({ ...fieldData, updated_at: new Date() })
+        .where(eq(formsFields.id, fieldId));
+      
+      const updated = await db.select().from(formsFields)
+        .where(eq(formsFields.id, fieldId))
+        .limit(1);
+      return updated[0];
+    } catch (error) {
+      console.error('Erreur updateFormField:', error);
+      return undefined;
+    }
+  }
+
+  async deleteFormField(fieldId: number): Promise<boolean> {
+    try {
+      // Supprimer d'abord les valeurs de ce champ
+      await db.delete(formsFieldsValues)
+        .where(eq(formsFieldsValues.forms_field_id, fieldId));
+      
+      // Supprimer le champ
+      const result = await db.delete(formsFields)
+        .where(eq(formsFields.id, fieldId));
+      return result[0].affectedRows > 0;
+    } catch (error) {
+      console.error('Erreur deleteFormField:', error);
+      return false;
+    }
+  }
+
+  async reorderFormFields(formId: number, fieldOrders: { id: number; ordre: number; groupe?: string; ordre_groupe?: number }[]): Promise<boolean> {
+    try {
+      // Mettre à jour chaque champ individuellement
+      for (const fieldOrder of fieldOrders) {
+        await db.update(formsFields)
+          .set({ 
+            ordre: fieldOrder.ordre,
+            groupe: fieldOrder.groupe || 'General',
+            ordre_groupe: fieldOrder.ordre_groupe || 0,
+            updated_at: new Date() 
+          })
+          .where(eq(formsFields.id, fieldOrder.id));
+      }
+      return true;
+    } catch (error) {
+      console.error('Erreur reorderFormFields:', error);
+      return false;
+    }
+  }
+  
+  // Form Values
+  async getFormValues(formId: number, entityId: number): Promise<{ [fieldId: number]: string }> {
+    try {
+      const result = await db.select().from(formsFieldsValues)
+        .innerJoin(formsFields, eq(formsFieldsValues.forms_field_id, formsFields.id))
+        .where(sql`${formsFields.idforms} = ${formId} AND ${formsFieldsValues.entity_id} = ${entityId}`);
+      
+      const values: { [fieldId: number]: string } = {};
+      result.forEach((row) => {
+        values[row.forms_fields_values.forms_field_id] = row.forms_fields_values.valeur || '';
+      });
+      return values;
+    } catch (error) {
+      console.error('Erreur getFormValues:', error);
+      return {};
+    }
+  }
+
+  async saveFormValues(formId: number, entityId: number, values: { [fieldId: number]: string }, createdBy: string): Promise<boolean> {
+    try {
+      // Supprimer les anciennes valeurs pour cette entité et ce formulaire
+      await db.delete(formsFieldsValues)
+        .where(sql`forms_field_id IN (SELECT id FROM forms_fields WHERE idforms = ${formId}) AND entity_id = ${entityId}`);
+      
+      // Insérer les nouvelles valeurs
+      if (Object.keys(values).length > 0) {
+        const valuesToInsert = Object.entries(values).map(([fieldId, valeur]) => ({
+          forms_field_id: parseInt(fieldId),
+          entity_id: entityId,
+          valeur,
+          created_by: createdBy
+        }));
+        
+        await db.insert(formsFieldsValues).values(valuesToInsert);
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Erreur saveFormValues:', error);
+      return false;
+    }
+  }
+
+  async getFilledFormsForEntity(entityTypeId: number, entityId: number): Promise<Array<Form & { values: { [fieldId: number]: string } }>> {
+    try {
+      const formsResult = await db.select().from(forms)
+        .where(eq(forms.entity_type_id, entityTypeId));
+      
+      const formsWithValues = [];
+      for (const form of formsResult) {
+        const values = await this.getFormValues(form.id, entityId);
+        formsWithValues.push({
+          ...form,
+          values
+        });
+      }
+      
+      return formsWithValues;
+    } catch (error) {
+      console.error('Erreur getFilledFormsForEntity:', error);
+      return [];
     }
   }
 }

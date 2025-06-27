@@ -1551,6 +1551,205 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ============ CUSTOM FORMS API ============
+
+  // Routes pour les formulaires personnalisés
+
+  // Récupérer tous les formulaires d'un type d'entité
+  app.get("/api/forms", async (req, res) => {
+    try {
+      const entityTypeId = req.query.entity_type_id ? parseInt(req.query.entity_type_id as string) : 3; // Default to interventions
+      const forms = await storage.getFormsByEntityType(entityTypeId);
+      res.json(forms);
+    } catch (error) {
+      console.error('Erreur lors de la récupération des formulaires:', error);
+      res.status(500).json({ error: "Failed to fetch forms" });
+    }
+  });
+
+  // Récupérer un formulaire avec ses champs
+  app.get("/api/forms/:id", async (req, res) => {
+    try {
+      const formId = parseInt(req.params.id);
+      const form = await storage.getFormWithFields(formId);
+      if (!form) {
+        return res.status(404).json({ error: "Form not found" });
+      }
+      res.json(form);
+    } catch (error) {
+      console.error('Erreur lors de la récupération du formulaire:', error);
+      res.status(500).json({ error: "Failed to fetch form" });
+    }
+  });
+
+  // Créer un nouveau formulaire
+  app.post("/api/forms", async (req, res) => {
+    try {
+      const formData = {
+        ...req.body,
+        created_by: req.user?.CDUSER || 'WEB'
+      };
+      const form = await storage.createForm(formData);
+      res.status(201).json(form);
+    } catch (error) {
+      console.error('Erreur création formulaire:', error);
+      res.status(500).json({ error: "Failed to create form" });
+    }
+  });
+
+  // Modifier un formulaire
+  app.put("/api/forms/:id", async (req, res) => {
+    try {
+      const formId = parseInt(req.params.id);
+      const updatedForm = await storage.updateForm(formId, req.body);
+      if (!updatedForm) {
+        return res.status(404).json({ error: "Form not found" });
+      }
+      res.json(updatedForm);
+    } catch (error) {
+      console.error('Erreur modification formulaire:', error);
+      res.status(500).json({ error: "Failed to update form" });
+    }
+  });
+
+  // Supprimer un formulaire
+  app.delete("/api/forms/:id", async (req, res) => {
+    try {
+      const formId = parseInt(req.params.id);
+      const success = await storage.deleteForm(formId);
+      if (!success) {
+        return res.status(404).json({ error: "Form not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      console.error('Erreur suppression formulaire:', error);
+      res.status(500).json({ error: "Failed to delete form" });
+    }
+  });
+
+  // ============ FORM FIELDS API ============
+
+  // Récupérer les champs d'un formulaire
+  app.get("/api/forms/:formId/fields", async (req, res) => {
+    try {
+      const formId = parseInt(req.params.formId);
+      const fields = await storage.getFormFields(formId);
+      res.json(fields);
+    } catch (error) {
+      console.error('Erreur lors de la récupération des champs:', error);
+      res.status(500).json({ error: "Failed to fetch form fields" });
+    }
+  });
+
+  // Créer un nouveau champ de formulaire
+  app.post("/api/forms/:formId/fields", async (req, res) => {
+    try {
+      const formId = parseInt(req.params.formId);
+      const fieldData = {
+        ...req.body,
+        idforms: formId
+      };
+      const field = await storage.createFormField(fieldData);
+      res.status(201).json(field);
+    } catch (error) {
+      console.error('Erreur création champ formulaire:', error);
+      res.status(500).json({ error: "Failed to create form field" });
+    }
+  });
+
+  // Modifier un champ de formulaire
+  app.put("/api/forms/fields/:fieldId", async (req, res) => {
+    try {
+      const fieldId = parseInt(req.params.fieldId);
+      const updatedField = await storage.updateFormField(fieldId, req.body);
+      if (!updatedField) {
+        return res.status(404).json({ error: "Form field not found" });
+      }
+      res.json(updatedField);
+    } catch (error) {
+      console.error('Erreur modification champ formulaire:', error);
+      res.status(500).json({ error: "Failed to update form field" });
+    }
+  });
+
+  // Supprimer un champ de formulaire
+  app.delete("/api/forms/fields/:fieldId", async (req, res) => {
+    try {
+      const fieldId = parseInt(req.params.fieldId);
+      const success = await storage.deleteFormField(fieldId);
+      if (!success) {
+        return res.status(404).json({ error: "Form field not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      console.error('Erreur suppression champ formulaire:', error);
+      res.status(500).json({ error: "Failed to delete form field" });
+    }
+  });
+
+  // Réorganiser les champs (drag & drop)
+  app.patch("/api/forms/:formId/fields/reorder", async (req, res) => {
+    try {
+      const formId = parseInt(req.params.formId);
+      const { fieldOrders } = req.body; // Array of {id, ordre, groupe, ordre_groupe}
+      const success = await storage.reorderFormFields(formId, fieldOrders);
+      if (!success) {
+        return res.status(400).json({ error: "Failed to reorder fields" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Erreur réorganisation champs:', error);
+      res.status(500).json({ error: "Failed to reorder form fields" });
+    }
+  });
+
+  // ============ FORM VALUES API ============
+
+  // Récupérer les valeurs d'un formulaire pour une entité
+  app.get("/api/forms/:formId/values/:entityId", async (req, res) => {
+    try {
+      const formId = parseInt(req.params.formId);
+      const entityId = parseInt(req.params.entityId);
+      const values = await storage.getFormValues(formId, entityId);
+      res.json(values);
+    } catch (error) {
+      console.error('Erreur lors de la récupération des valeurs:', error);
+      res.status(500).json({ error: "Failed to fetch form values" });
+    }
+  });
+
+  // Sauvegarder les valeurs d'un formulaire
+  app.post("/api/forms/:formId/values/:entityId", async (req, res) => {
+    try {
+      const formId = parseInt(req.params.formId);
+      const entityId = parseInt(req.params.entityId);
+      const { values } = req.body; // Object with fieldId: value pairs
+      const createdBy = req.user?.CDUSER || 'WEB';
+      
+      const success = await storage.saveFormValues(formId, entityId, values, createdBy);
+      if (!success) {
+        return res.status(400).json({ error: "Failed to save form values" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Erreur sauvegarde valeurs formulaire:', error);
+      res.status(500).json({ error: "Failed to save form values" });
+    }
+  });
+
+  // Récupérer les formulaires remplis pour une entité
+  app.get("/api/entities/:entityTypeId/:entityId/forms", async (req, res) => {
+    try {
+      const entityTypeId = parseInt(req.params.entityTypeId);
+      const entityId = parseInt(req.params.entityId);
+      const formsWithValues = await storage.getFilledFormsForEntity(entityTypeId, entityId);
+      res.json(formsWithValues);
+    } catch (error) {
+      console.error('Erreur lors de la récupération des formulaires remplis:', error);
+      res.status(500).json({ error: "Failed to fetch filled forms" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

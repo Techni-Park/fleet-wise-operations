@@ -819,20 +819,62 @@ export const customFields = mysqlTable("custom_fields", {
   updated_at: timestamp("updated_at").onUpdateNow()
 });
 
-// Table custom_field_values pour stocker les valeurs des champs personnalisés
-export const customFieldValues = mysqlTable("custom_field_values", {
+// Table custom_fields_values pour stocker les valeurs des champs personnalisés
+export const customFieldsValues = mysqlTable("custom_fields_values", {
   id: bigint("id", { mode: "number" }).primaryKey().autoincrement(),
-  entity_id: bigint("entity_id", { mode: "number" }).notNull(),
   custom_field_id: bigint("custom_field_id", { mode: "number" }).notNull(),
-  valeur: text("valeur"),
+  entity_type_id: bigint("entity_type_id", { mode: "number" }).notNull(),
+  entity_id: bigint("entity_id", { mode: "number" }).notNull(),
+  valeur: longtext("valeur"),
+  created_at: timestamp("created_at").defaultNow(),
+  updated_at: timestamp("updated_at").onUpdateNow()
+});
+
+// Table forms pour stocker les métadonnées des formulaires personnalisés
+export const forms = mysqlTable("forms", {
+  id: bigint("id", { mode: "number" }).primaryKey().autoincrement(),
+  nom: varchar("nom", { length: 100 }).notNull(),
+  description: longtext("description"),
+  entity_type_id: bigint("entity_type_id", { mode: "number" }).notNull(), // 1=véhicule, 3=intervention, etc.
+  is_active: tinyint("is_active").notNull().default(1), // 1=actif, 0=inactif
+  created_by: varchar("created_by", { length: 10 }).default("WEB"),
+  created_at: timestamp("created_at").defaultNow(),
+  updated_at: timestamp("updated_at").onUpdateNow()
+});
+
+// Table forms_fields pour stocker les champs des formulaires
+export const formsFields = mysqlTable("forms_fields", {
+  id: bigint("id", { mode: "number" }).primaryKey().autoincrement(),
+  idforms: bigint("idforms", { mode: "number" }).notNull(), // Référence vers forms.id
+  nom: varchar("nom", { length: 50 }).notNull(),
+  label: varchar("label", { length: 150 }).notNull(),
+  type: mysqlEnum("type", ["text", "email", "number", "date", "datetime", "textarea", "select", "radio", "checkbox", "switch", "file"]).notNull(),
+  taille: varchar("taille", { length: 20 }).default("medium"), // small, medium, large, full
+  obligatoire: tinyint("obligatoire").notNull().default(0),
+  ordre: int("ordre").notNull().default(0),
+  groupe: varchar("groupe", { length: 50 }).default("General"), // Nom du groupe
+  ordre_groupe: int("ordre_groupe").notNull().default(0),
+  options: json("options"), // Pour select/radio: {values: [{value, label}]}, placeholder, etc.
+  validation: json("validation"), // Règles de validation: {min, max, pattern, required, etc.}
+  created_at: timestamp("created_at").defaultNow(),
+  updated_at: timestamp("updated_at").onUpdateNow()
+});
+
+// Table forms_fields_values pour stocker les valeurs des formulaires remplis
+export const formsFieldsValues = mysqlTable("forms_fields_values", {
+  id: bigint("id", { mode: "number" }).primaryKey().autoincrement(),
+  forms_field_id: bigint("forms_field_id", { mode: "number" }).notNull(), // Référence vers forms_fields.id
+  entity_id: bigint("entity_id", { mode: "number" }).notNull(), // ID de l'entité (intervention, véhicule, etc.)
+  valeur: longtext("valeur"),
+  created_by: varchar("created_by", { length: 10 }).default("WEB"),
   created_at: timestamp("created_at").defaultNow(),
   updated_at: timestamp("updated_at").onUpdateNow()
 });
 
 export type CustomField = typeof customFields.$inferSelect;
 export type InsertCustomField = typeof customFields.$inferInsert;
-export type CustomFieldValue = typeof customFieldValues.$inferSelect;
-export type InsertCustomFieldValue = typeof customFieldValues.$inferInsert;
+export type CustomFieldValue = typeof customFieldsValues.$inferSelect;
+export type InsertCustomFieldValue = typeof customFieldsValues.$inferInsert;
 
 // Types TypeScript
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -867,3 +909,11 @@ export type InsertMachineMnt = z.infer<typeof insertMachineMntSchema>;
 export type MachineMnt = typeof machinesMnt.$inferSelect;
 export type InsertZ83Intervention = z.infer<typeof insertZ83InterventionSchema>;
 export type Z83Intervention = typeof z83Interventions.$inferSelect;
+
+// Types pour les formulaires personnalisés
+export type Form = typeof forms.$inferSelect;
+export type InsertForm = typeof forms.$inferInsert;
+export type FormField = typeof formsFields.$inferSelect;
+export type InsertFormField = typeof formsFields.$inferInsert;
+export type FormFieldValue = typeof formsFieldsValues.$inferSelect;
+export type InsertFormFieldValue = typeof formsFieldsValues.$inferInsert;
