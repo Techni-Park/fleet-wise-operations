@@ -32,6 +32,10 @@ const InterventionDetails = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('details');
   
+  // États pour l'enrichissement des données
+  const [machineInfo, setMachineInfo] = useState<any>(null);
+  const [clientInfo, setClientInfo] = useState<any>(null);
+  
   // États pour l'onglet Rapport
   const [documents, setDocuments] = useState<any[]>([]);
   const [comments, setComments] = useState<any[]>([]);
@@ -72,6 +76,14 @@ const InterventionDetails = () => {
     }
   }, [id]);
 
+  // Charger les informations enrichies après le chargement de l'intervention
+  useEffect(() => {
+    if (intervention) {
+      loadMachineInfo();
+      loadClientInfo();
+    }
+  }, [intervention]);
+
   // Fermer le picker d'emojis quand on clique ailleurs
   useEffect(() => {
     const handleClickOutside = () => {
@@ -104,6 +116,40 @@ const InterventionDetails = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Charger les informations de la machine/véhicule
+  const loadMachineInfo = async () => {
+    if (!intervention?.CLE_MACHINE_CIBLE) return;
+    
+    try {
+      const response = await fetch(`/api/machines/by-cle/${intervention.CLE_MACHINE_CIBLE}`, {
+        credentials: 'include'
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setMachineInfo(data);
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des informations de la machine:', error);
+    }
+  };
+
+  // Charger les informations du client
+  const loadClientInfo = async () => {
+    if (!intervention?.IDCONTACT) return;
+    
+    try {
+      const response = await fetch(`/api/contacts/${intervention.IDCONTACT}`, {
+        credentials: 'include'
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setClientInfo(data);
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des informations du client:', error);
     }
   };
 
@@ -598,35 +644,45 @@ const InterventionDetails = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                <p className="font-semibold">
-                  {intervention.CONTACT_RAISON_SOCIALE || 
-                   formatFullName(intervention.CONTACT_NOM, intervention.CONTACT_PRENOM) || 
-                   'Non défini'}
-                </p>
-                {intervention.CONTACT_EMAIL && (
-                  <div className="flex items-center text-sm">
-                    <Mail className="w-4 h-4 mr-2" />
-                    <a href={`mailto:${intervention.CONTACT_EMAIL}`} className="text-blue-600 hover:underline">
-                      {intervention.CONTACT_EMAIL}
-                    </a>
-                  </div>
-                )}
-                {intervention.CONTACT_TEL && (
-                  <div className="flex items-center text-sm">
-                    <Phone className="w-4 h-4 mr-2" />
-                    <a href={`tel:${intervention.CONTACT_TEL}`} className="text-blue-600 hover:underline">
-                      {intervention.CONTACT_TEL}
-                    </a>
-                  </div>
-                )}
-                {intervention.CONTACT_ADRESSE1 && (
-                  <div className="flex items-start text-sm">
-                    <MapPin className="w-4 h-4 mr-2 mt-1" />
-                    <div>
-                      <div>{intervention.CONTACT_ADRESSE1}</div>
-                      {intervention.CONTACT_VILLE && <div>{intervention.CONTACT_VILLE}</div>}
-                    </div>
-                  </div>
+                {clientInfo ? (
+                  <>
+                    <p className="font-semibold">
+                      {clientInfo.RAISON_SOCIALE || 
+                       formatFullName(clientInfo.NOM, clientInfo.PRENOM) || 
+                       'Non défini'}
+                    </p>
+                    {clientInfo.EMAIL && (
+                      <div className="flex items-center text-sm">
+                        <Mail className="w-4 h-4 mr-2" />
+                        <a href={`mailto:${clientInfo.EMAIL}`} className="text-blue-600 hover:underline">
+                          {clientInfo.EMAIL}
+                        </a>
+                      </div>
+                    )}
+                    {clientInfo.TEL && (
+                      <div className="flex items-center text-sm">
+                        <Phone className="w-4 h-4 mr-2" />
+                        <a href={`tel:${clientInfo.TEL}`} className="text-blue-600 hover:underline">
+                          {clientInfo.TEL}
+                        </a>
+                      </div>
+                    )}
+                    {clientInfo.ADRESSE1 && (
+                      <div className="flex items-start text-sm">
+                        <MapPin className="w-4 h-4 mr-2 mt-1" />
+                        <div>
+                          <div>{clientInfo.ADRESSE1}</div>
+                          {clientInfo.VILLE && <div>{clientInfo.CPOSTAL} {clientInfo.VILLE}</div>}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <p className="font-semibold">
+                    {intervention.CONTACT_RAISON_SOCIALE || 
+                     formatFullName(intervention.CONTACT_NOM, intervention.CONTACT_PRENOM) || 
+                     'Non défini'}
+                  </p>
                 )}
               </div>
             </CardContent>
@@ -642,22 +698,53 @@ const InterventionDetails = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                <p className="font-semibold">
-                  {intervention.VEHICULE_LIB_MACHINE || 
-                   `${intervention.VEHICULE_MARQUE || ''} ${intervention.VEHICULE_MODELE || ''}`.trim() ||
-                   'Non défini'}
-                </p>
-                {intervention.VEHICULE_IMMAT && (
-                  <div className="text-sm">
-                    <span className="font-medium">Immatriculation: </span>
-                    {intervention.VEHICULE_IMMAT}
-                  </div>
-                )}
-                {intervention.VEHICULE_CODE && (
-                  <div className="text-sm">
-                    <span className="font-medium">Code machine: </span>
-                    {intervention.VEHICULE_CODE}
-                  </div>
+                {machineInfo ? (
+                  <>
+                    <p className="font-semibold">
+                      {machineInfo.LIB_MACHINE || 
+                       `${machineInfo.MARQUE || ''} ${machineInfo.MODELE || ''}`.trim() ||
+                       'Non défini'}
+                    </p>
+                    {machineInfo.IMMAT && (
+                      <div className="text-sm">
+                        <span className="font-medium">Immatriculation: </span>
+                        {machineInfo.IMMAT}
+                      </div>
+                    )}
+                    {machineInfo.CD_MACHINE && (
+                      <div className="text-sm">
+                        <span className="font-medium">Code machine: </span>
+                        {machineInfo.CD_MACHINE}
+                      </div>
+                    )}
+                    {machineInfo.NUM_SERIE && (
+                      <div className="text-sm">
+                        <span className="font-medium">N° série: </span>
+                        {machineInfo.NUM_SERIE}
+                      </div>
+                    )}
+                    {machineInfo.TYPE_MACHINE && (
+                      <div className="text-sm">
+                        <span className="font-medium">Type: </span>
+                        {machineInfo.TYPE_MACHINE}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <p className="font-semibold">
+                      {intervention.VEHICULE_LIB_MACHINE || 
+                       `${intervention.VEHICULE_MARQUE || ''} ${intervention.VEHICULE_MODELE || ''}`.trim() ||
+                       intervention.CLE_MACHINE_CIBLE ||
+                       'Non défini'}
+                    </p>
+                    {intervention.CLE_MACHINE_CIBLE && (
+                      <div className="text-sm">
+                        <span className="font-medium">Clé machine: </span>
+                        {intervention.CLE_MACHINE_CIBLE}
+                      </div>
+                    )}
+                  </>
                 )}
                 {intervention.VEHICULE_IDMACHINE && (
                   <Link to={`/vehicles/${intervention.VEHICULE_IDMACHINE}`}>

@@ -1744,13 +1744,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const entityId = parseInt(req.params.entityId);
       const formsWithValues = await storage.getFilledFormsForEntity(entityTypeId, entityId);
       res.json(formsWithValues);
-    } catch (error) {
-      console.error('Erreur lors de la récupération des formulaires remplis:', error);
-      res.status(500).json({ error: "Failed to fetch filled forms" });
-    }
-  });
+      } catch (error) {
+    console.error('Erreur lors de la récupération des formulaires remplis:', error);
+    res.status(500).json({ error: "Failed to fetch filled forms" });
+  }
+});
 
-  const httpServer = createServer(app);
+// ============ INTERVENTION ENRICHMENT API ============
+
+// Récupérer les informations d'une machine par sa CLE_MACHINE_CIBLE
+app.get("/api/machines/by-cle/:cleMachine", async (req, res) => {
+  try {
+    const { cleMachine } = req.params;
+    const machine = await storage.getMachineByCleMachine(cleMachine);
+    res.json(machine || null);
+  } catch (error) {
+    console.error('Erreur machine by cle:', error);
+    res.status(500).json({ error: "Failed to fetch machine" });
+  }
+});
+
+// Récupérer les informations d'un contact par son ID
+app.get("/api/contacts/:contactId", async (req, res) => {
+  try {
+    const contactId = parseInt(req.params.contactId);
+    const contact = await storage.getContactById(contactId);
+    res.json(contact || null);
+  } catch (error) {
+    console.error('Erreur contact by id:', error);
+    res.status(500).json({ error: "Failed to fetch contact" });
+  }
+});
+
+const httpServer = createServer(app);
 
   return httpServer;
 }

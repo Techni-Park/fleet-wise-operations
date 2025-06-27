@@ -106,6 +106,9 @@ export default function FormsSettings() {
     validation: ''
   });
 
+  // État pour les options de select/radio
+  const [selectOptions, setSelectOptions] = useState<Array<{value: string, label: string}>>([{value: '', label: ''}]);
+
   useEffect(() => {
     if (authLoading) return;
     if (!user) {
@@ -344,6 +347,23 @@ export default function FormsSettings() {
       options: field.options || '',
       validation: field.validation || ''
     });
+
+    // Charger les options existantes pour les champs select/radio
+    if ((field.type === 'select' || field.type === 'radio') && field.options) {
+      try {
+        const parsedOptions = JSON.parse(field.options);
+        if (parsedOptions.values && Array.isArray(parsedOptions.values)) {
+          setSelectOptions(parsedOptions.values);
+        } else {
+          setSelectOptions([{value: '', label: ''}]);
+        }
+      } catch (e) {
+        setSelectOptions([{value: '', label: ''}]);
+      }
+    } else {
+      setSelectOptions([{value: '', label: ''}]);
+    }
+
     setIsFieldDialogOpen(true);
   };
 
@@ -444,6 +464,36 @@ export default function FormsSettings() {
       options: '',
       validation: ''
     });
+    setSelectOptions([{value: '', label: ''}]);
+  };
+
+  // Gestion des options de select
+  const addSelectOption = () => {
+    setSelectOptions([...selectOptions, {value: '', label: ''}]);
+  };
+
+  const removeSelectOption = (index: number) => {
+    if (selectOptions.length > 1) {
+      setSelectOptions(selectOptions.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateSelectOption = (index: number, field: 'value' | 'label', value: string) => {
+    const newOptions = [...selectOptions];
+    newOptions[index][field] = value;
+    setSelectOptions(newOptions);
+  };
+
+  // Synchroniser les options avec le champ JSON
+  const syncOptionsToJson = () => {
+    if (fieldData.type === 'select' || fieldData.type === 'radio') {
+      const validOptions = selectOptions.filter(opt => opt.value && opt.label);
+      const optionsJson = {
+        values: validOptions,
+        placeholder: fieldData.type === 'select' ? 'Sélectionner...' : undefined
+      };
+      setFieldData({...fieldData, options: JSON.stringify(optionsJson, null, 2)});
+    }
   };
 
   const generateOptionsExample = () => {
@@ -789,17 +839,77 @@ export default function FormsSettings() {
                         <Label htmlFor="field-obligatoire">Champ obligatoire</Label>
                       </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="field-options">Options (JSON)</Label>
-                        <Textarea
-                          id="field-options"
-                          value={fieldData.options}
-                          onChange={(e) => setFieldData({...fieldData, options: e.target.value})}
-                          placeholder={generateOptionsExample()}
-                          rows={6}
-                          className="font-mono text-sm"
-                        />
-                      </div>
+                      {/* Options pour les champs select/radio */}
+                      {(fieldData.type === 'select' || fieldData.type === 'radio') ? (
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <Label>Options du {fieldData.type === 'select' ? 'menu déroulant' : 'bouton radio'}</Label>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={addSelectOption}
+                            >
+                              <Plus className="h-4 w-4 mr-2" />
+                              Ajouter option
+                            </Button>
+                          </div>
+                          
+                          <div className="space-y-3 max-h-40 overflow-y-auto">
+                            {selectOptions.map((option, index) => (
+                              <div key={index} className="grid grid-cols-5 gap-2 items-center">
+                                <div className="col-span-2">
+                                  <Input
+                                    placeholder="Valeur technique"
+                                    value={option.value}
+                                    onChange={(e) => updateSelectOption(index, 'value', e.target.value)}
+                                    className="text-sm"
+                                  />
+                                </div>
+                                <div className="col-span-2">
+                                  <Input
+                                    placeholder="Libellé affiché"
+                                    value={option.label}
+                                    onChange={(e) => updateSelectOption(index, 'label', e.target.value)}
+                                    className="text-sm"
+                                  />
+                                </div>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => removeSelectOption(index)}
+                                  disabled={selectOptions.length === 1}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                          
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={syncOptionsToJson}
+                            className="w-full"
+                          >
+                            Appliquer les options
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <Label htmlFor="field-options">Options (JSON)</Label>
+                          <Textarea
+                            id="field-options"
+                            value={fieldData.options}
+                            onChange={(e) => setFieldData({...fieldData, options: e.target.value})}
+                            placeholder={generateOptionsExample()}
+                            rows={4}
+                            className="font-mono text-sm"
+                          />
+                        </div>
+                      )}
 
                       <div className="space-y-2">
                         <Label htmlFor="field-validation">Validation (JSON)</Label>

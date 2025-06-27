@@ -156,6 +156,10 @@ export interface IStorage {
   getFormValues(formId: number, entityId: number): Promise<{ [fieldId: number]: string }>;
   saveFormValues(formId: number, entityId: number, values: { [fieldId: number]: string }, createdBy: string): Promise<boolean>;
   getFilledFormsForEntity(entityTypeId: number, entityId: number): Promise<Array<Form & { values: { [fieldId: number]: string } }>>;
+
+  // Intervention enrichment
+  getMachineByCleMachine(cleMachine: string): Promise<MachineMnt | undefined>;
+  getContactById(contactId: number): Promise<Contact | undefined>;
 }
 
 export class MySQLStorage implements IStorage {
@@ -1662,6 +1666,37 @@ export class MySQLStorage implements IStorage {
     } catch (error) {
       console.error('Erreur getFilledFormsForEntity:', error);
       return [];
+    }
+  }
+
+  // Intervention enrichment methods
+  async getMachineByCleMachine(cleMachine: string): Promise<MachineMnt | undefined> {
+    try {
+      // Extraire l'IDMACHINE de CLE_MACHINE_CIBLE (format: R + IDMACHINE)
+      if (!cleMachine || !cleMachine.startsWith('R')) {
+        return undefined;
+      }
+      
+      const idMachine = parseInt(cleMachine.substring(1));
+      if (isNaN(idMachine)) {
+        return undefined;
+      }
+
+      const result = await db.select().from(machinesMnt).where(eq(machinesMnt.IDMACHINE, idMachine)).limit(1);
+      return result[0];
+    } catch (error) {
+      console.error('Erreur lors de la récupération de la machine:', error);
+      return undefined;
+    }
+  }
+
+  async getContactById(contactId: number): Promise<Contact | undefined> {
+    try {
+      const result = await db.select().from(contacts).where(eq(contacts.IDCONTACT, contactId)).limit(1);
+      return result[0];
+    } catch (error) {
+      console.error('Erreur lors de la récupération du contact:', error);
+      return undefined;
     }
   }
 }
