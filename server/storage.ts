@@ -1,5 +1,7 @@
 import { eq, sql, desc } from "drizzle-orm";
 import { db } from "./db";
+import * as fs from "fs";
+import * as path from "path";
 import { 
   users, vehicles, interventions, alerts, documents, actions, anomalies, contacts, ingredients, machinesMnt, produits, societes, userSystem, vehicules, customFields, customFieldValues,
   type User, type InsertUser, type Vehicle, type InsertVehicle, type Intervention, type InsertIntervention, 
@@ -126,6 +128,9 @@ export interface IStorage {
   // Chat d'intervention (utilisation de la table ACTION avec TRGCIBLE = INTxxx)
   getChatMessages(interventionId: number): Promise<Action[]>;
   createChatMessage(interventionId: number, messageData: any): Promise<Action>;
+
+  // Gestion des fichiers physiques
+  saveFileToIntervention(interventionId: number, file: Express.Multer.File, cduser: string): Promise<Document>;
 }
 
 export class MySQLStorage implements IStorage {
@@ -1106,6 +1111,54 @@ export class MySQLStorage implements IStorage {
       return newAction!;
     } catch (error) {
       console.error('Erreur createChatMessage - détail:', error);
+      throw error;
+    }
+  }
+
+  // Gestion des fichiers physiques pour les interventions
+  async saveFileToIntervention(interventionId: number, file: Express.Multer.File, cduser: string): Promise<Document> {
+    try {
+      // 1. Créer le dossier de l'intervention s'il n'existe pas
+      const interventionDir = path.join(process.cwd(), 'dist', 'public', 'assets', 'photos', `INT${interventionId}`);
+      
+      if (!fs.existsSync(interventionDir)) {
+        fs.mkdirSync(interventionDir, { recursive: true });
+        console.log(`Dossier créé: ${interventionDir}`);
+      }
+
+      // 2. Générer un nom de fichier unique avec extension
+      const fileExtension = path.extname(file.originalname);
+      const timestamp = Date.now();
+      const fileName = `${timestamp}_${file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+      const filePath = path.join(interventionDir, fileName);
+
+      // 3. Sauvegarder le fichier physiquement
+      fs.writeFileSync(filePath, file.buffer);
+      console.log(`Fichier sauvegardé: ${filePath}`);
+
+      // 4. Créer l'entrée en base de données
+      const fileRef = `/assets/photos/INT${interventionId}/${fileName}`;
+      const insertData = {
+        LIB100: file.originalname,
+        FILEREF: fileRef, // Chemin relatif pour l'accès web
+        COMMENTAIRE: `Fichier uploadé: ${file.originalname}`,
+        CDUSER: cduser,
+        ID2GENRE_DOCUMENT: file.mimetype.startsWith('image/') ? 1 : 2,
+        TRGCIBLE: '', // Sera défini par l'appelant (ACTxxx pour chat)
+        DHCRE: new Date(),
+        DHMOD: new Date(),
+        USCRE: cduser,
+        USMOD: cduser
+      };
+
+      const result = await db.insert(documents).values(insertData);
+      const insertId = result[0].insertId as number;
+      const newDocument = await this.getDocument(insertId);
+      
+      console.log(`Document créé en BDD avec ID: ${insertId}, FILEREF: ${fileRef}`);
+      return newDocument!;
+    } catch (error) {
+      console.error('Erreur saveFileToIntervention:', error);
       throw error;
     }
   }

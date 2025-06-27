@@ -314,51 +314,34 @@ const InterventionDetails = () => {
 
     setUploadingChatFile(true);
     try {
-      // 1. Créer d'abord l'action dans le chat
-      const actionResponse = await fetch(`/api/interventions/${id}/chat`, {
+      // Utiliser FormData pour l'upload
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('cduser', user?.CDUSER || 'WEB');
+      if (replyingTo?.IDACTION) {
+        formData.append('replyTo', replyingTo.IDACTION.toString());
+      }
+
+      const response = await fetch(`/api/interventions/${id}/chat/upload`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         credentials: 'include',
-        body: JSON.stringify({
-          CLE_PIECE_CIBLE: `INT${id}`,
-          LIB100: file.type.includes('image') ? 'Photo partagée' : 'Document partagé',
-          COMMENTAIRE: `${file.type.includes('image') ? 'Photo' : 'Document'}: ${file.name}`,
-          CDUSER: user?.CDUSER || 'WEB',
-          IDACTION_PREC: replyingTo?.IDACTION || 0,
-        }),
+        body: formData, // Ne pas définir Content-Type, le navigateur le fait automatiquement
       });
 
-      if (actionResponse.ok) {
-        const actionData = await actionResponse.json();
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Upload réussi:', result);
         
-        // 2. Créer l'entrée document liée à l'action
-        const documentResponse = await fetch(`/api/interventions/${id}/documents`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-          body: JSON.stringify({
-            LIB100: file.name,
-            FILEREF: file.name,
-            COMMENTAIRE: `Partagé dans le chat: ${file.name}`,
-            CDUSER: 'WEB',
-            ID2GENRE_DOCUMENT: file.type.includes('image') ? 1 : 2, // 1=Image, 2=Document
-            TRGCIBLE: `ACT${actionData.IDACTION}`, // Lier le document à l'action
-          }),
+        setReplyingTo(null);
+        loadChatMessages();
+        loadDocuments();
+        toast({
+          title: "Succès",
+          description: file.type.includes('image') ? "Photo partagée" : "Document partagé",
         });
-
-        if (documentResponse.ok) {
-          setReplyingTo(null);
-          loadChatMessages();
-          loadDocuments();
-          toast({
-            title: "Succès",
-            description: file.type.includes('image') ? "Photo partagée" : "Document partagé",
-          });
-        }
+      } else {
+        const error = await response.json();
+        throw new Error(error.error || 'Erreur d\'upload');
       }
     } catch (error) {
       console.error('Erreur partage fichier:', error);
@@ -369,6 +352,8 @@ const InterventionDetails = () => {
       });
     } finally {
       setUploadingChatFile(false);
+      // Réinitialiser l'input file
+      event.target.value = '';
     }
   };
 

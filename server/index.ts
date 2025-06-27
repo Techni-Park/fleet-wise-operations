@@ -18,6 +18,9 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
+// Servir les fichiers uploadés (photos et documents)
+app.use('/assets', express.static('dist/public/assets'));
+
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;

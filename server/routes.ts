@@ -1,8 +1,30 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import passport from "passport";
+import multer from "multer";
+import * as path from "path";
 import "./passport-config"; // Import the passport configuration
 import { storage } from "./storage";
+
+// Configuration multer pour l'upload en mémoire
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10 MB max
+  },
+  fileFilter: (req, file, cb) => {
+    // Accepter images et documents
+    const allowedTypes = /jpeg|jpg|png|gif|bmp|webp|pdf|doc|docx|txt|xlsx|xls/;
+    const mimetype = allowedTypes.test(file.mimetype);
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Type de fichier non autorisé'));
+    }
+  }
+});
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Test de connexion à la base de données
@@ -224,6 +246,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Upload de fichiers pour le chat
+  app.post("/api/interventions/:id/chat/upload", upload.single('file'), async (req, res) => {
+    try {
+      const interventionId = parseInt(req.params.id);
+      const file = req.file;
+      const cduser = req.body.cduser || 'WEB';
+
+      if (!file) {
+        return res.status(400).json({ error: "Aucun fichier fourni" });
+      }
+
+      // 1. Sauvegarder le fichier physiquement et créer l'entrée DOCUMENT
+      const document = await storage.saveFileToIntervention(interventionId, file, cduser);
+
+      // 2. Créer l'action dans le chat
+      const actionData = {
+        CLE_PIECE_CIBLE: `INT${interventionId}`,
+        LIB100: file.mimetype.startsWith('image/') ? 'Photo partagée' : 'Document partagé',
+        COMMENTAIRE: `${file.mimetype.startsWith('image/') ? 'Photo' : 'Document'}: ${file.originalname}`,
+        CDUSER: cduser,
+        TYPACT: 10,
+        ID2GENRE_ACTION: 1,
+        IDACTION_PREC: parseInt(req.body.replyTo) || 0,
+      };
+
+      const action = await storage.createChatMessage(interventionId, actionData);
+
+      // 3. Lier le document à l'action
+      if (action && document) {
+        await storage.updateDocument(document.IDDOCUMENT, {
+          TRGCIBLE: `ACT${action.IDACTION}`
+        });
+      }
+
+      res.status(201).json({ 
+        action,
+        document,
+        message: "Fichier uploadé avec succès"
+      });
+    } catch (error) {
+      console.error('Erreur upload fichier chat:', error);
+      res.status(500).json({ error: (error as Error).message });
+    }
+  });
+
   // Téléchargement de documents
   app.get("/api/documents/:id/download", async (req, res) => {
     try {
@@ -233,10 +300,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Construire le chemin du fichier
-      const filePath = `uploads/${document.FILEREF}`;
       const fs = require('fs');
       const path = require('path');
-      const fullPath = path.join(process.cwd(), filePath);
+      let fullPath: string;
+      
+      if (document.FILEREF.startsWith('/assets/')) {
+        // Nouveau système : fichiers dans /dist/public/assets/
+        fullPath = path.join(process.cwd(), 'dist', 'public', document.FILEREF);
+      } else {
+        // Ancien système : fichiers dans uploads/
+        fullPath = path.join(process.cwd(), 'uploads', document.FILEREF);
+      }
 
       // Vérifier si le fichier existe
       if (!fs.existsSync(fullPath)) {
