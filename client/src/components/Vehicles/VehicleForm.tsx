@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Car, Wrench, MapPin, Calendar, FileText } from 'lucide-react';
+import VehicleCustomFieldsForm from './VehicleCustomFieldsForm';
 
 interface VehicleFormData {
   // Identification
@@ -50,6 +51,9 @@ interface VehicleFormData {
   CPOSTAL: string;
   VILLE: string;
   OBSERVATIONS: string;
+
+  // Champs personnalisés
+  customFields?: { [key: number]: string };
 }
 
 interface VehicleFormProps {
@@ -71,13 +75,30 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   const { register, handleSubmit, formState: { errors } } = useForm<VehicleFormData>({
     defaultValues: initialData
   });
+  
+  const [customFieldValues, setCustomFieldValues] = useState<{ [key: number]: string }>(
+    initialData?.customFields || {}
+  );
 
   const handleFormSubmit = (data: VehicleFormData) => {
-    onSubmit(data);
+    // Ajouter les champs personnalisés aux données
+    const dataWithCustomFields = {
+      ...data,
+      customFields: customFieldValues
+    };
+    
+    onSubmit(dataWithCustomFields);
     toast({
       title: isEdit ? "Véhicule modifié" : "Véhicule créé",
       description: isEdit ? "Les modifications ont été enregistrées avec succès." : "Le véhicule a été ajouté à la flotte.",
     });
+  };
+
+  const handleCustomFieldChange = (fieldId: number, value: string) => {
+    setCustomFieldValues(prev => ({
+      ...prev,
+      [fieldId]: value
+    }));
   };
 
   return (
@@ -484,6 +505,13 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           </div>
         </CardContent>
       </Card>
+
+      {/* Champs personnalisés */}
+      <VehicleCustomFieldsForm
+        vehicleId={initialData?.IDMACHINE}
+        values={customFieldValues}
+        onChange={handleCustomFieldChange}
+      />
 
       <div className="flex justify-end space-x-4">
         <Button type="button" variant="outline" onClick={onCancel} disabled={saving}>

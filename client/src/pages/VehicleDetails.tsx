@@ -12,6 +12,7 @@ import VehicleDocuments from '@/components/Vehicles/VehicleDocuments';
 import VehiclePhotos from '@/components/Vehicles/VehiclePhotos';
 import VehicleAnomalies from '@/components/Vehicles/VehicleAnomalies';
 import VehicleStats from '@/components/Vehicles/VehicleStats';
+import VehicleCustomFields from '@/components/Vehicles/VehicleCustomFields';
 
 const VehicleDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -289,13 +290,14 @@ const VehicleDetails = () => {
           {/* Onglets principaux */}
           <div className="lg:col-span-3">
             <Tabs defaultValue="overview" className="w-full">
-              <TabsList className="grid w-full grid-cols-6">
+              <TabsList className="grid w-full grid-cols-7">
                 <TabsTrigger value="overview">Aperçu</TabsTrigger>
                 <TabsTrigger value="interventions">Interventions</TabsTrigger>
                 <TabsTrigger value="alerts">Alertes</TabsTrigger>
                 <TabsTrigger value="documents">Documents</TabsTrigger>
                 <TabsTrigger value="photos">Photos</TabsTrigger>
                 <TabsTrigger value="anomalies">Anomalies</TabsTrigger>
+                <TabsTrigger value="custom-fields">Champs personnalisés</TabsTrigger>
               </TabsList>
               
               <TabsContent value="overview">
@@ -546,6 +548,10 @@ const VehicleDetails = () => {
               
               <TabsContent value="anomalies">
                 <VehicleAnomalies vehicleId={vehicle.IDVEHICULE} />
+              </TabsContent>
+              
+              <TabsContent value="custom-fields">
+                <VehicleCustomFields vehicleId={vehicle.IDMACHINE} />
               </TabsContent>
             </Tabs>
           </div>

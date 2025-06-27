@@ -20,6 +20,27 @@ const EditVehicle = () => {
       const response = await fetch(`/api/vehicules/${id}`);
       if (response.ok) {
         const data = await response.json();
+        
+        // Charger aussi les champs personnalisés si on a un IDMACHINE
+        if (data.IDMACHINE) {
+          try {
+            const customFieldsResponse = await fetch(`/api/custom-field-values/${data.IDMACHINE}`);
+            if (customFieldsResponse.ok) {
+              const customFieldValues = await customFieldsResponse.json();
+              
+              // Convertir en format { fieldId: value }
+              const customFields: { [key: number]: string } = {};
+              customFieldValues.forEach((cfv: any) => {
+                customFields[cfv.custom_field_id] = cfv.valeur || '';
+              });
+              
+              data.customFields = customFields;
+            }
+          } catch (error) {
+            console.error('Erreur lors du chargement des champs personnalisés:', error);
+          }
+        }
+        
         setVehicle(data);
       } else {
         console.error('Failed to fetch vehicle');
@@ -94,7 +115,7 @@ const EditVehicle = () => {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ vehicleData, machineData })
+        body: JSON.stringify({ vehicleData, machineData, customFields: data.customFields })
       });
 
       if (response.ok) {

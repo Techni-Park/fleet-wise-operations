@@ -1,12 +1,13 @@
 import { eq, sql } from "drizzle-orm";
 import { db } from "./db";
 import { 
-  users, vehicles, interventions, alerts, documents, actions, anomalies, contacts, ingredients, machinesMnt, produits, societes, userSystem, vehicules,
+  users, vehicles, interventions, alerts, documents, actions, anomalies, contacts, ingredients, machinesMnt, produits, societes, userSystem, vehicules, customFields, customFieldValues,
   type User, type InsertUser, type Vehicle, type InsertVehicle, type Intervention, type InsertIntervention, 
   type Alert, type InsertAlert, type Document, type InsertDocument, type Action, type InsertAction,
   type Anomalie, type InsertAnomalie, type Contact, type InsertContact, type Ingredient, type InsertIngredient,
   type MachineMnt, type InsertMachineMnt, type Produit, type InsertProduit, type Societe, type InsertSociete,
-  type UserSystem, type InsertUserSystem, type Vehicule, type InsertVehicule
+  type UserSystem, type InsertUserSystem, type Vehicule, type InsertVehicule, type CustomField, type InsertCustomField,
+  type CustomFieldValue, type InsertCustomFieldValue
 } from "@shared/schema";
 
 export interface IStorage {
@@ -91,8 +92,8 @@ export interface IStorage {
   getVehicule(id: number): Promise<Vehicule | undefined>;
   getAllVehicules(): Promise<Vehicule[]>;
   createVehicule(vehicule: InsertVehicule): Promise<Vehicule>;
-  createVehiculeWithMachine(vehicleData: Partial<InsertVehicule>, machineData: Partial<InsertMachineMnt>): Promise<Vehicule>;
-  updateVehicule(id: number, vehicleData: Partial<InsertVehicule>, machineData?: Partial<InsertMachineMnt>): Promise<Vehicule | undefined>;
+  createVehiculeWithMachine(vehicleData: Partial<InsertVehicule>, machineData: Partial<InsertMachineMnt>, customFields?: { [key: number]: string }): Promise<Vehicule>;
+  updateVehicule(id: number, vehicleData: Partial<InsertVehicule>, machineData?: Partial<InsertMachineMnt>, customFields?: { [key: number]: string }): Promise<Vehicule | undefined>;
 
   // Anomalies
   getAnomalie(id: number): Promise<Anomalie | undefined>;
@@ -103,6 +104,12 @@ export interface IStorage {
   getIngredient(id: number): Promise<Ingredient | undefined>;
   getAllIngredients(): Promise<Ingredient[]>;
   createIngredient(ingredient: InsertIngredient): Promise<Ingredient>;
+
+  // Custom Fields
+  getCustomFieldsByEntityType(entityTypeId: number): Promise<CustomField[]>;
+  getCustomFieldValuesForEntity(entityId: number): Promise<CustomFieldValue[]>;
+  saveCustomFieldValue(entityId: number, customFieldId: number, valeur: string): Promise<CustomFieldValue>;
+  deleteCustomFieldValue(entityId: number, customFieldId: number): Promise<boolean>;
 }
 
 export class MySQLStorage implements IStorage {
@@ -550,7 +557,7 @@ export class MySQLStorage implements IStorage {
     return result[0];
   }
 
-  async createVehiculeWithMachine(vehicleData: Partial<InsertVehicule>, machineData: Partial<InsertMachineMnt>): Promise<Vehicule> {
+  async createVehiculeWithMachine(vehicleData: Partial<InsertVehicule>, machineData: Partial<InsertMachineMnt>, customFields?: { [key: number]: string }): Promise<Vehicule> {
     try {
       // D'abord créer la machine
       const machineResult = await db.insert(machinesMnt).values(machineData as InsertMachineMnt);
@@ -565,6 +572,15 @@ export class MySQLStorage implements IStorage {
       const vehicleResult = await db.insert(vehicules).values(vehicleWithMachine as InsertVehicule);
       const vehicleId = vehicleResult[0].insertId as number;
 
+      // Sauvegarder les champs personnalisés si fournis
+      if (customFields) {
+        for (const [fieldId, value] of Object.entries(customFields)) {
+          if (value.trim() !== '') {
+            await this.saveCustomFieldValue(machineId, parseInt(fieldId), value);
+          }
+        }
+      }
+
       // Retourner le véhicule avec la jointure
       const newVehicle = await this.getVehicule(vehicleId);
       return newVehicle!;
@@ -574,7 +590,7 @@ export class MySQLStorage implements IStorage {
     }
   }
 
-  async updateVehicule(id: number, vehicleData: Partial<InsertVehicule>, machineData?: Partial<InsertMachineMnt>): Promise<Vehicule | undefined> {
+  async updateVehicule(id: number, vehicleData: Partial<InsertVehicule>, machineData?: Partial<InsertMachineMnt>, customFields?: { [key: number]: string }): Promise<Vehicule | undefined> {
     try {
       // Mettre à jour la table VEHICULE
       if (Object.keys(vehicleData).length > 0) {
@@ -582,11 +598,24 @@ export class MySQLStorage implements IStorage {
       }
 
       // Si on a des données de machine et qu'on a l'IDMACHINE du véhicule
+      let machineId: number | undefined;
       if (machineData && Object.keys(machineData).length > 0) {
         // D'abord récupérer l'IDMACHINE du véhicule
         const vehicleResult = await db.select({ IDMACHINE: vehicules.IDMACHINE }).from(vehicules).where(eq(vehicules.IDVEHICULE, id)).limit(1);
         if (vehicleResult[0]?.IDMACHINE) {
-          await db.update(machinesMnt).set(machineData).where(eq(machinesMnt.IDMACHINE, vehicleResult[0].IDMACHINE));
+          machineId = vehicleResult[0].IDMACHINE;
+          await db.update(machinesMnt).set(machineData).where(eq(machinesMnt.IDMACHINE, machineId));
+        }
+      }
+
+      // Mettre à jour les champs personnalisés si fournis
+      if (customFields && machineId) {
+        for (const [fieldId, value] of Object.entries(customFields)) {
+          if (value.trim() !== '') {
+            await this.saveCustomFieldValue(machineId, parseInt(fieldId), value);
+          } else {
+            await this.deleteCustomFieldValue(machineId, parseInt(fieldId));
+          }
         }
       }
 
@@ -636,6 +665,77 @@ export class MySQLStorage implements IStorage {
     const result = await db.select().from(contacts)
       .where(sql`RAISON_SOCIALE = ${companyName} AND IDCONTACT != ${currentContactId}`);
     return result[0] as Contact[];
+  }
+
+  // Custom Fields
+  async getCustomFieldsByEntityType(entityTypeId: number): Promise<CustomField[]> {
+    try {
+      const result = await db.select().from(customFields)
+        .where(eq(customFields.entity_type_id, entityTypeId))
+        .orderBy(customFields.ordre, customFields.id);
+      return result;
+    } catch (error) {
+      console.error('Erreur getCustomFieldsByEntityType:', error);
+      return [];
+    }
+  }
+
+  async getCustomFieldValuesForEntity(entityId: number): Promise<CustomFieldValue[]> {
+    try {
+      const result = await db.select().from(customFieldValues)
+        .where(eq(customFieldValues.entity_id, entityId));
+      return result;
+    } catch (error) {
+      console.error('Erreur getCustomFieldValuesForEntity:', error);
+      return [];
+    }
+  }
+
+  async saveCustomFieldValue(entityId: number, customFieldId: number, valeur: string): Promise<CustomFieldValue> {
+    try {
+      // Vérifier si la valeur existe déjà
+      const existing = await db.select().from(customFieldValues)
+        .where(sql`entity_id = ${entityId} AND custom_field_id = ${customFieldId}`)
+        .limit(1);
+
+      if (existing.length > 0) {
+        // Mettre à jour
+        await db.update(customFieldValues)
+          .set({ valeur, updated_at: new Date() })
+          .where(sql`entity_id = ${entityId} AND custom_field_id = ${customFieldId}`);
+        
+        const updated = await db.select().from(customFieldValues)
+          .where(sql`entity_id = ${entityId} AND custom_field_id = ${customFieldId}`)
+          .limit(1);
+        return updated[0];
+      } else {
+        // Créer
+        const result = await db.insert(customFieldValues).values({
+          entity_id: entityId,
+          custom_field_id: customFieldId,
+          valeur
+        });
+        const insertId = result[0].insertId as number;
+        const newValue = await db.select().from(customFieldValues)
+          .where(eq(customFieldValues.id, insertId))
+          .limit(1);
+        return newValue[0];
+      }
+    } catch (error) {
+      console.error('Erreur saveCustomFieldValue:', error);
+      throw error;
+    }
+  }
+
+  async deleteCustomFieldValue(entityId: number, customFieldId: number): Promise<boolean> {
+    try {
+      const result = await db.delete(customFieldValues)
+        .where(sql`entity_id = ${entityId} AND custom_field_id = ${customFieldId}`);
+      return result[0].affectedRows > 0;
+    } catch (error) {
+      console.error('Erreur deleteCustomFieldValue:', error);
+      return false;
+    }
   }
 }
 

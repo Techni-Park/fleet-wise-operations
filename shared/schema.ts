@@ -777,6 +777,36 @@ export const insertSocieteSchema = createInsertSchema(societes);
 export const insertUserSystemSchema = createInsertSchema(userSystem);
 export const insertVehiculeSchema = createInsertSchema(vehicules);
 
+// Table custom_fields pour définir les champs personnalisés
+export const customFields = mysqlTable("custom_fields", {
+  id: bigint("id", { mode: "number" }).primaryKey().autoincrement(),
+  entity_type_id: bigint("entity_type_id", { mode: "number" }).notNull(),
+  nom: varchar("nom", { length: 50 }).notNull(),
+  label: varchar("label", { length: 150 }).notNull(),
+  type: mysqlEnum("type", ["text", "email", "number", "date", "textarea", "select", "switch", "radio"]).notNull(),
+  is_protected: tinyint("is_protected").notNull().default(0),
+  obligatoire: tinyint("obligatoire").notNull().default(0),
+  ordre: int("ordre").notNull().default(0),
+  options: json("options"),
+  created_at: timestamp("created_at").defaultNow(),
+  updated_at: timestamp("updated_at").onUpdateNow()
+});
+
+// Table custom_field_values pour stocker les valeurs des champs personnalisés
+export const customFieldValues = mysqlTable("custom_field_values", {
+  id: bigint("id", { mode: "number" }).primaryKey().autoincrement(),
+  entity_id: bigint("entity_id", { mode: "number" }).notNull(),
+  custom_field_id: bigint("custom_field_id", { mode: "number" }).notNull(),
+  valeur: text("valeur"),
+  created_at: timestamp("created_at").defaultNow(),
+  updated_at: timestamp("updated_at").onUpdateNow()
+});
+
+export type CustomField = typeof customFields.$inferSelect;
+export type InsertCustomField = typeof customFields.$inferInsert;
+export type CustomFieldValue = typeof customFieldValues.$inferSelect;
+export type InsertCustomFieldValue = typeof customFieldValues.$inferInsert;
+
 // Types TypeScript
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;

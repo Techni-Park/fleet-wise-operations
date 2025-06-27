@@ -480,11 +480,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/vehicules", async (req, res) => {
     try {
-      const { vehicleData, machineData } = req.body;
+      const { vehicleData, machineData, customFields } = req.body;
       
       if (vehicleData && machineData) {
         // Création avec les deux tables
-        const vehicule = await storage.createVehiculeWithMachine(vehicleData, machineData);
+        const vehicule = await storage.createVehiculeWithMachine(vehicleData, machineData, customFields);
         res.status(201).json(vehicule);
       } else {
         // Fallback pour l'ancienne méthode
@@ -499,8 +499,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/vehicules/:id", async (req, res) => {
     try {
-      const { vehicleData, machineData } = req.body;
-      const vehicule = await storage.updateVehicule(parseInt(req.params.id), vehicleData, machineData);
+      const { vehicleData, machineData, customFields } = req.body;
+      const vehicule = await storage.updateVehicule(parseInt(req.params.id), vehicleData, machineData, customFields);
       if (!vehicule) {
         return res.status(404).json({ error: "Vehicule not found or update failed" });
       }
@@ -518,6 +518,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(anomalies);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch anomalies" });
+    }
+  });
+
+  // Custom Fields API
+  app.get("/api/custom-fields/:entityTypeId", async (req, res) => {
+    try {
+      const fields = await storage.getCustomFieldsByEntityType(parseInt(req.params.entityTypeId));
+      res.json(fields);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch custom fields" });
+    }
+  });
+
+  app.get("/api/custom-field-values/:entityId", async (req, res) => {
+    try {
+      const values = await storage.getCustomFieldValuesForEntity(parseInt(req.params.entityId));
+      res.json(values);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch custom field values" });
+    }
+  });
+
+  app.post("/api/custom-field-values", async (req, res) => {
+    try {
+      const { entityId, customFieldId, valeur } = req.body;
+      const result = await storage.saveCustomFieldValue(entityId, customFieldId, valeur);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to save custom field value" });
+    }
+  });
+
+  app.delete("/api/custom-field-values/:entityId/:customFieldId", async (req, res) => {
+    try {
+      const entityId = parseInt(req.params.entityId);
+      const customFieldId = parseInt(req.params.customFieldId);
+      const success = await storage.deleteCustomFieldValue(entityId, customFieldId);
+      if (success) {
+        res.status(204).send();
+      } else {
+        res.status(404).json({ error: "Custom field value not found" });
+      }
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete custom field value" });
     }
   });
 

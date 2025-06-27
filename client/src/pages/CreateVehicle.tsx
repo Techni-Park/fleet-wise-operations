@@ -60,7 +60,7 @@ const CreateVehicle = () => {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ vehicleData, machineData })
+        body: JSON.stringify({ vehicleData, machineData, customFields: data.customFields })
       });
 
       if (response.ok) {
