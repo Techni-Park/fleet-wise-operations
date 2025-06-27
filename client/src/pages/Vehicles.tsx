@@ -225,8 +225,8 @@ const Vehicles = () => {
                     <TableRow>
                       <TableHead>ID</TableHead>
                       <TableHead>Immatriculation</TableHead>
-                      <TableHead>Véhicule</TableHead>
-                      <TableHead>Machine</TableHead>
+                      <TableHead>Véhicule (VEHICULE)</TableHead>
+                      <TableHead>Machine (MACHINE_MNT)</TableHead>
                       <TableHead>Statut</TableHead>
                       <TableHead>Kilométrage</TableHead>
                       <TableHead>Contrôle technique</TableHead>
@@ -243,13 +243,18 @@ const Vehicles = () => {
                         <TableRow key={vehicule.IDVEHICULE}>
                           <TableCell>
                             <div className="font-medium text-gray-900 dark:text-white">
-                              #{vehicule.IDVEHICULE}
+                              V#{vehicule.IDVEHICULE} / M#{vehicule.IDMACHINE}
                             </div>
                           </TableCell>
                           <TableCell>
                             <div className="font-medium text-gray-900 dark:text-white">
                               {vehicule.IMMAT || '-'}
                             </div>
+                            {vehicule.NUM_IDENTIF && (
+                              <div className="text-xs text-gray-500">
+                                VIN: {vehicule.NUM_IDENTIF}
+                              </div>
+                            )}
                           </TableCell>
                           <TableCell>
                             <div>
@@ -257,8 +262,14 @@ const Vehicles = () => {
                                 {vehicule.MARQUE} {vehicule.MODELE}
                               </div>
                               <div className="text-sm text-gray-500">
-                                {vehicule.CARBURANT} • {vehicule.NUM_SERIE || 'N/S non renseigné'}
+                                {vehicule.CARBURANT && `${vehicule.CARBURANT} • `}
+                                {vehicule.PUISSANCE_ADMIN ? `${vehicule.PUISSANCE_ADMIN} CV` : 'Puissance non renseignée'}
                               </div>
+                              {vehicule.GENRE_NATIONAL && (
+                                <div className="text-xs text-gray-400">
+                                  Genre: {vehicule.GENRE_NATIONAL}
+                                </div>
+                              )}
                             </div>
                           </TableCell>
                           <TableCell>
@@ -267,6 +278,11 @@ const Vehicles = () => {
                               <div className="text-sm text-gray-500">
                                 {vehicule.LIB_MACHINE || 'Libellé non renseigné'}
                               </div>
+                              {vehicule.TYPE_MACHINE && (
+                                <div className="text-xs text-gray-400">
+                                  Type: {vehicule.TYPE_MACHINE}
+                                </div>
+                              )}
                             </div>
                           </TableCell>
                           <TableCell>
@@ -276,13 +292,19 @@ const Vehicles = () => {
                           </TableCell>
                           <TableCell>
                             <div>
+                              {/* Kilométrage du véhicule (table VEHICULE) */}
                               <div className="font-medium">
                                 {vehicule.KMACTUEL ? `${vehicule.KMACTUEL.toLocaleString()} km` : '-'}
                               </div>
+                              <div className="text-xs text-gray-500">Véhicule</div>
+                              {/* Kilométrage de la machine (table MACHINE_MNT) */}
                               {vehicule.KILOMETRAGE && vehicule.KILOMETRAGE !== vehicule.KMACTUEL && (
-                                <div className="text-sm text-gray-500">
-                                  Machine: {vehicule.KILOMETRAGE.toLocaleString()} km
-                                </div>
+                                <>
+                                  <div className="text-sm text-gray-500 mt-1">
+                                    {vehicule.KILOMETRAGE.toLocaleString()} km
+                                  </div>
+                                  <div className="text-xs text-gray-400">Machine</div>
+                                </>
                               )}
                             </div>
                           </TableCell>
@@ -291,6 +313,11 @@ const Vehicles = () => {
                               <div>{formatDate(vehicule.DT_CTRLTECH)}</div>
                               {controlExpired && (
                                 <div className="text-xs text-red-500">Expiré</div>
+                              )}
+                              {vehicule.DT_CTRLPOLLUTION && (
+                                <div className="text-xs text-gray-500">
+                                  Pollution: {formatDate(vehicule.DT_CTRLPOLLUTION)}
+                                </div>
                               )}
                             </div>
                           </TableCell>

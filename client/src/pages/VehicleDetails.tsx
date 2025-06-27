@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Edit, Trash2, Car, Calendar, FileText, AlertTriangle, CheckCircle, Clock, Loader, Wrench, Info, Tag, Fuel, Gauge, CalendarDays, ShieldCheck, MapPin } from 'lucide-react';
@@ -141,73 +140,134 @@ const VehicleDetails = () => {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Informations principales */}
           <div className="lg:col-span-1">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Car className="w-5 h-5 mr-2" />
-                  Informations
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Statut</p>
-                  {getStatusBadge(vehicle.ID2_ETATMACHINE)}
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Modèle</p>
-                  <p className="font-medium">{vehicle.MODELE || '-'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Marque</p>
-                  <p className="font-medium">{vehicle.MARQUE || '-'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Type</p>
-                  <p className="font-medium">{vehicle.TYPE_MACHINE || '-'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Année de mise en fonction</p>
-                  <p className="font-medium">{formatDate(vehicle.DT_MISEENFONCTION)}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Kilométrage</p>
-                  <p className="font-medium">{vehicle.KMACTUEL ? `${vehicle.KMACTUEL.toLocaleString()} km` : '-'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Carburant</p>
-                  <p className="font-medium">{vehicle.CARBURANT || '-'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Puissance</p>
-                  <p className="font-medium">{vehicle.PUISSANCEW ? `${vehicle.PUISSANCEW} W` : '-'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">VIN</p>
-                  <p className="font-medium">{vehicle.NUM_IDENTIF || '-'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Numéro de série</p>
-                  <p className="font-medium">{vehicle.NUM_SERIE || '-'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Adresse</p>
-                  <p className="font-medium">
-                    {vehicle.ADRESSE1 || ''} {vehicle.ADRESSE2 || ''}<br/>
-                    {vehicle.CPOSTAL || ''} {vehicle.VILLE || ''}
-                  </p>
-                  { (vehicle.ADRESSE1 || vehicle.CPOSTAL || vehicle.VILLE) && (
-                    <a 
-                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${vehicle.ADRESSE1 || ''} ${vehicle.CPOSTAL || ''} ${vehicle.VILLE || ''}`)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline text-sm"
-                    >
-                      <MapPin className="w-3 h-3 inline mr-1" /> Voir sur Google Maps
-                    </a>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+            <div className="space-y-4">
+              {/* Informations Véhicule */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Car className="w-5 h-5 mr-2" />
+                    Véhicule (Table VEHICULE)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">ID Véhicule</p>
+                    <p className="font-medium">#{vehicle.IDVEHICULE}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Immatriculation</p>
+                    <p className="font-medium">{vehicle.IMMAT || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">VIN (Numéro d'identification)</p>
+                    <p className="font-medium text-xs break-all">{vehicle.NUM_IDENTIF || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Carburant</p>
+                    <p className="font-medium">{vehicle.CARBURANT || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Puissance administrative</p>
+                    <p className="font-medium">{vehicle.PUISSANCE_ADMIN ? `${vehicle.PUISSANCE_ADMIN} CV` : '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Genre national</p>
+                    <p className="font-medium">{vehicle.GENRE_NATIONAL || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Kilométrage actuel</p>
+                    <p className="font-medium">{vehicle.KMACTUEL ? `${vehicle.KMACTUEL.toLocaleString()} km` : '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Date de première circulation</p>
+                    <p className="font-medium">{formatDate(vehicle.DT_PREMCIRC)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Places assises</p>
+                    <p className="font-medium">{vehicle.PLACES_ASSISES || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">PTAC / PTR</p>
+                    <p className="font-medium">
+                      {vehicle.PTAC ? `${vehicle.PTAC} kg` : '-'} / {vehicle.PTR ? `${vehicle.PTR} kg` : '-'}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Informations Machine */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Wrench className="w-5 h-5 mr-2" />
+                    Machine (Table MACHINE_MNT)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">ID Machine</p>
+                    <p className="font-medium">#{vehicle.IDMACHINE}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Code machine</p>
+                    <p className="font-medium">{vehicle.CD_MACHINE || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Libellé machine</p>
+                    <p className="font-medium">{vehicle.LIB_MACHINE || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Statut machine</p>
+                    {getStatusBadge(vehicle.ID2_ETATMACHINE)}
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Marque / Modèle</p>
+                    <p className="font-medium">{vehicle.MARQUE} {vehicle.MODELE}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Type de machine</p>
+                    <p className="font-medium">{vehicle.TYPE_MACHINE || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Numéro de série</p>
+                    <p className="font-medium">{vehicle.NUM_SERIE || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Kilométrage machine</p>
+                    <p className="font-medium">{vehicle.KILOMETRAGE ? `${vehicle.KILOMETRAGE.toLocaleString()} km` : '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Puissance</p>
+                    <p className="font-medium">{vehicle.PUISSANCEW ? `${vehicle.PUISSANCEW} W` : '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Date de mise en fonction</p>
+                    <p className="font-medium">{formatDate(vehicle.DT_MISEENFONCTION)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Adresse machine</p>
+                    <p className="font-medium">
+                      {vehicle.ADRESSE1 || ''} {vehicle.ADRESSE2 || ''}<br/>
+                      {vehicle.CPOSTAL || ''} {vehicle.VILLE || ''}
+                    </p>
+                    { (vehicle.ADRESSE1 || vehicle.CPOSTAL || vehicle.VILLE) && (
+                      <a 
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${vehicle.ADRESSE1 || ''} ${vehicle.CPOSTAL || ''} ${vehicle.VILLE || ''}`)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline text-sm"
+                      >
+                        <MapPin className="w-3 h-3 inline mr-1" /> Voir sur Google Maps
+                      </a>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Observations</p>
+                    <p className="font-medium">{vehicle.OBSERVATIONS || 'Aucune'}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
 
           {/* Onglets principaux */}
@@ -223,90 +283,182 @@ const VehicleDetails = () => {
               </TabsList>
               
               <TabsContent value="overview">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Aperçu du véhicule</CardTitle>
-                  </CardHeader>
-                  <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <h3 className="text-lg font-semibold mb-2">Maintenance & Contrôles</h3>
-                      <div className="space-y-3">
-                        <div className="flex items-center">
-                          <CalendarDays className="w-5 h-5 mr-2 text-blue-600" />
-                          <div>
-                            <p className="text-sm text-gray-600">Prochaine maintenance</p>
-                            <p className="font-medium">{formatDate(vehicle.DT_PROCH_MNT)}</p>
+                <div className="space-y-6">
+                  {/* Informations générales */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Aperçu du véhicule</CardTitle>
+                    </CardHeader>
+                    <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <h3 className="text-lg font-semibold mb-3 flex items-center">
+                          <Car className="w-5 h-5 mr-2 text-blue-600" />
+                          Données Véhicule (VEHICULE)
+                        </h3>
+                        <div className="space-y-3">
+                          <div className="flex items-center">
+                            <Tag className="w-4 h-4 mr-2 text-gray-600" />
+                            <div>
+                              <p className="text-sm text-gray-600">Immatriculation</p>
+                              <p className="font-medium">{vehicle.IMMAT || 'Non renseignée'}</p>
+                            </div>
                           </div>
-                        </div>
-                        <div className="flex items-center">
-                          <ShieldCheck className="w-5 h-5 mr-2 text-green-600" />
-                          <div>
-                            <p className="text-sm text-gray-600">Fin de garantie</p>
-                            <p className="font-medium">{formatDate(vehicle.DT_EXP_GARANTIE)}</p>
+                          <div className="flex items-center">
+                            <FileText className="w-4 h-4 mr-2 text-gray-600" />
+                            <div>
+                              <p className="text-sm text-gray-600">VIN</p>
+                              <p className="font-medium text-xs break-all">{vehicle.NUM_IDENTIF || 'Non renseigné'}</p>
+                            </div>
                           </div>
-                        </div>
-                        <div className="flex items-center">
-                          <FileText className="w-5 h-5 mr-2 text-purple-600" />
-                          <div>
-                            <p className="text-sm text-gray-600">Contrôle technique</p>
-                            <p className={`font-medium ${controlExpired ? 'text-red-600' : ''}`}>
-                              {formatDate(vehicle.DT_CTRLTECH)}
-                              {controlExpired && <span className="text-xs ml-2">(Expiré)</span>}
-                            </p>
+                          <div className="flex items-center">
+                            <Fuel className="w-4 h-4 mr-2 text-gray-600" />
+                            <div>
+                              <p className="text-sm text-gray-600">Carburant & Puissance</p>
+                              <p className="font-medium">
+                                {vehicle.CARBURANT || 'Non renseigné'} 
+                                {vehicle.PUISSANCE_ADMIN && ` - ${vehicle.PUISSANCE_ADMIN} CV`}
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                        <div className="flex items-center">
-                          <ShieldCheck className="w-5 h-5 mr-2 text-orange-600" />
-                          <div>
-                            <p className="text-sm text-gray-600">Assurance</p>
-                            <p className="font-medium">{formatDate(vehicle.DT_ECHASS)}</p>
+                          <div className="flex items-center">
+                            <Gauge className="w-4 h-4 mr-2 text-gray-600" />
+                            <div>
+                              <p className="text-sm text-gray-600">Kilométrage véhicule</p>
+                              <p className="font-medium">{vehicle.KMACTUEL ? `${vehicle.KMACTUEL.toLocaleString()} km` : 'Non renseigné'}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center">
+                            <CalendarDays className="w-4 h-4 mr-2 text-gray-600" />
+                            <div>
+                              <p className="text-sm text-gray-600">Première circulation</p>
+                              <p className="font-medium">{formatDate(vehicle.DT_PREMCIRC)}</p>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div>
-                      <h3 className="text-lg font-semibold mb-2">Détails supplémentaires</h3>
-                      <div className="space-y-3">
-                        <div className="flex items-center">
-                          <Tag className="w-5 h-5 mr-2 text-gray-600" />
-                          <div>
-                            <p className="text-sm text-gray-600">Code machine</p>
-                            <p className="font-medium">{vehicle.CD_MACHINE || '-'}</p>
+                      <div>
+                        <h3 className="text-lg font-semibold mb-3 flex items-center">
+                          <Wrench className="w-5 h-5 mr-2 text-green-600" />
+                          Données Machine (MACHINE_MNT)
+                        </h3>
+                        <div className="space-y-3">
+                          <div className="flex items-center">
+                            <Tag className="w-4 h-4 mr-2 text-gray-600" />
+                            <div>
+                              <p className="text-sm text-gray-600">Code & Type machine</p>
+                              <p className="font-medium">{vehicle.CD_MACHINE || 'Non renseigné'}</p>
+                              <p className="text-xs text-gray-500">{vehicle.TYPE_MACHINE || 'Type non renseigné'}</p>
+                            </div>
                           </div>
-                        </div>
-                        <div className="flex items-center">
-                          <Info className="w-5 h-5 mr-2 text-gray-600" />
-                          <div>
-                            <p className="text-sm text-gray-600">Libellé machine</p>
-                            <p className="font-medium">{vehicle.LIB_MACHINE || '-'}</p>
+                          <div className="flex items-center">
+                            <Info className="w-4 h-4 mr-2 text-gray-600" />
+                            <div>
+                              <p className="text-sm text-gray-600">Marque & Modèle</p>
+                              <p className="font-medium">{vehicle.MARQUE} {vehicle.MODELE}</p>
+                            </div>
                           </div>
-                        </div>
-                        <div className="flex items-center">
-                          <Gauge className="w-5 h-5 mr-2 text-gray-600" />
-                          <div>
-                            <p className="text-sm text-gray-600">Kilométrage machine</p>
-                            <p className="font-medium">{vehicle.KILOMETRAGE ? `${vehicle.KILOMETRAGE.toLocaleString()} km` : '-'}</p>
+                          <div className="flex items-center">
+                            <Gauge className="w-4 h-4 mr-2 text-gray-600" />
+                            <div>
+                              <p className="text-sm text-gray-600">Kilométrage machine</p>
+                              <p className="font-medium">{vehicle.KILOMETRAGE ? `${vehicle.KILOMETRAGE.toLocaleString()} km` : 'Non renseigné'}</p>
+                            </div>
                           </div>
-                        </div>
-                        <div className="flex items-center">
-                          <Fuel className="w-5 h-5 mr-2 text-gray-600" />
-                          <div>
-                            <p className="text-sm text-gray-600">Type de carburant</p>
-                            <p className="font-medium">{vehicle.CARBURANT || '-'}</p>
+                          <div className="flex items-center">
+                            <CalendarDays className="w-4 h-4 mr-2 text-gray-600" />
+                            <div>
+                              <p className="text-sm text-gray-600">Mise en fonction</p>
+                              <p className="font-medium">{formatDate(vehicle.DT_MISEENFONCTION)}</p>
+                            </div>
                           </div>
-                        </div>
-                        <div className="flex items-center">
-                          <Wrench className="w-5 h-5 mr-2 text-gray-600" />
-                          <div>
-                            <p className="text-sm text-gray-600">Observations</p>
-                            <p className="font-medium">{vehicle.OBSERVATIONS || 'Aucune'}</p>
+                          <div className="flex items-center">
+                            <CheckCircle className="w-4 h-4 mr-2 text-gray-600" />
+                            <div>
+                              <p className="text-sm text-gray-600">Statut machine</p>
+                              {getStatusBadge(vehicle.ID2_ETATMACHINE)}
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+
+                  {/* Maintenance & Contrôles */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Maintenance & Contrôles</CardTitle>
+                    </CardHeader>
+                    <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <h3 className="text-lg font-semibold mb-3">Contrôles véhicule</h3>
+                        <div className="space-y-3">
+                          <div className="flex items-center">
+                            <FileText className="w-5 h-5 mr-2 text-purple-600" />
+                            <div>
+                              <p className="text-sm text-gray-600">Contrôle technique</p>
+                              <p className={`font-medium ${controlExpired ? 'text-red-600' : ''}`}>
+                                {formatDate(vehicle.DT_CTRLTECH)}
+                                {controlExpired && <span className="text-xs ml-2">(Expiré)</span>}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center">
+                            <FileText className="w-5 h-5 mr-2 text-green-600" />
+                            <div>
+                              <p className="text-sm text-gray-600">Contrôle pollution</p>
+                              <p className="font-medium">{formatDate(vehicle.DT_CTRLPOLLUTION)}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center">
+                            <ShieldCheck className="w-5 h-5 mr-2 text-orange-600" />
+                            <div>
+                              <p className="text-sm text-gray-600">Assurance</p>
+                              <p className="font-medium">{formatDate(vehicle.DT_ECHASS)}</p>
+                              {vehicle.NUMCONTRASS && (
+                                <p className="text-xs text-gray-500">N° {vehicle.NUMCONTRASS}</p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h3 className="text-lg font-semibold mb-3">Maintenance machine</h3>
+                        <div className="space-y-3">
+                          <div className="flex items-center">
+                            <CalendarDays className="w-5 h-5 mr-2 text-blue-600" />
+                            <div>
+                              <p className="text-sm text-gray-600">Prochaine maintenance</p>
+                              <p className="font-medium">{formatDate(vehicle.DT_PROCH_MNT)}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center">
+                            <ShieldCheck className="w-5 h-5 mr-2 text-green-600" />
+                            <div>
+                              <p className="text-sm text-gray-600">Garantie</p>
+                              <p className="font-medium">
+                                {formatDate(vehicle.DT_EXP_GARANTIE)}
+                                {vehicle.DT_DBT_GARANTIE && (
+                                  <span className="text-xs text-gray-500 block">
+                                    Début: {formatDate(vehicle.DT_DBT_GARANTIE)}
+                                  </span>
+                                )}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center">
+                            <Wrench className="w-5 h-5 mr-2 text-gray-600" />
+                            <div>
+                              <p className="text-sm text-gray-600">Observations</p>
+                              <p className="font-medium">{vehicle.OBSERVATIONS || 'Aucune'}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
               </TabsContent>
 
               <TabsContent value="interventions">
