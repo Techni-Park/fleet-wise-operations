@@ -131,6 +131,7 @@ export interface IStorage {
 
   // Gestion des fichiers physiques
   saveFileToIntervention(interventionId: number, file: Express.Multer.File, cduser: string): Promise<Document>;
+  savePhotoToInterventionReport(interventionId: number, file: Express.Multer.File, cduser: string): Promise<Document>;
 }
 
 export class MySQLStorage implements IStorage {
@@ -496,14 +497,19 @@ export class MySQLStorage implements IStorage {
 
   // Documents
   async getDocument(id: number): Promise<Document | undefined> {
-    const result = await db.select().from(documents).where(eq(documents.ID, id)).limit(1);
+    const result = await db.select().from(documents).where(eq(documents.IDDOCUMENT, id)).limit(1);
     return result[0];
   }
 
   async createDocument(document: InsertDocument): Promise<Document> {
+    // S'assurer qu'il y a un IDDOCUMENT
+    if (!document.IDDOCUMENT) {
+      document.IDDOCUMENT = Date.now() + Math.floor(Math.random() * 1000);
+    }
+    
     const result = await db.insert(documents).values(document);
-    const insertId = result[0].insertId as number;
-    const newDocument = await this.getDocument(insertId);
+    // Récupérer le document créé par IDDOCUMENT (pas par l'ID auto-increment)
+    const newDocument = await this.getDocument(document.IDDOCUMENT);
     return newDocument!;
   }
 
@@ -511,6 +517,7 @@ export class MySQLStorage implements IStorage {
     console.log('🔄 updateDocument appelé avec:', { id, document });
     const result = await db.update(documents).set(document).where(eq(documents.IDDOCUMENT, id));
     console.log('🔄 updateDocument résultat:', result);
+    // Récupérer le document mis à jour par IDDOCUMENT
     return this.getDocument(id);
   }
 
@@ -980,13 +987,30 @@ export class MySQLStorage implements IStorage {
 
   async createInterventionDocument(interventionId: number, documentData: any): Promise<Document> {
     try {
+      // Récupérer les informations IDPROJET et IDTACHE depuis l'intervention
+      const intervention = await this.getIntervention(interventionId);
+      let idprojet = 0;
+      let idtache = 0;
+      
+      if (intervention) {
+        idprojet = intervention.IDPROJET || 0;
+        idtache = intervention.IDTACHE || 0;
+        console.log(`📋 Récupération projet/tâche pour document intervention depuis intervention ${interventionId}:`, { idprojet, idtache });
+      }
+
+      // Générer un IDDOCUMENT unique basé sur timestamp + random
+      const iddocument = Date.now() + Math.floor(Math.random() * 1000);
+
       const insertData = {
+        IDDOCUMENT: iddocument,
         LIB100: documentData.LIB100 || 'Document',
         FILEREF: documentData.FILEREF || '',
         COMMENTAIRE: documentData.COMMENTAIRE || '',
         CDUSER: documentData.CDUSER || 'WEB',
         ID2GENRE_DOCUMENT: documentData.ID2GENRE_DOCUMENT || 2,
         TRGCIBLE: documentData.TRGCIBLE || `INT${interventionId}`,
+        IDPROJET: idprojet, // Récupéré depuis INTERVENTION
+        IDTACHE: idtache, // Récupéré depuis INTERVENTION
         DHCRE: new Date(),
         DHMOD: new Date(),
         USCRE: documentData.CDUSER || 'WEB',
@@ -994,8 +1018,7 @@ export class MySQLStorage implements IStorage {
       };
 
       const result = await db.insert(documents).values(insertData);
-      const insertId = result[0].insertId as number;
-      const newDocument = await this.getDocument(insertId);
+      const newDocument = await this.getDocument(iddocument);
       return newDocument!;
     } catch (error) {
       console.error('Erreur createInterventionDocument:', error);
@@ -1023,11 +1046,24 @@ export class MySQLStorage implements IStorage {
 
   async createInterventionComment(interventionId: number, commentData: any): Promise<Action> {
     try {
+      // Récupérer les informations IDPROJET et IDTACHE depuis l'intervention
+      const intervention = await this.getIntervention(interventionId);
+      let idprojet = 0;
+      let idtache = 0;
+      
+      if (intervention) {
+        idprojet = intervention.IDPROJET || 0;
+        idtache = intervention.IDTACHE || 0;
+        console.log(`📋 Récupération projet/tâche pour commentaire depuis intervention ${interventionId}:`, { idprojet, idtache });
+      }
+
       const insertData = {
         LIB100: commentData.LIB100 || 'Commentaire intervention',
         COMMENTAIRE: commentData.COMMENTAIRE || '',
         CDUSER: commentData.CDUSER || 'WEB',
         CLE_MACHINE_CIBLE: `INT${interventionId}`,
+        IDPROJET: idprojet, // Récupéré depuis INTERVENTION
+        IDTACHE: idtache, // Récupéré depuis INTERVENTION
         DHCRE: new Date(),
         DHMOD: new Date(),
         USCRE: commentData.CDUSER || 'WEB',
@@ -1090,6 +1126,17 @@ export class MySQLStorage implements IStorage {
 
   async createChatMessage(interventionId: number, messageData: any): Promise<Action> {
     try {
+      // Récupérer les informations IDPROJET et IDTACHE depuis l'intervention
+      const intervention = await this.getIntervention(interventionId);
+      let idprojet = 0;
+      let idtache = 0;
+      
+      if (intervention) {
+        idprojet = intervention.IDPROJET || 0;
+        idtache = intervention.IDTACHE || 0;
+        console.log(`📋 Récupération projet/tâche depuis intervention ${interventionId}:`, { idprojet, idtache });
+      }
+
       // Champs obligatoires pour les messages chat
       const insertData = {
         LIB100: messageData.LIB100 || 'Message chat',
@@ -1099,6 +1146,8 @@ export class MySQLStorage implements IStorage {
         TYPACT: 10, // Messages chat
         ID2GENRE_ACTION: 1, // Genre pour chat
         IDACTION_PREC: messageData.IDACTION_PREC || 0, // Message auquel on répond (0 si pas de réponse)
+        IDPROJET: idprojet, // Récupéré depuis INTERVENTION
+        IDTACHE: idtache, // Récupéré depuis INTERVENTION
         DHCRE: new Date(),
         DHMOD: new Date(),
         USCRE: messageData.CDUSER || 'WEB',
@@ -1120,6 +1169,17 @@ export class MySQLStorage implements IStorage {
   // Gestion des fichiers physiques pour les interventions
   async saveFileToIntervention(interventionId: number, file: Express.Multer.File, cduser: string): Promise<Document> {
     try {
+      // 0. Récupérer les informations IDPROJET et IDTACHE depuis l'intervention
+      const intervention = await this.getIntervention(interventionId);
+      let idprojet = 0;
+      let idtache = 0;
+      
+      if (intervention) {
+        idprojet = intervention.IDPROJET || 0;
+        idtache = intervention.IDTACHE || 0;
+        console.log(`📋 Récupération projet/tâche pour document depuis intervention ${interventionId}:`, { idprojet, idtache });
+      }
+
       // 1. Créer le dossier de l'intervention s'il n'existe pas
       const interventionDir = path.join(process.cwd(), 'dist', 'public', 'assets', 'photos', `INT${interventionId}`);
       
@@ -1151,6 +1211,8 @@ export class MySQLStorage implements IStorage {
         CDUSER: cduser,
         ID2GENRE_DOCUMENT: file.mimetype.startsWith('image/') ? 1 : 2,
         TRGCIBLE: '', // Sera défini par l'appelant (ACTxxx pour chat)
+        IDPROJET: idprojet, // Récupéré depuis INTERVENTION
+        IDTACHE: idtache, // Récupéré depuis INTERVENTION
         DHCRE: new Date(),
         DHMOD: new Date(),
         USCRE: cduser,
@@ -1161,10 +1223,77 @@ export class MySQLStorage implements IStorage {
       console.log('📄 Document inséré avec result:', result[0]);
       const newDocument = await this.getDocument(iddocument);
       
-      console.log(`Document créé en BDD avec IDDOCUMENT: ${iddocument}, FILEREF: ${fileRef}`);
+      console.log(`Document créé en BDD avec IDDOCUMENT: ${iddocument}, IDPROJET: ${idprojet}, IDTACHE: ${idtache}, FILEREF: ${fileRef}`);
       return newDocument!;
     } catch (error) {
       console.error('Erreur saveFileToIntervention:', error);
+      throw error;
+    }
+  }
+
+  // Gestion des fichiers physiques pour l'onglet Rapport/Photos (TRGCIBLE = INTxxx)
+  async savePhotoToInterventionReport(interventionId: number, file: Express.Multer.File, cduser: string): Promise<Document> {
+    try {
+      // 0. Récupérer les informations complètes de l'intervention (IDPROJET, IDTACHE, IDCONTACT)
+      const intervention = await this.getIntervention(interventionId);
+      let idprojet = 0;
+      let idtache = 0;
+      let idcontact = 0;
+      
+      if (intervention) {
+        idprojet = intervention.IDPROJET || 0;
+        idtache = intervention.IDTACHE || 0;
+        idcontact = intervention.IDCONTACT || 0;
+        console.log(`📋 Récupération infos pour photo rapport depuis intervention ${interventionId}:`, { idprojet, idtache, idcontact });
+      }
+
+      // 1. Créer le sous-dossier spécifique à l'intervention
+      const interventionDir = path.join(process.cwd(), 'dist', 'public', 'assets', 'photos', `INT${interventionId}`);
+      
+      if (!fs.existsSync(interventionDir)) {
+        fs.mkdirSync(interventionDir, { recursive: true });
+        console.log(`📁 Sous-dossier créé pour intervention: ${interventionDir}`);
+      }
+
+      // 2. Générer un nom de fichier unique avec extension
+      const fileExtension = path.extname(file.originalname);
+      const timestamp = Date.now();
+      const fileName = `${timestamp}_${file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+      const filePath = path.join(interventionDir, fileName);
+
+      // 3. Sauvegarder le fichier physiquement dans le sous-dossier
+      fs.writeFileSync(filePath, file.buffer);
+      console.log(`📷 Photo sauvegardée dans sous-dossier: ${filePath}`);
+
+      // 4. Créer l'entrée en base de données avec TRGCIBLE = INTxxx
+      const fileRef = `/assets/photos/INT${interventionId}/${fileName}`;
+      const iddocument = Date.now() + Math.floor(Math.random() * 1000);
+      
+      const insertData = {
+        IDDOCUMENT: iddocument,
+        LIB100: file.originalname,
+        FILEREF: fileRef, // Chemin relatif incluant le sous-dossier
+        COMMENTAIRE: `Photo rapport: ${file.originalname}`,
+        CDUSER: cduser,
+        ID2GENRE_DOCUMENT: file.mimetype.startsWith('image/') ? 1 : 2,
+        TRGCIBLE: `INT${interventionId}`, // Lié directement à l'intervention (pas à une action)
+        IDPROJET: idprojet,
+        IDTACHE: idtache,
+        IDCONTACT: idcontact, // Ajout de l'IDCONTACT depuis l'intervention
+        DHCRE: new Date(),
+        DHMOD: new Date(),
+        USCRE: cduser,
+        USMOD: cduser
+      };
+
+      const result = await db.insert(documents).values(insertData);
+      console.log('📄 Document photo rapport inséré avec result:', result[0]);
+      const newDocument = await this.getDocument(iddocument);
+      
+      console.log(`Photo rapport créée en BDD avec IDDOCUMENT: ${iddocument}, TRGCIBLE: INT${interventionId}, IDCONTACT: ${idcontact}, FILEREF: ${fileRef}`);
+      return newDocument!;
+    } catch (error) {
+      console.error('Erreur savePhotoToInterventionReport:', error);
       throw error;
     }
   }

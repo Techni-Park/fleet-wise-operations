@@ -1602,7 +1602,11 @@ const InterventionDetails = () => {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="p-1 h-auto text-gray-400 hover:text-green-600 hover:bg-green-50"
+                                  className={`p-1 h-auto ${
+                                    isCurrentUser 
+                                      ? 'text-white hover:text-white hover:bg-green-400' 
+                                      : 'text-gray-400 hover:text-green-600 hover:bg-green-50'
+                                  }`}
                                   onClick={() => setReplyingTo(message)}
                                   title="Répondre à ce message"
                                 >

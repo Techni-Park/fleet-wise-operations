@@ -204,6 +204,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Upload de photos pour l'onglet Rapport/Photos (TRGCIBLE = INTxxx)
+  app.post("/api/interventions/:id/photos/upload", upload.single('file'), async (req, res) => {
+    try {
+      const interventionId = parseInt(req.params.id);
+      const file = req.file;
+      const cduser = req.body.cduser || 'WEB';
+
+      if (!file) {
+        return res.status(400).json({ error: "Aucun fichier fourni" });
+      }
+
+      // Sauvegarder la photo dans le sous-dossier INT{id} avec TRGCIBLE = INTxxx et IDCONTACT
+      const document = await storage.savePhotoToInterventionReport(interventionId, file, cduser);
+      console.log('📷 Photo rapport créée:', { 
+        id: document.IDDOCUMENT, 
+        trgcible: document.TRGCIBLE,
+        idcontact: document.IDCONTACT,
+        fileref: document.FILEREF 
+      });
+
+      res.status(201).json({ 
+        document,
+        message: "Photo ajoutée au rapport avec succès"
+      });
+    } catch (error) {
+      console.error('Erreur upload photo rapport:', error);
+      res.status(500).json({ error: (error as Error).message });
+    }
+  });
+
   // Commentaires d'intervention
   app.get("/api/interventions/:id/comments", async (req, res) => {
     try {
