@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { 
   Calendar, Clock, User, MapPin, Edit, Trash2, ArrowLeft, 
@@ -40,6 +40,7 @@ const InterventionDetails = () => {
   const [uploadingChatFile, setUploadingChatFile] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState<number | null>(null);
   const [messageReactions, setMessageReactions] = useState<{[key: number]: string[]}>({});
+  const chatContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (id) {
@@ -121,6 +122,12 @@ const InterventionDetails = () => {
       if (response.ok) {
         const data = await response.json();
         setChatMessages(data);
+        // Scroll vers le bas après le chargement des messages
+        setTimeout(() => {
+          if (chatContainerRef.current) {
+            chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+          }
+        }, 100);
       }
     } catch (error) {
       console.error('Erreur lors du chargement des messages du chat:', error);
@@ -258,6 +265,12 @@ const InterventionDetails = () => {
           title: "Succès",
           description: "Message envoyé",
         });
+        // Scroll vers le bas après envoi
+        setTimeout(() => {
+          if (chatContainerRef.current) {
+            chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+          }
+        }, 100);
       }
     } catch (error) {
       console.error('Erreur envoi message:', error);
@@ -1277,8 +1290,8 @@ const InterventionDetails = () => {
       </TabsContent>
 
       <TabsContent value="chat">
-        <Card className="h-[600px] flex flex-col">
-          <CardHeader className="pb-3">
+        <Card className="h-[700px] flex flex-col">
+          <CardHeader className="pb-3 flex-shrink-0">
             <CardTitle className="flex items-center justify-between">
               <span className="flex items-center">
                 <MessageSquare className="w-5 h-5 mr-2" />
@@ -1290,14 +1303,14 @@ const InterventionDetails = () => {
             </CardTitle>
           </CardHeader>
           
-          <CardContent className="flex-1 flex flex-col p-0">
+          <CardContent className="flex-1 flex flex-col p-0 min-h-0">
             {/* Zone de réponse active */}
             {replyingTo && (
-              <div className="px-4 py-2 bg-blue-50 dark:bg-blue-900/20 border-b flex items-center justify-between">
+              <div className="px-4 py-2 bg-green-50 dark:bg-green-900/20 border-b flex items-center justify-between flex-shrink-0">
                 <div className="flex items-center space-x-2">
-                  <Reply className="w-4 h-4 text-blue-600" />
+                  <Reply className="w-4 h-4 text-green-600" />
                   <div>
-                    <p className="text-xs text-blue-600 font-medium">
+                    <p className="text-xs text-green-600 font-medium">
                       Répondre à {formatFullName(replyingTo.NOMFAMILLE, replyingTo.PRENOM) || replyingTo.CDUSER}
                     </p>
                     <p className="text-xs text-gray-600 truncate max-w-[200px]">
@@ -1315,8 +1328,8 @@ const InterventionDetails = () => {
               </div>
             )}
 
-            {/* Zone de chat */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {/* Zone de chat scrollable */}
+            <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
               {chatMessages.length === 0 ? (
                 <div className="text-center text-gray-500 py-8">
                   <MessageSquare className="w-12 h-12 mx-auto mb-4 text-gray-300" />
@@ -1325,10 +1338,12 @@ const InterventionDetails = () => {
                 </div>
               ) : (
                 chatMessages.map((message, index) => {
-                  const isCurrentUser = message.CDUSER === 'WEB'; // TODO: comparer avec l'utilisateur connecté
+                  // Déterminer si c'est l'utilisateur actuel (utiliser le CDUSER réel)
+                  const currentUserCode = 'WEB'; // TODO: récupérer depuis le contexte d'authentification
+                  const isCurrentUser = message.CDUSER === currentUserCode;
                   const showAvatar = index === 0 || chatMessages[index - 1].CDUSER !== message.CDUSER;
                   const userName = formatFullName(message.NOMFAMILLE, message.PRENOM) || message.CDUSER || 'Utilisateur';
-                  const initials = getInitials(message.NOMFAMILLE, message.PRENOM);
+                  const initials = getInitials(message.NOMFAMILLE, message.PRENOM) || message.CDUSER?.substring(0, 2).toUpperCase() || 'U';
                   const avatarColor = getAvatarColor(message.CDUSER);
 
                   return (
@@ -1342,7 +1357,7 @@ const InterventionDetails = () => {
                         <div className="flex flex-col space-y-1 flex-1">
                           {/* Nom utilisateur - toujours affiché quand avatar visible */}
                           {showAvatar && (
-                            <span className={`text-xs font-medium ${isCurrentUser ? 'text-right text-blue-600' : 'text-left text-gray-700'} ${isCurrentUser ? 'mr-2' : 'ml-2'}`}>
+                            <span className={`text-xs font-medium ${isCurrentUser ? 'text-right text-green-600' : 'text-left text-gray-700'} ${isCurrentUser ? 'mr-2' : 'ml-2'}`}>
                               {isCurrentUser ? 'Vous' : userName}
                             </span>
                           )}
@@ -1353,13 +1368,13 @@ const InterventionDetails = () => {
                           {message.IDACTION_PREC && message.IDACTION_PREC !== 0 && (
                             <div className={`text-xs rounded-lg p-3 mb-2 border-l-4 ${
                               isCurrentUser 
-                                ? 'bg-blue-400 border-blue-200 text-blue-50' 
-                                : 'bg-gray-50 dark:bg-gray-700 border-blue-500 text-gray-600 dark:text-gray-300'
+                                ? 'bg-green-400 border-green-200 text-green-50' 
+                                : 'bg-gray-50 dark:bg-gray-700 border-green-500 text-gray-600 dark:text-gray-300'
                             }`}>
-                              <p className={`font-medium ${isCurrentUser ? 'text-blue-100' : 'text-blue-600'}`}>
+                              <p className={`font-medium ${isCurrentUser ? 'text-green-100' : 'text-green-600'}`}>
                                 Réponse à {formatFullName(message.PARENT_USER_NOM, message.PARENT_USER_PRENOM) || 'Utilisateur'}
                               </p>
-                              <p className={`truncate ${isCurrentUser ? 'text-blue-100' : 'text-gray-600 dark:text-gray-400'}`}>
+                              <p className={`truncate ${isCurrentUser ? 'text-green-100' : 'text-gray-600 dark:text-gray-400'}`}>
                                 {message.PARENT_COMMENTAIRE}
                               </p>
                             </div>
@@ -1368,8 +1383,8 @@ const InterventionDetails = () => {
                           {/* Bulle de message */}
                           <div className={`relative rounded-2xl p-4 shadow-sm ${
                             isCurrentUser 
-                              ? 'bg-blue-500 text-white ml-12' 
-                              : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 mr-12'
+                              ? 'bg-green-500 text-white' 
+                              : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700'
                           }`}>
                             {/* Contenu du message */}
                             <div className="space-y-2">
@@ -1388,13 +1403,13 @@ const InterventionDetails = () => {
                                       isCurrentUser ? 'border border-blue-300' : 'border border-gray-200'
                                     }`}>
                                       {doc.ID2GENRE_DOCUMENT === 1 ? (
-                                        // Affichage des images avec aperçu
+                                        // Affichage des images avec aperçu amélioré
                                         <div className="space-y-2">
-                                          <div className="relative">
+                                          <div className="relative group">
                                             <img 
                                               src={`/api/documents/${doc.IDDOCUMENT}/download`}
                                               alt={doc.LIB100}
-                                              className="w-full max-w-xs h-auto rounded cursor-pointer hover:opacity-90"
+                                              className="w-full max-w-sm h-auto max-h-64 object-cover rounded cursor-pointer hover:opacity-90 transition-opacity"
                                               onClick={() => window.open(`/api/documents/${doc.IDDOCUMENT}/download`, '_blank')}
                                               onError={(e) => {
                                                 // Si l'image ne charge pas, afficher une icône
@@ -1409,34 +1424,57 @@ const InterventionDetails = () => {
                                                 <span className="text-xs text-gray-600">Image non disponible</span>
                                               </div>
                                             </div>
+                                            {/* Overlay avec boutons */}
+                                            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 rounded flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                              <div className="flex space-x-2">
+                                                <Button 
+                                                  variant="secondary" 
+                                                  size="sm" 
+                                                  className="bg-white/90 hover:bg-white text-gray-800"
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    window.open(`/api/documents/${doc.IDDOCUMENT}/download`, '_blank');
+                                                  }}
+                                                  title="Voir en grand"
+                                                >
+                                                  <Eye className="w-4 h-4" />
+                                                </Button>
+                                                <Button 
+                                                  variant="secondary" 
+                                                  size="sm" 
+                                                  className="bg-white/90 hover:bg-white text-gray-800"
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    const link = document.createElement('a');
+                                                    link.href = `/api/documents/${doc.IDDOCUMENT}/download`;
+                                                    link.download = doc.LIB100;
+                                                    link.click();
+                                                  }}
+                                                  title="Télécharger"
+                                                >
+                                                  <Download className="w-4 h-4" />
+                                                </Button>
+                                              </div>
+                                            </div>
                                           </div>
                                           <div className="px-3 pb-2">
                                             <div className="flex items-center justify-between">
                                               <div className="flex items-center space-x-2">
-                                                <Image className="w-4 h-4 text-blue-600" />
+                                                <Image className="w-4 h-4 text-green-600" />
                                                 <span className="text-xs font-medium truncate">{doc.LIB100}</span>
                                               </div>
-                                              <Button 
-                                                variant="ghost" 
-                                                size="sm" 
-                                                className="p-1 h-auto hover:bg-blue-100"
-                                                onClick={() => window.open(`/api/documents/${doc.IDDOCUMENT}/download`, '_blank')}
-                                                title="Ouvrir l'image"
-                                              >
-                                                <Eye className="w-3 h-3" />
-                                              </Button>
                                             </div>
                                           </div>
                                         </div>
                                       ) : (
-                                        // Affichage des documents avec icône et lien
-                                        <div className="p-3">
+                                        // Affichage des documents avec aperçu amélioré
+                                        <div className="p-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                                           <div className="flex items-center space-x-3">
                                             <div className={`p-2 rounded ${
-                                              isCurrentUser ? 'bg-blue-600' : 'bg-blue-100'
+                                              isCurrentUser ? 'bg-green-600' : 'bg-green-100'
                                             }`}>
                                               <FileIcon className={`w-5 h-5 ${
-                                                isCurrentUser ? 'text-white' : 'text-blue-600'
+                                                isCurrentUser ? 'text-white' : 'text-green-600'
                                               }`} />
                                             </div>
                                             <div className="flex-1 min-w-0">
@@ -1444,12 +1482,24 @@ const InterventionDetails = () => {
                                               <p className="text-xs text-gray-500">
                                                 Document • {formatDateTime(doc.DHCRE).split(' ')[0]}
                                               </p>
+                                              {/* Aperçu pour certains types de fichiers */}
+                                              {(doc.LIB100.toLowerCase().includes('.pdf') || 
+                                                doc.LIB100.toLowerCase().includes('.txt') ||
+                                                doc.LIB100.toLowerCase().includes('.doc')) && (
+                                                <div className="mt-2">
+                                                  <iframe
+                                                    src={`/api/documents/${doc.IDDOCUMENT}/download`}
+                                                    className="w-full h-20 border rounded text-xs"
+                                                    title={`Aperçu de ${doc.LIB100}`}
+                                                  />
+                                                </div>
+                                              )}
                                             </div>
                                             <div className="flex space-x-1">
                                               <Button 
                                                 variant="ghost" 
                                                 size="sm" 
-                                                className="p-2 h-auto hover:bg-blue-100"
+                                                className="p-2 h-auto hover:bg-green-100"
                                                 onClick={() => window.open(`/api/documents/${doc.IDDOCUMENT}/download`, '_blank')}
                                                 title="Ouvrir le document"
                                               >
@@ -1458,7 +1508,7 @@ const InterventionDetails = () => {
                                               <Button 
                                                 variant="ghost" 
                                                 size="sm" 
-                                                className="p-2 h-auto hover:bg-blue-100"
+                                                className="p-2 h-auto hover:bg-green-100"
                                                 onClick={() => {
                                                   const link = document.createElement('a');
                                                   link.href = `/api/documents/${doc.IDDOCUMENT}/download`;
@@ -1486,7 +1536,7 @@ const InterventionDetails = () => {
                                   <span
                                     key={idx}
                                     className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${
-                                      isCurrentUser ? 'bg-blue-400 text-white' : 'bg-gray-100 text-gray-700'
+                                      isCurrentUser ? 'bg-green-400 text-white' : 'bg-gray-100 text-gray-700'
                                     }`}
                                   >
                                     {emoji} {messageReactions[message.IDACTION].filter(e => e === emoji).length}
@@ -1497,7 +1547,7 @@ const InterventionDetails = () => {
 
                             {/* Heure, statut et boutons d'interaction */}
                             <div className={`flex items-center justify-between mt-3 ${
-                              isCurrentUser ? 'text-blue-100' : 'text-gray-500'
+                              isCurrentUser ? 'text-green-100' : 'text-gray-500'
                             }`}>
                               <div className="flex items-center space-x-1">
                                 <span className="text-xs">
@@ -1510,7 +1560,7 @@ const InterventionDetails = () => {
                                     ) : message.STATUS === 'delivered' ? (
                                       <CheckCheck className="w-3 h-3" />
                                     ) : (
-                                      <CheckCheck className="w-3 h-3 text-blue-300" />
+                                      <CheckCheck className="w-3 h-3 text-green-300" />
                                     )}
                                   </div>
                                 )}
@@ -1524,7 +1574,10 @@ const InterventionDetails = () => {
                                     variant="ghost"
                                     size="sm"
                                     className="p-1 h-auto text-gray-400 hover:text-yellow-500 hover:bg-yellow-50"
-                                    onClick={() => setShowEmojiPicker(showEmojiPicker === message.IDACTION ? null : message.IDACTION)}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setShowEmojiPicker(showEmojiPicker === message.IDACTION ? null : message.IDACTION);
+                                    }}
                                     title="Ajouter une réaction"
                                   >
                                     😊
@@ -1553,7 +1606,7 @@ const InterventionDetails = () => {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="p-1 h-auto text-gray-400 hover:text-blue-600 hover:bg-blue-50"
+                                  className="p-1 h-auto text-gray-400 hover:text-green-600 hover:bg-green-50"
                                   onClick={() => setReplyingTo(message)}
                                   title="Répondre à ce message"
                                 >
@@ -1573,7 +1626,7 @@ const InterventionDetails = () => {
             </div>
 
             {/* Zone de saisie */}
-            <div className="border-t p-4">
+            <div className="border-t p-4 flex-shrink-0">
               <div className="flex items-end space-x-2">
                 {/* Bouton d'attachement */}
                 <div className="flex flex-col space-y-1">
