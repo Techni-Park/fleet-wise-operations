@@ -49,14 +49,41 @@ const VehicleCustomFields: React.FC<VehicleCustomFieldsProps> = ({ vehicleId }) 
       setLoading(true);
       
       // Charger les définitions des champs pour les véhicules (entity_type_id = 1)
-      const fieldsResponse = await fetch('/api/custom-fields/1');
+      const fieldsResponse = await fetch('/api/custom-fields?entity_type_id=1', {
+        credentials: 'include'
+      });
+      
+      if (!fieldsResponse.ok) {
+        throw new Error(`Erreur HTTP: ${fieldsResponse.status}`);
+      }
+      
       const fields = await fieldsResponse.json();
       
+      // Parser les options JSON pour chaque champ
+      const parsedFields = fields.map((field: CustomField) => {
+        if (field.options && typeof field.options === 'string') {
+          try {
+            field.options = JSON.parse(field.options);
+          } catch (e) {
+            console.error('Erreur parsing options pour le champ', field.nom, e);
+            field.options = null;
+          }
+        }
+        return field;
+      });
+      
       // Charger les valeurs existantes pour ce véhicule
-      const valuesResponse = await fetch(`/api/custom-field-values/${vehicleId}`);
+      const valuesResponse = await fetch(`/api/custom-field-values/${vehicleId}`, {
+        credentials: 'include'
+      });
+      
+      if (!valuesResponse.ok) {
+        throw new Error(`Erreur HTTP: ${valuesResponse.status}`);
+      }
+      
       const values = await valuesResponse.json();
       
-      setCustomFields(fields);
+      setCustomFields(parsedFields);
       
       // Créer un map des valeurs par custom_field_id
       const valuesMap: { [key: number]: string } = {};
@@ -103,6 +130,7 @@ const VehicleCustomFields: React.FC<VehicleCustomFieldsProps> = ({ vehicleId }) 
           await fetch('/api/custom-field-values', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify({
               entityId: vehicleId,
               customFieldId: parseInt(fieldId),
@@ -112,7 +140,8 @@ const VehicleCustomFields: React.FC<VehicleCustomFieldsProps> = ({ vehicleId }) 
         } else {
           // Supprimer si la valeur est vide
           await fetch(`/api/custom-field-values/${vehicleId}/${fieldId}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            credentials: 'include'
           });
         }
       });
@@ -201,7 +230,8 @@ const VehicleCustomFields: React.FC<VehicleCustomFieldsProps> = ({ vehicleId }) 
         );
 
       case 'select':
-        if (field.options && Array.isArray(field.options)) {
+        const selectOptions = field.options?.values || field.options || [];
+        if (Array.isArray(selectOptions) && selectOptions.length > 0) {
           return (
             <select
               value={value}
@@ -210,7 +240,7 @@ const VehicleCustomFields: React.FC<VehicleCustomFieldsProps> = ({ vehicleId }) 
               required={isRequired}
             >
               <option value="">Sélectionner...</option>
-              {field.options.map((option: any, index: number) => (
+              {selectOptions.map((option: any, index: number) => (
                 <option key={index} value={option.value || option}>
                   {option.label || option}
                 </option>
@@ -228,10 +258,11 @@ const VehicleCustomFields: React.FC<VehicleCustomFieldsProps> = ({ vehicleId }) 
         );
 
       case 'radio':
-        if (field.options && Array.isArray(field.options)) {
+        const radioOptions = field.options?.values || field.options || [];
+        if (Array.isArray(radioOptions) && radioOptions.length > 0) {
           return (
             <div className="space-y-2">
-              {field.options.map((option: any, index: number) => (
+              {radioOptions.map((option: any, index: number) => (
                 <div key={index} className="flex items-center space-x-2">
                   <input
                     type="radio"
@@ -262,6 +293,35 @@ const VehicleCustomFields: React.FC<VehicleCustomFieldsProps> = ({ vehicleId }) 
           />
         );
     }
+  };
+
+  // Regrouper les champs par sous-ensemble
+  const groupFieldsBySubset = (fields: CustomField[]) => {
+    const groups: { [key: string]: CustomField[] } = {};
+    
+    fields.forEach(field => {
+      let subset = 'Autres informations';
+      if (field.options?.subset) {
+        subset = field.options.subset;
+      }
+      
+      if (!groups[subset]) {
+        groups[subset] = [];
+      }
+      groups[subset].push(field);
+    });
+    
+    // Trier les groupes pour mettre "Autres informations" à la fin
+    const sortedGroups: { [key: string]: CustomField[] } = {};
+    Object.keys(groups).sort((a, b) => {
+      if (a === 'Autres informations') return 1;
+      if (b === 'Autres informations') return -1;
+      return a.localeCompare(b);
+    }).forEach(key => {
+      sortedGroups[key] = groups[key];
+    });
+    
+    return sortedGroups;
   };
 
   if (loading) {
@@ -337,31 +397,38 @@ const VehicleCustomFields: React.FC<VehicleCustomFieldsProps> = ({ vehicleId }) 
             <CardTitle>Informations personnalisées</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {customFields.map((field) => (
-                <div key={field.id} className="space-y-2">
-                  <Label htmlFor={`field_${field.id}`} className="flex items-center">
-                    {field.label}
-                    {field.obligatoire === 1 && (
-                      <span className="text-red-500 ml-1">*</span>
-                    )}
-                    {field.is_protected === 1 && (
-                      <span className="text-xs text-blue-600 ml-2 bg-blue-100 px-2 py-1 rounded">
-                        Protégé
-                      </span>
-                    )}
-                  </Label>
-                  <div id={`field_${field.id}`}>
-                    {renderField(field)}
-                  </div>
-                  {field.type === 'switch' && (
-                    <p className="text-xs text-gray-500">
-                      Champ de type interrupteur (oui/non)
-                    </p>
-                  )}
+            {Object.entries(groupFieldsBySubset(customFields)).map(([subset, fields]) => (
+              <div key={subset} className="mb-8 last:mb-0">
+                <h4 className="text-md font-semibold mb-4 text-gray-700 dark:text-gray-300 border-b pb-2">
+                  {subset}
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {fields.map((field) => (
+                    <div key={field.id} className="space-y-2">
+                      <Label htmlFor={`field_${field.id}`} className="flex items-center">
+                        {field.label}
+                        {field.obligatoire === 1 && (
+                          <span className="text-red-500 ml-1">*</span>
+                        )}
+                        {field.is_protected === 1 && (
+                          <span className="text-xs text-blue-600 ml-2 bg-blue-100 px-2 py-1 rounded">
+                            Protégé
+                          </span>
+                        )}
+                      </Label>
+                      <div id={`field_${field.id}`}>
+                        {renderField(field)}
+                      </div>
+                      {field.type === 'switch' && (
+                        <p className="text-xs text-gray-500">
+                          Champ de type interrupteur (oui/non)
+                        </p>
+                      )}
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
             
             {hasChanges && (
               <div className="mt-6 p-4 bg-orange-50 border border-orange-200 rounded-lg">

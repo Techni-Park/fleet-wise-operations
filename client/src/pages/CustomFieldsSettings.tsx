@@ -13,6 +13,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Pencil, Trash2, Plus, MoveUp, MoveDown, AlertTriangle } from 'lucide-react';
 import { toast } from '../hooks/use-toast';
+import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 interface CustomField {
   id: number;
@@ -43,6 +45,9 @@ const fieldTypes = [
 ];
 
 export default function CustomFieldsSettings() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [selectedEntityType, setSelectedEntityType] = useState<number>(1);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -52,7 +57,7 @@ export default function CustomFieldsSettings() {
   
   // Gestion des sous-ensembles
   const [availableSubsets, setAvailableSubsets] = useState<string[]>([]);
-  const [selectedSubset, setSelectedSubset] = useState<string>('');
+  const [selectedSubset, setSelectedSubset] = useState<string>('__none__');
   const [newSubsetName, setNewSubsetName] = useState<string>('');
   const [isAddingNewSubset, setIsAddingNewSubset] = useState<boolean>(false);
   const [groupBySubset, setGroupBySubset] = useState<boolean>(false);
@@ -75,8 +80,12 @@ export default function CustomFieldsSettings() {
   ];
 
   useEffect(() => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
     loadCustomFields();
-  }, [selectedEntityType]);
+  }, [selectedEntityType, user, navigate]);
 
   // Extraire les sous-ensembles existants des champs
   useEffect(() => {
@@ -106,7 +115,15 @@ export default function CustomFieldsSettings() {
   const loadCustomFields = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/custom-fields?entity_type_id=${selectedEntityType}`);
+      const response = await fetch(`/api/custom-fields?entity_type_id=${selectedEntityType}`, {
+        credentials: 'include'
+      });
+      
+      if (response.status === 401) {
+        navigate('/login');
+        return;
+      }
+      
       if (response.ok) {
         const fields = await response.json();
         setCustomFields(fields.sort((a: CustomField, b: CustomField) => a.ordre - b.ordre));
@@ -168,6 +185,7 @@ export default function CustomFieldsSettings() {
         headers: {
           'Content-Type': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify(fieldData)
       });
 
@@ -215,13 +233,13 @@ export default function CustomFieldsSettings() {
         if (parsed.subset) {
           setSelectedSubset(parsed.subset);
         } else {
-          setSelectedSubset('');
+          setSelectedSubset('__none__');
         }
       } catch (error) {
-        setSelectedSubset('');
+        setSelectedSubset('__none__');
       }
     } else {
-      setSelectedSubset('');
+      setSelectedSubset('__none__');
     }
     
     setIsDialogOpen(true);
@@ -243,7 +261,8 @@ export default function CustomFieldsSettings() {
 
     try {
       const response = await fetch(`/api/custom-fields/${field.id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        credentials: 'include'
       });
 
       if (response.ok) {
@@ -291,6 +310,7 @@ export default function CustomFieldsSettings() {
         fetch(`/api/custom-fields/${update.id}/order`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({ ordre: update.ordre })
         })
       ));
@@ -316,16 +336,20 @@ export default function CustomFieldsSettings() {
       obligatoire: false,
       options: ''
     });
-    setSelectedSubset('');
+    setSelectedSubset('__none__');
     setNewSubsetName('');
     setIsAddingNewSubset(false);
   };
 
   const generateOptionsExample = () => {
     const baseOptions: any = {
-      subset: selectedSubset || "Informations générales",
       genre_filter: ["VP", "CTTE"] // Afficher seulement pour ces genres
     };
+
+    // Ajouter subset seulement s'il y en a un de sélectionné
+    if (selectedSubset && selectedSubset !== '__none__') {
+      baseOptions.subset = selectedSubset;
+    }
 
     if (formData.type === 'select' || formData.type === 'radio') {
       baseOptions.values = [
@@ -362,7 +386,7 @@ export default function CustomFieldsSettings() {
 
     const updatedOptions = {
       ...currentOptions,
-      subset: selectedSubset || undefined
+      subset: (selectedSubset && selectedSubset !== '__none__') ? selectedSubset : undefined
     };
 
     // Nettoyer les valeurs undefined
@@ -557,7 +581,7 @@ export default function CustomFieldsSettings() {
                           <SelectValue placeholder="Sélectionner ou créer un sous-ensemble" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">Aucun sous-ensemble</SelectItem>
+                          <SelectItem value="__none__">Aucun sous-ensemble</SelectItem>
                           {availableSubsets.map(subset => (
                             <SelectItem key={subset} value={subset}>
                               {subset}
