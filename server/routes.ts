@@ -147,6 +147,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Interventions par véhicule
+  app.get("/api/vehicles/:vehicleId/interventions", async (req, res) => {
+    try {
+      const interventions = await storage.getInterventionsByVehicle(parseInt(req.params.vehicleId));
+      res.json(interventions);
+    } catch (error) {
+      console.error('Erreur API interventions par véhicule:', error);
+      res.status(500).json({ error: (error as Error).message });
+    }
+  });
+
   // Alerts API
   app.get("/api/alerts", async (req, res) => {
     try {

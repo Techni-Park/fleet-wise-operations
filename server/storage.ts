@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, desc } from "drizzle-orm";
 import { db } from "./db";
 import { 
   users, vehicles, interventions, alerts, documents, actions, anomalies, contacts, ingredients, machinesMnt, produits, societes, userSystem, vehicules, customFields, customFieldValues,
@@ -236,32 +236,136 @@ export class MySQLStorage implements IStorage {
   // Interventions
   async getIntervention(id: number): Promise<Intervention | undefined> {
     try {
+      // Récupérer une intervention avec jointures
+      const query = sql`
+        SELECT 
+          i.*,
+          c.NOMFAMILLE as CONTACT_NOM,
+          c.PRENOM as CONTACT_PRENOM,
+          c.RAISON_SOCIALE as CONTACT_RAISON_SOCIALE,
+          c.EMAIL as CONTACT_EMAIL,
+          c.TEL1 as CONTACT_TEL,
+          v.IMMAT as VEHICULE_IMMAT,
+          m.MARQUE as VEHICULE_MARQUE,
+          m.MODELE as VEHICULE_MODELE,
+          m.CD_MACHINE as VEHICULE_CODE,
+          m.IDMACHINE as VEHICULE_IDMACHINE
+        FROM INTERVENTION i
+        LEFT JOIN CONTACT c ON i.IDCONTACT = c.IDCONTACT
+        LEFT JOIN MACHINE_MNT m ON i.CLE_MACHINE_CIBLE = CONCAT('R', m.IDMACHINE)
+        LEFT JOIN VEHICULE v ON m.IDMACHINE = v.IDMACHINE
+        WHERE i.IDINTERVENTION = ${id}
+        LIMIT 1
+      `;
+      const result = await db.execute(query);
+      return (result[0] as any[])[0];
+    } catch (error) {
+      console.error('Erreur getIntervention avec jointures:', error);
       const result = await db.select().from(interventions).where(eq(interventions.IDINTERVENTION, id)).limit(1);
       return result[0];
-    } catch (error) {
-      console.error('Erreur getIntervention:', error);
-      const rawResult = await db.execute(sql`SELECT * FROM INTERVENTION WHERE IDINTERVENTION = ${id} LIMIT 1`);
-      return rawResult[0]?.[0] as Intervention;
     }
   }
 
-  async createIntervention(intervention: InsertIntervention): Promise<Intervention> {
+  async getAllInterventions(): Promise<Intervention[]> {
     try {
-      const result = await db.insert(interventions).values(intervention).returning();
-      return result[0];
+      // Récupérer les interventions avec jointures sur CONTACT et MACHINE_MNT/VEHICULE
+      const query = sql`
+        SELECT 
+          i.*,
+          c.NOMFAMILLE as CONTACT_NOM,
+          c.PRENOM as CONTACT_PRENOM,
+          c.RAISON_SOCIALE as CONTACT_RAISON_SOCIALE,
+          v.IMMAT as VEHICULE_IMMAT,
+          m.MARQUE as VEHICULE_MARQUE,
+          m.MODELE as VEHICULE_MODELE,
+          m.CD_MACHINE as VEHICULE_CODE
+        FROM INTERVENTION i
+        LEFT JOIN CONTACT c ON i.IDCONTACT = c.IDCONTACT
+        LEFT JOIN MACHINE_MNT m ON i.CLE_MACHINE_CIBLE = CONCAT('R', m.IDMACHINE)
+        LEFT JOIN VEHICULE v ON m.IDMACHINE = v.IDMACHINE
+        ORDER BY i.IDINTERVENTION DESC
+      `;
+      const result = await db.execute(query);
+      return result[0] as Intervention[];
+    } catch (error) {
+      console.error('Erreur getAllInterventions avec jointures:', error);
+      // Fallback sans jointure
+      return db.select().from(interventions).orderBy(desc(interventions.IDINTERVENTION));
+    }
+  }
+
+  async getInterventionsByVehicle(vehicleId: number): Promise<Intervention[]> {
+    try {
+      // Recherche par machine cible avec format "R{IDMACHINE}"
+      const machineCible = `R${vehicleId}`;
+      const query = sql`
+        SELECT 
+          i.*,
+          c.NOMFAMILLE as CONTACT_NOM,
+          c.PRENOM as CONTACT_PRENOM,
+          c.RAISON_SOCIALE as CONTACT_RAISON_SOCIALE
+        FROM INTERVENTION i
+        LEFT JOIN CONTACT c ON i.IDCONTACT = c.IDCONTACT
+        WHERE i.CLE_MACHINE_CIBLE = ${machineCible}
+        ORDER BY i.IDINTERVENTION DESC
+        LIMIT 50
+      `;
+      const result = await db.execute(query);
+      return result[0] as Intervention[];
+    } catch (error) {
+      console.error('Erreur getInterventionsByVehicle:', error);
+      const machineCible = `R${vehicleId}`;
+      const result = await db.select().from(interventions).where(eq(interventions.CLE_MACHINE_CIBLE, machineCible)).limit(50);
+      return result;
+    }
+  }
+
+  async createIntervention(interventionData: InsertIntervention): Promise<Intervention> {
+    try {
+      // Si on a un IDMACHINE dans les données, créer le CLE_MACHINE_CIBLE
+      if (interventionData.CLE_MACHINE_CIBLE && !interventionData.CLE_MACHINE_CIBLE.startsWith('R')) {
+        interventionData.CLE_MACHINE_CIBLE = `R${interventionData.CLE_MACHINE_CIBLE}`;
+      }
+      
+      // Ajouter les informations de création
+      const now = new Date();
+      const interventionWithMeta = {
+        ...interventionData,
+        DHCRE: now.toISOString(),
+        DHMOD: now.toISOString(),
+        created_at: now,
+        updated_at: now
+      };
+
+      const result = await db.insert(interventions).values(interventionWithMeta);
+      const insertId = result[0].insertId as number;
+      const newIntervention = await this.getIntervention(insertId);
+      return newIntervention!;
     } catch (error) {
       console.error('Erreur createIntervention:', error);
       throw error;
     }
   }
 
-  async updateIntervention(id: number, intervention: Partial<InsertIntervention>): Promise<Intervention | undefined> {
+  async updateIntervention(id: number, interventionData: Partial<InsertIntervention>): Promise<Intervention | undefined> {
     try {
-      await db.update(interventions).set(intervention).where(eq(interventions.IDINTERVENTION, id));
+      // Si on modifie CLE_MACHINE_CIBLE, s'assurer du format "R{IDMACHINE}"
+      if (interventionData.CLE_MACHINE_CIBLE && !interventionData.CLE_MACHINE_CIBLE.startsWith('R')) {
+        interventionData.CLE_MACHINE_CIBLE = `R${interventionData.CLE_MACHINE_CIBLE}`;
+      }
+
+      // Ajouter les informations de modification
+      const interventionWithMeta = {
+        ...interventionData,
+        DHMOD: new Date().toISOString(),
+        updated_at: new Date()
+      };
+
+      await db.update(interventions).set(interventionWithMeta).where(eq(interventions.IDINTERVENTION, id));
       return this.getIntervention(id);
     } catch (error) {
       console.error('Erreur updateIntervention:', error);
-      throw error;
+      return undefined;
     }
   }
 
@@ -272,29 +376,6 @@ export class MySQLStorage implements IStorage {
     } catch (error) {
       console.error('Erreur deleteIntervention:', error);
       return false;
-    }
-  }
-
-  async getAllInterventions(): Promise<Intervention[]> {
-    try {
-      const result = await db.select().from(interventions).limit(100);
-      return result;
-    } catch (error) {
-      console.error('Erreur getAllInterventions:', error);
-      const rawResult = await db.execute(sql`SELECT * FROM INTERVENTION ORDER BY DHCRE DESC LIMIT 100`);
-      return rawResult[0] as Intervention[];
-    }
-  }
-
-  async getInterventionsByVehicle(vehicleId: number): Promise<Intervention[]> {
-    try {
-      // Recherche par machine cible
-      const result = await db.select().from(interventions).where(eq(interventions.CLE_MACHINE_CIBLE, vehicleId.toString())).limit(50);
-      return result;
-    } catch (error) {
-      console.error('Erreur getInterventionsByVehicle:', error);
-      const rawResult = await db.execute(sql`SELECT * FROM INTERVENTION WHERE CLE_MACHINE_CIBLE = ${vehicleId.toString()} LIMIT 50`);
-      return rawResult[0] as Intervention[];
     }
   }
 
