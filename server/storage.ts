@@ -737,6 +737,58 @@ export class MySQLStorage implements IStorage {
       return false;
     }
   }
+
+  async createCustomField(field: Omit<CustomField, 'id' | 'created_at' | 'updated_at'>): Promise<CustomField> {
+    try {
+      const result = await db.insert(customFields).values(field);
+      const insertId = result[0].insertId as number;
+      const newField = await db.select().from(customFields)
+        .where(eq(customFields.id, insertId))
+        .limit(1);
+      return newField[0];
+    } catch (error) {
+      console.error('Erreur createCustomField:', error);
+      throw error;
+    }
+  }
+
+  async updateCustomField(id: number, field: Partial<CustomField>): Promise<void> {
+    try {
+      await db.update(customFields)
+        .set({ ...field, updated_at: new Date() })
+        .where(eq(customFields.id, id));
+    } catch (error) {
+      console.error('Erreur updateCustomField:', error);
+      throw error;
+    }
+  }
+
+  async deleteCustomField(id: number): Promise<boolean> {
+    try {
+      // Supprimer d'abord toutes les valeurs associées
+      await db.delete(customFieldValues)
+        .where(eq(customFieldValues.custom_field_id, id));
+      
+      // Puis supprimer le champ
+      const result = await db.delete(customFields)
+        .where(eq(customFields.id, id));
+      return result[0].affectedRows > 0;
+    } catch (error) {
+      console.error('Erreur deleteCustomField:', error);
+      return false;
+    }
+  }
+
+  async updateCustomFieldOrder(id: number, ordre: number): Promise<void> {
+    try {
+      await db.update(customFields)
+        .set({ ordre, updated_at: new Date() })
+        .where(eq(customFields.id, id));
+    } catch (error) {
+      console.error('Erreur updateCustomFieldOrder:', error);
+      throw error;
+    }
+  }
 }
 
 export const storage = new MySQLStorage();

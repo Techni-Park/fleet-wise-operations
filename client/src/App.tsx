@@ -30,6 +30,7 @@ import EditClient from "./pages/EditClient";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
 import Profile from "./pages/Profile";
+import CustomFieldsSettings from "./pages/CustomFieldsSettings";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -68,6 +69,7 @@ const App = () => {
           <Route path="/clients/create" element={<ProtectedRoute><CreateClient /></ProtectedRoute>} />
           <Route path="/clients/:id" element={<ProtectedRoute><ClientDetails /></ProtectedRoute>} />
           <Route path="/clients/:id/edit" element={<ProtectedRoute><EditClient /></ProtectedRoute>} />
+          <Route path="/custom-fields" element={<ProtectedRoute><CustomFieldsSettings /></ProtectedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

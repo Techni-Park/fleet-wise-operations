@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Car, Home, Calendar, FileText, Settings, Users, AlertTriangle, BarChart3, Wrench, X, Menu, Database, Server } from 'lucide-react';
+import { Car, Home, Calendar, FileText, Settings, Users, AlertTriangle, BarChart3, Wrench, X, Menu, Database, Server, Sliders } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 interface NavigationProps {
@@ -23,6 +23,7 @@ const Navigation = ({ isOpen = true, onToggle }: NavigationProps) => {
     { icon: BarChart3, label: 'Rapports', path: '/reports' },
     { icon: Users, label: 'Utilisateurs', path: '/users' },
     { icon: Database, label: 'MySQL', path: '/mysql' },
+    { icon: Sliders, label: 'Champs personnalisés', path: '/custom-fields' },
     { icon: Settings, label: 'Paramètres', path: '/settings' }
   ];
 

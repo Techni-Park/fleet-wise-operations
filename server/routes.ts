@@ -565,6 +565,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Custom Fields Management
+  app.post("/api/custom-fields", async (req, res) => {
+    try {
+      const field = await storage.createCustomField(req.body);
+      res.json(field);
+    } catch (error) {
+      console.error('Erreur création champ personnalisé:', error);
+      res.status(500).json({ error: "Failed to create custom field" });
+    }
+  });
+
+  app.put("/api/custom-fields/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.updateCustomField(id, req.body);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Erreur modification champ personnalisé:', error);
+      res.status(500).json({ error: "Failed to update custom field" });
+    }
+  });
+
+  app.delete("/api/custom-fields/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteCustomField(id);
+      if (success) {
+        res.json({ success: true });
+      } else {
+        res.status(404).json({ error: "Custom field not found" });
+      }
+    } catch (error) {
+      console.error('Erreur suppression champ personnalisé:', error);
+      res.status(500).json({ error: "Failed to delete custom field" });
+    }
+  });
+
+  app.patch("/api/custom-fields/:id/order", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { ordre } = req.body;
+      await storage.updateCustomFieldOrder(id, ordre);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Erreur modification ordre champ personnalisé:', error);
+      res.status(500).json({ error: "Failed to update custom field order" });
+    }
+  });
+
   // Ingredients API
   app.get("/api/ingredients", async (req, res) => {
     try {
