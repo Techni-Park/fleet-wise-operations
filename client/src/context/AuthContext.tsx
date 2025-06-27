@@ -1,93 +1,107 @@
-import { createContext, useContext, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 interface User {
-  // Données de la table USER
-  IDUSER: number;
-  EMAILP: string;
-  NOMFAMILLE: string;
-  PRENOM: string;
+  id: number;
+  email: string;
+  first_name: string;
+  last_name: string;
   CDUSER: string;
-  IADMIN: number;
-  IAUTORISE: number;
-  FONCTION_PRO?: string;
-  TELBUR?: string;
-  PASSWORD?: string; // Présent mais ne sera jamais exposé côté client
+  active: number;
+  // Potentiellement d'autres champs de la jointure
+  IDUSER?: number;
+  NOMFAMILLE?: string;
+  PRENOM?: string;
+  IADMIN?: number;
 }
 
 interface AuthContextType {
   user: User | null;
+  loading: boolean;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  logout: () => Promise<void>;
 }
 
-// Contexte minimal
-const AuthContext = createContext<AuthContextType>({ user: null });
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Provider très simple - juste pour éviter les erreurs de contexte
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const checkLoggedIn = async () => {
+      try {
+        const response = await fetch('/api/current-user', {
+          credentials: 'include',
+        });
+        if (response.ok) {
+          const userData = await response.json();
+          setUser(userData);
+        } else {
+          setUser(null);
+        }
+      } catch (error) {
+        setUser(null);
+        console.error("Erreur lors de la vérification de l'état de connexion", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkLoggedIn();
+  }, []);
+
+  const login = async (email: string, password: string) => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (response.ok) {
+        const userData = await response.json();
+        setUser(userData);
+        setLoading(false);
+        return { success: true };
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        setLoading(false);
+        return { success: false, error: errorData.message || 'Email ou mot de passe incorrect' };
+      }
+    } catch (error) {
+      setLoading(false);
+      return { success: false, error: 'Erreur de connexion au serveur' };
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await fetch('/api/logout', {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch (error) {
+      console.error('Erreur lors de la déconnexion:', error);
+    } finally {
+      setUser(null);
+    }
+  };
+
+  const value = { user, loading, login, logout };
+
   return (
-    <AuthContext.Provider value={{ user: null }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
 };
 
-// Hook simple qui ne fait que retourner la valeur du contexte
-export const useAuth = (): AuthContextType => {
-  return useContext(AuthContext);
-};
-
-// ===== FONCTIONS UTILITAIRES SIMPLES =====
-
-// Vérifier si l'utilisateur est connecté (simple check API)
-export const checkAuthStatus = async (): Promise<{ isAuthenticated: boolean; user?: User }> => {
-  try {
-    const response = await fetch('/api/current-user', {
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-    });
-    
-    if (response.ok) {
-      const userData = await response.json();
-      return { isAuthenticated: true, user: userData };
-    } else {
-      return { isAuthenticated: false };
-    }
-  } catch (error) {
-    console.error('Erreur lors de la vérification d\'authentification:', error);
-    return { isAuthenticated: false };
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth doit être utilisé au sein d\'un AuthProvider');
   }
-};
-
-// Login avec email et password de la table USER
-export const loginUser = async (email: string, password: string): Promise<{ success: boolean; user?: User; error?: string }> => {
-  try {
-    const response = await fetch('/api/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ email, password }),
-    });
-
-    if (response.ok) {
-      const userData = await response.json();
-      return { success: true, user: userData };
-    } else {
-      const errorData = await response.json().catch(() => ({}));
-      return { success: false, error: errorData.message || 'Email ou mot de passe incorrect' };
-    }
-  } catch (error) {
-    return { success: false, error: 'Erreur de connexion au serveur' };
-  }
-};
-
-// Logout simple
-export const logoutUser = async (): Promise<void> => {
-  try {
-    await fetch('/api/logout', {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-    });
-  } catch (error) {
-    console.error('Erreur lors de la déconnexion:', error);
-  }
+  return context;
 };

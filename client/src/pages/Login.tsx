@@ -4,7 +4,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-import { loginUser } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -13,6 +13,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { login } = useAuth();
 
   const from = location.state?.from?.pathname || '/';
 
@@ -22,10 +23,10 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const result = await loginUser(email, password);
+      const result = await login(email, password);
       
       if (result.success) {
-        console.log('Connexion réussie:', result.user);
+        console.log('Connexion réussie');
         navigate(from, { replace: true });
       } else {
         setError(result.error || 'Échec de la connexion');

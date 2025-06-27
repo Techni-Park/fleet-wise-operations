@@ -15,8 +15,13 @@ const Header = ({ onMenuToggle }: HeaderProps) => {
   const [isDark, setIsDark] = React.useState(false);
   const [isSearchOpen, setIsSearchOpen] = React.useState(false);
   const isMobile = useIsMobile();
-  const { user } = useAuth();
+  const { user, loading, logout } = useAuth();
   const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
 
   const toggleTheme = () => {
     setIsDark(!isDark);
@@ -92,8 +97,10 @@ const Header = ({ onMenuToggle }: HeaderProps) => {
           </Button>
 
           {/* User Profile / Login */}
-          {user ? (
-            <UserMenu user={user} isMobile={isMobile} />
+          {loading ? (
+            <div className="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse" />
+          ) : user ? (
+            <UserMenu user={user} onLogout={handleLogout} />
           ) : (
             <Button variant="ghost" size="icon" onClick={() => navigate('/login')} className="hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200">
               <LogIn className="w-5 h-5" />

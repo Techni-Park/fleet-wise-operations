@@ -45,14 +45,14 @@ const fieldTypes = [
 ];
 
 export default function CustomFieldsSettings() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [selectedEntityType, setSelectedEntityType] = useState<number>(1);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingField, setEditingField] = useState<CustomField | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   
   // Gestion des sous-ensembles
@@ -80,12 +80,17 @@ export default function CustomFieldsSettings() {
   ];
 
   useEffect(() => {
+    if (authLoading) {
+      return;
+    }
+
     if (!user) {
       navigate('/login');
       return;
     }
+
     loadCustomFields();
-  }, [selectedEntityType, user, navigate]);
+  }, [selectedEntityType, user, authLoading, navigate]);
 
   // Extraire les sous-ensembles existants des champs
   useEffect(() => {
@@ -446,6 +451,16 @@ export default function CustomFieldsSettings() {
     
     return groups;
   };
+
+  if (authLoading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center h-full">
+          <p>Vérification de l'authentification...</p>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>

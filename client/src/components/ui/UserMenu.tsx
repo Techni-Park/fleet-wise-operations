@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, Settings, LogOut, ChevronDown } from 'lucide-react';
+import { User as UserIcon, Settings, LogOut, ChevronDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
   DropdownMenu,
@@ -11,30 +11,28 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { logoutUser } from '@/context/AuthContext';
+
+interface User {
+  id: number;
+  email: string;
+  first_name: string;
+  last_name: string;
+  CDUSER: string;
+  active: number;
+  IDUSER?: number;
+  NOMFAMILLE?: string;
+  PRENOM?: string;
+  IADMIN?: number;
+}
 
 interface UserMenuProps {
-  user: {
-    IDUSER: number;
-    EMAILP: string;
-    NOMFAMILLE: string;
-    PRENOM: string;
-    CDUSER: string;
-    IADMIN: number;
-    IAUTORISE: number;
-    FONCTION_PRO?: string;
-    TELBUR?: string;
-  };
+  user: User;
+  onLogout: () => void;
   isMobile?: boolean;
 }
 
-export default function UserMenu({ user, isMobile = false }: UserMenuProps) {
+export default function UserMenu({ user, onLogout, isMobile = false }: UserMenuProps) {
   const navigate = useNavigate();
-
-  const handleLogout = async () => {
-    await logoutUser();
-    navigate('/login');
-  };
 
   const handleProfile = () => {
     navigate('/profile');
@@ -44,14 +42,12 @@ export default function UserMenu({ user, isMobile = false }: UserMenuProps) {
     navigate('/settings');
   };
 
-  // Générer les initiales pour l'avatar
   const getInitials = () => {
-    const firstInitial = user.PRENOM?.charAt(0)?.toUpperCase() || '';
-    const lastInitial = user.NOMFAMILLE?.charAt(0)?.toUpperCase() || '';
+    const firstInitial = (user.first_name || user.PRENOM)?.charAt(0)?.toUpperCase() || '';
+    const lastInitial = (user.last_name || user.NOMFAMILLE)?.charAt(0)?.toUpperCase() || '';
     return `${firstInitial}${lastInitial}` || 'U';
   };
 
-  // Générer une couleur d'avatar basée sur le nom
   const getAvatarColor = () => {
     const colors = [
       'bg-blue-600', 'bg-green-600', 'bg-purple-600', 'bg-red-600', 
@@ -60,6 +56,9 @@ export default function UserMenu({ user, isMobile = false }: UserMenuProps) {
     const hash = user.CDUSER?.charCodeAt(0) || 0;
     return colors[hash % colors.length];
   };
+
+  const displayName = `${user.first_name || user.PRENOM} ${user.last_name || user.NOMFAMILLE}`;
+  const displayEmail = user.email;
 
   return (
     <DropdownMenu>
@@ -70,7 +69,7 @@ export default function UserMenu({ user, isMobile = false }: UserMenuProps) {
         >
           <div className={`flex items-center gap-3 ${isMobile ? 'w-full' : ''}`}>
             <Avatar className="h-8 w-8">
-              <AvatarImage src="" alt={`${user.PRENOM} ${user.NOMFAMILLE}`} />
+              <AvatarImage src="" alt={displayName} />
               <AvatarFallback className={`text-white text-sm font-semibold ${getAvatarColor()}`}>
                 {getInitials()}
               </AvatarFallback>
@@ -79,10 +78,10 @@ export default function UserMenu({ user, isMobile = false }: UserMenuProps) {
             {!isMobile && (
               <div className="hidden lg:block text-left">
                 <p className="text-sm font-medium text-gray-900 dark:text-white">
-                  {user.PRENOM} {user.NOMFAMILLE}
+                  {displayName}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[120px]">
-                  {user.EMAILP}
+                  {displayEmail}
                 </p>
               </div>
             )}
@@ -90,10 +89,10 @@ export default function UserMenu({ user, isMobile = false }: UserMenuProps) {
             {isMobile && (
               <div className="flex-1 text-left">
                 <p className="text-sm font-medium text-gray-900 dark:text-white">
-                  {user.PRENOM} {user.NOMFAMILLE}
+                  {displayName}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {user.FONCTION_PRO || user.EMAILP}
+                  {displayEmail}
                 </p>
               </div>
             )}
@@ -107,23 +106,18 @@ export default function UserMenu({ user, isMobile = false }: UserMenuProps) {
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">
-              {user.PRENOM} {user.NOMFAMILLE}
+              {displayName}
             </p>
             <p className="text-xs leading-none text-muted-foreground">
-              {user.EMAILP}
+              {displayEmail}
             </p>
-            {user.FONCTION_PRO && (
-              <p className="text-xs leading-none text-muted-foreground">
-                {user.FONCTION_PRO}
-              </p>
-            )}
           </div>
         </DropdownMenuLabel>
         
         <DropdownMenuSeparator />
         
         <DropdownMenuItem onClick={handleProfile} className="cursor-pointer">
-          <User className="mr-2 h-4 w-4" />
+          <UserIcon className="mr-2 h-4 w-4" />
           <span>Mon Profil</span>
         </DropdownMenuItem>
         
@@ -134,7 +128,7 @@ export default function UserMenu({ user, isMobile = false }: UserMenuProps) {
         
         <DropdownMenuSeparator />
         
-        <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-600 focus:text-red-600">
+        <DropdownMenuItem onClick={onLogout} className="cursor-pointer text-red-600 focus:text-red-600">
           <LogOut className="mr-2 h-4 w-4" />
           <span>Se déconnecter</span>
         </DropdownMenuItem>
