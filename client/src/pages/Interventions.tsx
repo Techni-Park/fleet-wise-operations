@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Plus, Search, Filter, Eye, Edit, Trash2, Calendar, Clock, User, AlertTriangle, Loader, RefreshCw } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Plus, Search, Filter, Eye, Edit, Trash2, Calendar, Clock, User, AlertTriangle, Loader, RefreshCw, Car, Info } from 'lucide-react';
 import AppLayout from '@/components/Layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 
 
 const Interventions = () => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [interventions, setInterventions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -20,7 +21,24 @@ const Interventions = () => {
     else setLoading(true);
 
     try {
-      const response = await fetch('/api/interventions');
+      const response = await fetch('/api/interventions', {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (response.status === 401) {
+        // Utilisateur non authentifié, rediriger vers la page de connexion
+        console.log('Utilisateur non authentifié, redirection vers /login');
+        navigate('/login');
+        return;
+      }
+      
+      if (!response.ok) {
+        throw new Error(`Erreur HTTP: ${response.status}`);
+      }
+      
       const data = await response.json();
       setInterventions(Array.isArray(data) ? data : []);
     } catch (error) {
