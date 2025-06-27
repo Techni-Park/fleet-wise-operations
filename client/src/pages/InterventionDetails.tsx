@@ -4,7 +4,7 @@ import {
   Calendar, Clock, User, MapPin, Edit, Trash2, ArrowLeft, 
   Phone, Mail, Car, AlertTriangle, FileText, Settings, 
   Image, MessageSquare, Send, Upload, Download, Eye,
-  Camera, PlusCircle, FileIcon
+  Camera, PlusCircle, FileIcon, Save, Plus
 } from 'lucide-react';
 import AppLayout from '@/components/Layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -384,8 +384,8 @@ const InterventionDetails = () => {
                 {intervention.VEHICULE_IDMACHINE && (
                   <Link to={`/vehicles/${intervention.VEHICULE_IDMACHINE}`}>
                     <Button variant="outline" size="sm" className="mt-2">
-                      <Eye className="w-4 h-4 mr-2" />
-                      Voir véhicule
+                      <Car className="w-4 h-4 mr-2" />
+                      Ouvrir véhicule
                     </Button>
                   </Link>
                 )}
@@ -431,11 +431,14 @@ const InterventionDetails = () => {
 
         {/* Onglets pour le contenu détaillé */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList>
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="details">Détails</TabsTrigger>
             <TabsTrigger value="rapport">Rapport</TabsTrigger>
+            <TabsTrigger value="checklist">Check List</TabsTrigger>
+            <TabsTrigger value="customfields">Champs custom</TabsTrigger>
+            <TabsTrigger value="instructions">Instructions</TabsTrigger>
+            <TabsTrigger value="formulaires">Formulaires</TabsTrigger>
             <TabsTrigger value="anomalies">Anomalies</TabsTrigger>
-            <TabsTrigger value="photos">Photos</TabsTrigger>
           </TabsList>
 
           <TabsContent value="details" className="space-y-6">
@@ -505,65 +508,68 @@ const InterventionDetails = () => {
           </TabsContent>
 
           <TabsContent value="rapport" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Documents et photos */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span className="flex items-center">
-                      <Camera className="w-5 h-5 mr-2" />
-                      Photos et Documents
-                    </span>
-                    <div>
-                      <input
-                        type="file"
-                        id="file-upload"
-                        className="hidden"
-                        accept="image/*,.pdf,.doc,.docx"
-                        onChange={handleFileUpload}
-                        disabled={uploadingFile}
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => document.getElementById('file-upload')?.click()}
-                        disabled={uploadingFile}
-                      >
-                        <Upload className="w-4 h-4 mr-2" />
-                        {uploadingFile ? 'Upload...' : 'Ajouter'}
-                      </Button>
-                    </div>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {documents.length === 0 ? (
-                      <p className="text-gray-500 text-sm">Aucun document</p>
-                    ) : (
-                      documents.map((doc, index) => (
-                        <div key={index} className="flex items-center justify-between p-2 border rounded">
-                          <div className="flex items-center">
-                            {doc.ID2GENRE_DOCUMENT === 1 ? (
-                              <Image className="w-4 h-4 mr-2" />
-                            ) : (
-                              <FileIcon className="w-4 h-4 mr-2" />
-                            )}
-                            <div>
-                              <p className="font-medium text-sm">{doc.LIB100}</p>
-                              <p className="text-xs text-gray-500">
-                                {formatFullName(doc.NOMFAMILLE, doc.PRENOM)} - {formatDateTime(doc.DHCRE)}
-                              </p>
-                            </div>
-                          </div>
-                          <Button variant="outline" size="sm">
-                            <Download className="w-4 h-4" />
+            <Tabs defaultValue="documents" className="w-full">
+              <TabsList>
+                <TabsTrigger value="documents">Documents</TabsTrigger>
+                <TabsTrigger value="photos">Photos</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="documents" className="mt-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Documents */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center justify-between">
+                        <span className="flex items-center">
+                          <FileIcon className="w-5 h-5 mr-2" />
+                          Documents
+                        </span>
+                        <div>
+                          <input
+                            type="file"
+                            id="file-upload-docs"
+                            className="hidden"
+                            accept=".pdf,.doc,.docx,.txt,.xlsx"
+                            onChange={handleFileUpload}
+                            disabled={uploadingFile}
+                          />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => document.getElementById('file-upload-docs')?.click()}
+                            disabled={uploadingFile}
+                          >
+                            <Upload className="w-4 h-4 mr-2" />
+                            {uploadingFile ? 'Upload...' : 'Ajouter document'}
                           </Button>
                         </div>
-                      ))
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {documents.filter(doc => doc.ID2GENRE_DOCUMENT !== 1).length === 0 ? (
+                          <p className="text-gray-500 text-sm">Aucun document</p>
+                        ) : (
+                          documents.filter(doc => doc.ID2GENRE_DOCUMENT !== 1).map((doc, index) => (
+                            <div key={index} className="flex items-center justify-between p-2 border rounded">
+                              <div className="flex items-center">
+                                <FileIcon className="w-4 h-4 mr-2" />
+                                <div>
+                                  <p className="font-medium text-sm">{doc.LIB100}</p>
+                                  <p className="text-xs text-gray-500">
+                                    {formatFullName(doc.NOMFAMILLE, doc.PRENOM)} - {formatDateTime(doc.DHCRE)}
+                                  </p>
+                                </div>
+                              </div>
+                              <Button variant="outline" size="sm">
+                                <Download className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
 
               {/* Timeline des commentaires */}
               <Card>
@@ -623,21 +629,34 @@ const InterventionDetails = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="anomalies">
+          <TabsContent value="photos" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>Anomalies détectées</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-500">Fonctionnalité en cours de développement</p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="photos">
-            <Card>
-              <CardHeader>
-                <CardTitle>Photos de l'intervention</CardTitle>
+                <CardTitle className="flex items-center justify-between">
+                  <span className="flex items-center">
+                    <Camera className="w-5 h-5 mr-2" />
+                    Photos
+                  </span>
+                  <div>
+                    <input
+                      type="file"
+                      id="file-upload-photos"
+                      className="hidden"
+                      accept="image/*"
+                      onChange={handleFileUpload}
+                      disabled={uploadingFile}
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => document.getElementById('file-upload-photos')?.click()}
+                      disabled={uploadingFile}
+                    >
+                      <Camera className="w-4 h-4 mr-2" />
+                      {uploadingFile ? 'Upload...' : 'Ajouter photo'}
+                    </Button>
+                  </div>
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -648,6 +667,9 @@ const InterventionDetails = () => {
                         <Image className="w-16 h-16 mx-auto mb-2 text-gray-400" />
                         <p className="text-sm font-medium">{photo.LIB100}</p>
                         <p className="text-xs text-gray-500">{formatDateTime(photo.DHCRE)}</p>
+                        <p className="text-xs text-gray-500">
+                          {formatFullName(photo.NOMFAMILLE, photo.PRENOM)}
+                        </p>
                       </div>
                     ))}
                   {documents.filter(doc => doc.ID2GENRE_DOCUMENT === 1).length === 0 && (
@@ -657,6 +679,285 @@ const InterventionDetails = () => {
               </CardContent>
             </Card>
           </TabsContent>
+        </Tabs>
+      </TabsContent>
+
+      <TabsContent value="checklist">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Settings className="w-5 h-5 mr-2" />
+              Check List d'intervention
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-3">
+                  <h4 className="font-medium">Vérifications préliminaires</h4>
+                  <div className="space-y-2">
+                    <label className="flex items-center space-x-2">
+                      <input type="checkbox" className="rounded" />
+                      <span className="text-sm">Documentation technique disponible</span>
+                    </label>
+                    <label className="flex items-center space-x-2">
+                      <input type="checkbox" className="rounded" />
+                      <span className="text-sm">Outils nécessaires disponibles</span>
+                    </label>
+                    <label className="flex items-center space-x-2">
+                      <input type="checkbox" className="rounded" />
+                      <span className="text-sm">Pièces de rechange identifiées</span>
+                    </label>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <h4 className="font-medium">Sécurité</h4>
+                  <div className="space-y-2">
+                    <label className="flex items-center space-x-2">
+                      <input type="checkbox" className="rounded" />
+                      <span className="text-sm">EPI portés</span>
+                    </label>
+                    <label className="flex items-center space-x-2">
+                      <input type="checkbox" className="rounded" />
+                      <span className="text-sm">Zone de travail sécurisée</span>
+                    </label>
+                    <label className="flex items-center space-x-2">
+                      <input type="checkbox" className="rounded" />
+                      <span className="text-sm">Procédures de sécurité respectées</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+              <Button size="sm" className="mt-4">
+                <Save className="w-4 h-4 mr-2" />
+                Sauvegarder la check-list
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      <TabsContent value="customfields">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Settings className="w-5 h-5 mr-2" />
+              Champs personnalisés
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <Label htmlFor="usdef-lib">Champ texte personnalisé</Label>
+                <Input
+                  id="usdef-lib"
+                  value={intervention?.USDEF_LIB || ''}
+                  placeholder="Texte libre"
+                  readOnly
+                />
+              </div>
+              <div>
+                <Label htmlFor="usdef-num">Champ numérique personnalisé</Label>
+                <Input
+                  id="usdef-num"
+                  type="number"
+                  value={intervention?.USDEF_NUM || ''}
+                  placeholder="Valeur numérique"
+                  readOnly
+                />
+              </div>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="usdef-boo"
+                  checked={intervention?.USDEF_BOO === 1}
+                  readOnly
+                  className="rounded"
+                />
+                <Label htmlFor="usdef-boo">Option personnalisée</Label>
+              </div>
+              <div>
+                <Label htmlFor="usdef-date">Date personnalisée</Label>
+                <Input
+                  id="usdef-date"
+                  type="date"
+                  value={intervention?.USDEF_DATE || ''}
+                  readOnly
+                />
+              </div>
+            </div>
+            <p className="text-sm text-gray-500 mt-4">
+              Ces champs peuvent être modifiés dans l'édition de l'intervention.
+            </p>
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      <TabsContent value="instructions">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <FileText className="w-5 h-5 mr-2" />
+              Instructions
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Tabs defaultValue="documents" className="w-full">
+              <TabsList>
+                <TabsTrigger value="documents">Documents</TabsTrigger>
+                <TabsTrigger value="procedures">Procédures</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="documents" className="mt-4">
+                <div className="space-y-4">
+                  <h4 className="font-medium">Documents liés à l'intervention</h4>
+                  <div className="space-y-3">
+                    {documents.length === 0 ? (
+                      <p className="text-gray-500 text-sm">Aucun document d'instruction</p>
+                    ) : (
+                      documents.map((doc, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 border rounded">
+                          <div className="flex items-center">
+                            <FileIcon className="w-5 h-5 mr-3" />
+                            <div>
+                              <p className="font-medium">{doc.LIB100}</p>
+                              <p className="text-sm text-gray-500">
+                                Ajouté le {formatDateTime(doc.DHCRE)}
+                              </p>
+                            </div>
+                          </div>
+                          <Button variant="outline" size="sm">
+                            <Eye className="w-4 h-4 mr-2" />
+                            Voir
+                          </Button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="procedures" className="mt-4">
+                <div className="space-y-4">
+                  <h4 className="font-medium">Procédures standard</h4>
+                  <div className="space-y-3">
+                    <div className="p-3 border rounded">
+                      <h5 className="font-medium">Procédure de maintenance préventive</h5>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Contrôles visuels, vérification des niveaux, test des fonctions principales
+                      </p>
+                    </div>
+                    <div className="p-3 border rounded">
+                      <h5 className="font-medium">Procédure de diagnostic</h5>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Analyse des codes d'erreur, tests électroniques, mesures
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      <TabsContent value="formulaires">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <FileText className="w-5 h-5 mr-2" />
+              Formulaires
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <p className="text-gray-600">Formulaires disponibles pour cette intervention :</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 border rounded-lg">
+                  <h4 className="font-medium">Rapport d'intervention</h4>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Formulaire standard de compte-rendu d'intervention
+                  </p>
+                  <Button size="sm" className="mt-3">
+                    <PlusCircle className="w-4 h-4 mr-2" />
+                    Remplir le formulaire
+                  </Button>
+                </div>
+                <div className="p-4 border rounded-lg">
+                  <h4 className="font-medium">Fiche de contrôle qualité</h4>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Vérifications post-intervention et validation
+                  </p>
+                  <Button size="sm" className="mt-3">
+                    <PlusCircle className="w-4 h-4 mr-2" />
+                    Remplir le formulaire
+                  </Button>
+                </div>
+                <div className="p-4 border rounded-lg">
+                  <h4 className="font-medium">Bon de travail</h4>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Détail des opérations effectuées et temps passé
+                  </p>
+                  <Button size="sm" className="mt-3">
+                    <PlusCircle className="w-4 h-4 mr-2" />
+                    Remplir le formulaire
+                  </Button>
+                </div>
+                <div className="p-4 border rounded-lg">
+                  <h4 className="font-medium">Rapport de non-conformité</h4>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Signalement des anomalies ou défauts constatés
+                  </p>
+                  <Button size="sm" className="mt-3">
+                    <PlusCircle className="w-4 h-4 mr-2" />
+                    Remplir le formulaire
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      <TabsContent value="anomalies">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <AlertTriangle className="w-5 h-5 mr-2" />
+              Anomalies détectées
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <p className="text-gray-600">Anomalies et dysfonctionnements identifiés :</p>
+              <div className="space-y-3">
+                <div className="p-3 border-l-4 border-red-500 bg-red-50">
+                  <h4 className="font-medium text-red-800">Exemple d'anomalie critique</h4>
+                  <p className="text-sm text-red-700 mt-1">
+                    Description de l'anomalie et impact sur le fonctionnement
+                  </p>
+                  <div className="mt-2">
+                    <Badge className="bg-red-100 text-red-800">Critique</Badge>
+                  </div>
+                </div>
+                <div className="p-3 border-l-4 border-orange-500 bg-orange-50">
+                  <h4 className="font-medium text-orange-800">Exemple d'anomalie mineure</h4>
+                  <p className="text-sm text-orange-700 mt-1">
+                    Problème mineur nécessitant surveillance
+                  </p>
+                  <div className="mt-2">
+                    <Badge className="bg-orange-100 text-orange-800">Mineure</Badge>
+                  </div>
+                </div>
+              </div>
+              <Button size="sm">
+                <Plus className="w-4 h-4 mr-2" />
+                Signaler une nouvelle anomalie
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </TabsContent>
         </Tabs>
       </div>
     </AppLayout>
