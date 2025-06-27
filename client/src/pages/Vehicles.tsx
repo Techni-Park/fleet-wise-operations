@@ -184,7 +184,7 @@ const Vehicles = () => {
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                   <Input
-                    placeholder="Rechercher par immatriculation, marque, modèle..."
+                    placeholder="Rechercher par immatriculation, code machine, marque, modèle..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"
@@ -202,7 +202,7 @@ const Vehicles = () => {
         {/* Tableau des véhicules */}
         <Card>
           <CardHeader>
-            <CardTitle>Liste des véhicules</CardTitle>
+            <CardTitle>Liste des véhicules ({filteredVehicules.length})</CardTitle>
           </CardHeader>
           <CardContent>
             {vehicules.length === 0 ? (
@@ -223,14 +223,12 @@ const Vehicles = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>ID</TableHead>
+                      <TableHead>Identifiant</TableHead>
                       <TableHead>Immatriculation</TableHead>
-                      <TableHead>Véhicule (VEHICULE)</TableHead>
-                      <TableHead>Machine (MACHINE_MNT)</TableHead>
+                      <TableHead>Véhicule</TableHead>
                       <TableHead>Statut</TableHead>
                       <TableHead>Kilométrage</TableHead>
-                      <TableHead>Contrôle technique</TableHead>
-                      <TableHead>Assurance</TableHead>
+                      <TableHead>Prochains contrôles</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -243,16 +241,19 @@ const Vehicles = () => {
                         <TableRow key={vehicule.IDVEHICULE}>
                           <TableCell>
                             <div className="font-medium text-gray-900 dark:text-white">
-                              V#{vehicule.IDVEHICULE} / M#{vehicule.IDMACHINE}
+                              #{vehicule.IDVEHICULE}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {vehicule.CD_MACHINE || 'Code non défini'}
                             </div>
                           </TableCell>
                           <TableCell>
                             <div className="font-medium text-gray-900 dark:text-white">
-                              {vehicule.IMMAT || '-'}
+                              {vehicule.IMMAT || 'Non immatriculé'}
                             </div>
                             {vehicule.NUM_IDENTIF && (
                               <div className="text-xs text-gray-500">
-                                VIN: {vehicule.NUM_IDENTIF}
+                                VIN: {vehicule.NUM_IDENTIF.substring(0, 8)}...
                               </div>
                             )}
                           </TableCell>
@@ -262,27 +263,13 @@ const Vehicles = () => {
                                 {vehicule.MARQUE} {vehicule.MODELE}
                               </div>
                               <div className="text-sm text-gray-500">
-                                {vehicule.CARBURANT && `${vehicule.CARBURANT} • `}
-                                {vehicule.PUISSANCE_ADMIN ? `${vehicule.PUISSANCE_ADMIN} CV` : 'Puissance non renseignée'}
+                                {vehicule.TYPE_MACHINE || vehicule.GENRE_NATIONAL || 'Type non défini'}
                               </div>
-                              {vehicule.GENRE_NATIONAL && (
-                                <div className="text-xs text-gray-400">
-                                  Genre: {vehicule.GENRE_NATIONAL}
-                                </div>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div>
-                              <div className="font-medium">{vehicule.CD_MACHINE || '-'}</div>
-                              <div className="text-sm text-gray-500">
-                                {vehicule.LIB_MACHINE || 'Libellé non renseigné'}
+                              <div className="text-xs text-gray-400">
+                                {vehicule.CARBURANT && `${vehicule.CARBURANT}`}
+                                {vehicule.PUISSANCE_ADMIN && ` • ${vehicule.PUISSANCE_ADMIN} CV`}
+                                {vehicule.PUISSANCEW && !vehicule.PUISSANCE_ADMIN && ` • ${vehicule.PUISSANCEW} W`}
                               </div>
-                              {vehicule.TYPE_MACHINE && (
-                                <div className="text-xs text-gray-400">
-                                  Type: {vehicule.TYPE_MACHINE}
-                                </div>
-                              )}
                             </div>
                           </TableCell>
                           <TableCell>
@@ -292,52 +279,47 @@ const Vehicles = () => {
                           </TableCell>
                           <TableCell>
                             <div>
-                              {/* Kilométrage du véhicule (table VEHICULE) */}
                               <div className="font-medium">
-                                {vehicule.KMACTUEL ? `${vehicule.KMACTUEL.toLocaleString()} km` : '-'}
+                                {(vehicule.KMACTUEL || vehicule.KILOMETRAGE) ? 
+                                  `${(vehicule.KMACTUEL || vehicule.KILOMETRAGE).toLocaleString()} km` : 
+                                  'Non renseigné'}
                               </div>
-                              <div className="text-xs text-gray-500">Véhicule</div>
-                              {/* Kilométrage de la machine (table MACHINE_MNT) */}
-                              {vehicule.KILOMETRAGE && vehicule.KILOMETRAGE !== vehicule.KMACTUEL && (
-                                <>
-                                  <div className="text-sm text-gray-500 mt-1">
-                                    {vehicule.KILOMETRAGE.toLocaleString()} km
-                                  </div>
-                                  <div className="text-xs text-gray-400">Machine</div>
-                                </>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className={controlExpired ? 'text-red-600' : ''}>
-                              <div>{formatDate(vehicule.DT_CTRLTECH)}</div>
-                              {controlExpired && (
-                                <div className="text-xs text-red-500">Expiré</div>
-                              )}
-                              {vehicule.DT_CTRLPOLLUTION && (
-                                <div className="text-xs text-gray-500">
-                                  Pollution: {formatDate(vehicule.DT_CTRLPOLLUTION)}
+                              {vehicule.KMACTUEL && vehicule.KILOMETRAGE && vehicule.KMACTUEL !== vehicule.KILOMETRAGE && (
+                                <div className="text-xs text-orange-500">
+                                  ⚠️ Compteurs différents
                                 </div>
                               )}
                             </div>
                           </TableCell>
                           <TableCell>
-                            <div>
-                              <div>{formatDate(vehicule.DT_ECHASS)}</div>
-                              {vehicule.NUMCONTRASS && (
-                                <div className="text-sm text-gray-500">{vehicule.NUMCONTRASS}</div>
+                            <div className="space-y-1">
+                              {vehicule.DT_CTRLTECH && (
+                                <div className={`text-xs ${controlExpired ? 'text-red-600' : 'text-gray-600'}`}>
+                                  CT: {formatDate(vehicule.DT_CTRLTECH)}
+                                  {controlExpired && ' (Expiré)'}
+                                </div>
+                              )}
+                              {vehicule.DT_ECHASS && (
+                                <div className="text-xs text-gray-600">
+                                  Assurance: {formatDate(vehicule.DT_ECHASS)}
+                                </div>
+                              )}
+                              {vehicule.DT_PROCH_MNT && (
+                                <div className="text-xs text-blue-600">
+                                  Maintenance: {formatDate(vehicule.DT_PROCH_MNT)}
+                                </div>
                               )}
                             </div>
                           </TableCell>
                           <TableCell>
                             <div className="flex space-x-2">
                               <Link to={`/vehicles/${vehicule.IDVEHICULE}`}>
-                                <Button variant="ghost" size="sm">
+                                <Button variant="ghost" size="sm" title="Voir les détails">
                                   <Eye className="w-4 h-4" />
                                 </Button>
                               </Link>
                               <Link to={`/vehicles/${vehicule.IDVEHICULE}/edit`}>
-                                <Button variant="ghost" size="sm">
+                                <Button variant="ghost" size="sm" title="Modifier">
                                   <Edit className="w-4 h-4" />
                                 </Button>
                               </Link>

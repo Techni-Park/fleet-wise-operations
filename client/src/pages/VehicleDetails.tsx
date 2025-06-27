@@ -141,12 +141,12 @@ const VehicleDetails = () => {
           {/* Informations principales */}
           <div className="lg:col-span-1">
             <div className="space-y-4">
-              {/* Informations Véhicule */}
+              {/* Identification */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center">
                     <Car className="w-5 h-5 mr-2" />
-                    Véhicule (Table VEHICULE)
+                    Identification
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -155,39 +155,62 @@ const VehicleDetails = () => {
                     <p className="font-medium">#{vehicle.IDVEHICULE}</p>
                   </div>
                   <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Code machine</p>
+                    <p className="font-medium">{vehicle.CD_MACHINE || 'Non défini'}</p>
+                  </div>
+                  <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Immatriculation</p>
-                    <p className="font-medium">{vehicle.IMMAT || '-'}</p>
+                    <p className="font-medium">{vehicle.IMMAT || 'Non immatriculé'}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">VIN (Numéro d'identification)</p>
-                    <p className="font-medium text-xs break-all">{vehicle.NUM_IDENTIF || '-'}</p>
+                    <p className="font-medium text-xs break-all">{vehicle.NUM_IDENTIF || 'Non renseigné'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Numéro de série</p>
+                    <p className="font-medium">{vehicle.NUM_SERIE || 'Non renseigné'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Statut</p>
+                    {getStatusBadge(vehicle.ID2_ETATMACHINE)}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Caractéristiques techniques */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Wrench className="w-5 h-5 mr-2" />
+                    Caractéristiques techniques
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Marque / Modèle</p>
+                    <p className="font-medium">{vehicle.MARQUE} {vehicle.MODELE}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Type de véhicule</p>
+                    <p className="font-medium">{vehicle.TYPE_MACHINE || vehicle.GENRE_NATIONAL || 'Non renseigné'}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Carburant</p>
-                    <p className="font-medium">{vehicle.CARBURANT || '-'}</p>
+                    <p className="font-medium">{vehicle.CARBURANT || 'Non renseigné'}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Puissance administrative</p>
-                    <p className="font-medium">{vehicle.PUISSANCE_ADMIN ? `${vehicle.PUISSANCE_ADMIN} CV` : '-'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Genre national</p>
-                    <p className="font-medium">{vehicle.GENRE_NATIONAL || '-'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Kilométrage actuel</p>
-                    <p className="font-medium">{vehicle.KMACTUEL ? `${vehicle.KMACTUEL.toLocaleString()} km` : '-'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Date de première circulation</p>
-                    <p className="font-medium">{formatDate(vehicle.DT_PREMCIRC)}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Puissance</p>
+                    <p className="font-medium">
+                      {vehicle.PUISSANCE_ADMIN ? `${vehicle.PUISSANCE_ADMIN} CV` : 
+                       vehicle.PUISSANCEW ? `${vehicle.PUISSANCEW} W` : 'Non renseignée'}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Places assises</p>
-                    <p className="font-medium">{vehicle.PLACES_ASSISES || '-'}</p>
+                    <p className="font-medium">{vehicle.PLACES_ASSISES || 'Non renseigné'}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">PTAC / PTR</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Poids (PTAC / PTR)</p>
                     <p className="font-medium">
                       {vehicle.PTAC ? `${vehicle.PTAC} kg` : '-'} / {vehicle.PTR ? `${vehicle.PTR} kg` : '-'}
                     </p>
@@ -195,62 +218,58 @@ const VehicleDetails = () => {
                 </CardContent>
               </Card>
 
-              {/* Informations Machine */}
+              {/* Kilométrage et dates */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center">
-                    <Wrench className="w-5 h-5 mr-2" />
-                    Machine (Table MACHINE_MNT)
+                    <Gauge className="w-5 h-5 mr-2" />
+                    Kilométrage et dates
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">ID Machine</p>
-                    <p className="font-medium">#{vehicle.IDMACHINE}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Kilométrage actuel</p>
+                    <p className="font-medium">
+                      {vehicle.KMACTUEL ? `${vehicle.KMACTUEL.toLocaleString()} km` : 
+                       vehicle.KILOMETRAGE ? `${vehicle.KILOMETRAGE.toLocaleString()} km` : 'Non renseigné'}
+                    </p>
+                    {vehicle.KMACTUEL && vehicle.KILOMETRAGE && vehicle.KMACTUEL !== vehicle.KILOMETRAGE && (
+                      <p className="text-xs text-orange-600">
+                        Attention: Compteurs différents (Véhicule: {vehicle.KMACTUEL.toLocaleString()} km, Machine: {vehicle.KILOMETRAGE.toLocaleString()} km)
+                      </p>
+                    )}
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Code machine</p>
-                    <p className="font-medium">{vehicle.CD_MACHINE || '-'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Libellé machine</p>
-                    <p className="font-medium">{vehicle.LIB_MACHINE || '-'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Statut machine</p>
-                    {getStatusBadge(vehicle.ID2_ETATMACHINE)}
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Marque / Modèle</p>
-                    <p className="font-medium">{vehicle.MARQUE} {vehicle.MODELE}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Type de machine</p>
-                    <p className="font-medium">{vehicle.TYPE_MACHINE || '-'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Numéro de série</p>
-                    <p className="font-medium">{vehicle.NUM_SERIE || '-'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Kilométrage machine</p>
-                    <p className="font-medium">{vehicle.KILOMETRAGE ? `${vehicle.KILOMETRAGE.toLocaleString()} km` : '-'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Puissance</p>
-                    <p className="font-medium">{vehicle.PUISSANCEW ? `${vehicle.PUISSANCEW} W` : '-'}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Date de première circulation</p>
+                    <p className="font-medium">{formatDate(vehicle.DT_PREMCIRC)}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Date de mise en fonction</p>
                     <p className="font-medium">{formatDate(vehicle.DT_MISEENFONCTION)}</p>
                   </div>
+                </CardContent>
+              </Card>
+
+              {/* Localisation */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <MapPin className="w-5 h-5 mr-2" />
+                    Localisation
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
                   <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Adresse machine</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Adresse</p>
                     <p className="font-medium">
-                      {vehicle.ADRESSE1 || ''} {vehicle.ADRESSE2 || ''}<br/>
-                      {vehicle.CPOSTAL || ''} {vehicle.VILLE || ''}
+                      {vehicle.ADRESSE1 || vehicle.ADRESSE2 || vehicle.CPOSTAL || vehicle.VILLE ? (
+                        <>
+                          {vehicle.ADRESSE1} {vehicle.ADRESSE2}<br/>
+                          {vehicle.CPOSTAL} {vehicle.VILLE}
+                        </>
+                      ) : 'Non renseignée'}
                     </p>
-                    { (vehicle.ADRESSE1 || vehicle.CPOSTAL || vehicle.VILLE) && (
+                    {(vehicle.ADRESSE1 || vehicle.CPOSTAL || vehicle.VILLE) && (
                       <a 
                         href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${vehicle.ADRESSE1 || ''} ${vehicle.CPOSTAL || ''} ${vehicle.VILLE || ''}`)}`}
                         target="_blank"
@@ -260,10 +279,6 @@ const VehicleDetails = () => {
                         <MapPin className="w-3 h-3 inline mr-1" /> Voir sur Google Maps
                       </a>
                     )}
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Observations</p>
-                    <p className="font-medium">{vehicle.OBSERVATIONS || 'Aucune'}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -284,54 +299,81 @@ const VehicleDetails = () => {
               
               <TabsContent value="overview">
                 <div className="space-y-6">
-                  {/* Informations générales */}
+                  {/* Résumé principal */}
                   <Card>
                     <CardHeader>
-                      <CardTitle>Aperçu du véhicule</CardTitle>
+                      <CardTitle>Résumé du véhicule</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="text-center">
+                          <div className="text-3xl font-bold text-blue-600">
+                            {vehicle.KMACTUEL ? vehicle.KMACTUEL.toLocaleString() : 
+                             vehicle.KILOMETRAGE ? vehicle.KILOMETRAGE.toLocaleString() : '0'}
+                          </div>
+                          <div className="text-sm text-gray-600">Kilomètres parcourus</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-3xl font-bold text-green-600">
+                            {vehicle.DT_PREMCIRC ? 
+                              Math.floor((new Date().getTime() - new Date(vehicle.DT_PREMCIRC).getTime()) / (1000 * 60 * 60 * 24 * 365.25)) :
+                              vehicle.DT_MISEENFONCTION ?
+                                Math.floor((new Date().getTime() - new Date(vehicle.DT_MISEENFONCTION).getTime()) / (1000 * 60 * 60 * 24 * 365.25)) : '?'
+                            }
+                          </div>
+                          <div className="text-sm text-gray-600">Années de service</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-3xl font-bold">
+                            {getStatusBadge(vehicle.ID2_ETATMACHINE)}
+                          </div>
+                          <div className="text-sm text-gray-600">Statut actuel</div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Informations principales */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Informations principales</CardTitle>
                     </CardHeader>
                     <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
                         <h3 className="text-lg font-semibold mb-3 flex items-center">
                           <Car className="w-5 h-5 mr-2 text-blue-600" />
-                          Données Véhicule (VEHICULE)
+                          Identification
                         </h3>
                         <div className="space-y-3">
-                          <div className="flex items-center">
-                            <Tag className="w-4 h-4 mr-2 text-gray-600" />
-                            <div>
+                          <div className="flex items-start">
+                            <Tag className="w-4 h-4 mr-2 mt-1 text-gray-600" />
+                            <div className="flex-1 min-w-0">
                               <p className="text-sm text-gray-600">Immatriculation</p>
-                              <p className="font-medium">{vehicle.IMMAT || 'Non renseignée'}</p>
+                              <p className="font-medium">{vehicle.IMMAT || 'Non immatriculé'}</p>
                             </div>
                           </div>
-                          <div className="flex items-center">
-                            <FileText className="w-4 h-4 mr-2 text-gray-600" />
-                            <div>
+                          <div className="flex items-start">
+                            <FileText className="w-4 h-4 mr-2 mt-1 text-gray-600" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm text-gray-600">Code machine</p>
+                              <p className="font-medium">{vehicle.CD_MACHINE || 'Non défini'}</p>
+                              {vehicle.LIB_MACHINE && (
+                                <p className="text-xs text-gray-500">{vehicle.LIB_MACHINE}</p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-start">
+                            <Info className="w-4 h-4 mr-2 mt-1 text-gray-600" />
+                            <div className="flex-1 min-w-0">
                               <p className="text-sm text-gray-600">VIN</p>
                               <p className="font-medium text-xs break-all">{vehicle.NUM_IDENTIF || 'Non renseigné'}</p>
                             </div>
                           </div>
-                          <div className="flex items-center">
-                            <Fuel className="w-4 h-4 mr-2 text-gray-600" />
-                            <div>
-                              <p className="text-sm text-gray-600">Carburant & Puissance</p>
-                              <p className="font-medium">
-                                {vehicle.CARBURANT || 'Non renseigné'} 
-                                {vehicle.PUISSANCE_ADMIN && ` - ${vehicle.PUISSANCE_ADMIN} CV`}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center">
-                            <Gauge className="w-4 h-4 mr-2 text-gray-600" />
-                            <div>
-                              <p className="text-sm text-gray-600">Kilométrage véhicule</p>
-                              <p className="font-medium">{vehicle.KMACTUEL ? `${vehicle.KMACTUEL.toLocaleString()} km` : 'Non renseigné'}</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center">
-                            <CalendarDays className="w-4 h-4 mr-2 text-gray-600" />
-                            <div>
-                              <p className="text-sm text-gray-600">Première circulation</p>
-                              <p className="font-medium">{formatDate(vehicle.DT_PREMCIRC)}</p>
+                          <div className="flex items-start">
+                            <Tag className="w-4 h-4 mr-2 mt-1 text-gray-600" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm text-gray-600">Numéro de série</p>
+                              <p className="font-medium">{vehicle.NUM_SERIE || 'Non renseigné'}</p>
                             </div>
                           </div>
                         </div>
@@ -340,43 +382,38 @@ const VehicleDetails = () => {
                       <div>
                         <h3 className="text-lg font-semibold mb-3 flex items-center">
                           <Wrench className="w-5 h-5 mr-2 text-green-600" />
-                          Données Machine (MACHINE_MNT)
+                          Caractéristiques
                         </h3>
                         <div className="space-y-3">
                           <div className="flex items-center">
-                            <Tag className="w-4 h-4 mr-2 text-gray-600" />
-                            <div>
-                              <p className="text-sm text-gray-600">Code & Type machine</p>
-                              <p className="font-medium">{vehicle.CD_MACHINE || 'Non renseigné'}</p>
-                              <p className="text-xs text-gray-500">{vehicle.TYPE_MACHINE || 'Type non renseigné'}</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center">
-                            <Info className="w-4 h-4 mr-2 text-gray-600" />
+                            <Car className="w-4 h-4 mr-2 text-gray-600" />
                             <div>
                               <p className="text-sm text-gray-600">Marque & Modèle</p>
                               <p className="font-medium">{vehicle.MARQUE} {vehicle.MODELE}</p>
                             </div>
                           </div>
                           <div className="flex items-center">
+                            <Tag className="w-4 h-4 mr-2 text-gray-600" />
+                            <div>
+                              <p className="text-sm text-gray-600">Type</p>
+                              <p className="font-medium">{vehicle.TYPE_MACHINE || vehicle.GENRE_NATIONAL || 'Non renseigné'}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center">
+                            <Fuel className="w-4 h-4 mr-2 text-gray-600" />
+                            <div>
+                              <p className="text-sm text-gray-600">Carburant</p>
+                              <p className="font-medium">{vehicle.CARBURANT || 'Non renseigné'}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center">
                             <Gauge className="w-4 h-4 mr-2 text-gray-600" />
                             <div>
-                              <p className="text-sm text-gray-600">Kilométrage machine</p>
-                              <p className="font-medium">{vehicle.KILOMETRAGE ? `${vehicle.KILOMETRAGE.toLocaleString()} km` : 'Non renseigné'}</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center">
-                            <CalendarDays className="w-4 h-4 mr-2 text-gray-600" />
-                            <div>
-                              <p className="text-sm text-gray-600">Mise en fonction</p>
-                              <p className="font-medium">{formatDate(vehicle.DT_MISEENFONCTION)}</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center">
-                            <CheckCircle className="w-4 h-4 mr-2 text-gray-600" />
-                            <div>
-                              <p className="text-sm text-gray-600">Statut machine</p>
-                              {getStatusBadge(vehicle.ID2_ETATMACHINE)}
+                              <p className="text-sm text-gray-600">Puissance</p>
+                              <p className="font-medium">
+                                {vehicle.PUISSANCE_ADMIN ? `${vehicle.PUISSANCE_ADMIN} CV` : 
+                                 vehicle.PUISSANCEW ? `${vehicle.PUISSANCEW} W` : 'Non renseignée'}
+                              </p>
                             </div>
                           </div>
                         </div>
@@ -391,7 +428,7 @@ const VehicleDetails = () => {
                     </CardHeader>
                     <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
-                        <h3 className="text-lg font-semibold mb-3">Contrôles véhicule</h3>
+                        <h3 className="text-lg font-semibold mb-3">Contrôles obligatoires</h3>
                         <div className="space-y-3">
                           <div className="flex items-center">
                             <FileText className="w-5 h-5 mr-2 text-purple-600" />
@@ -424,7 +461,7 @@ const VehicleDetails = () => {
                       </div>
 
                       <div>
-                        <h3 className="text-lg font-semibold mb-3">Maintenance machine</h3>
+                        <h3 className="text-lg font-semibold mb-3">Maintenance</h3>
                         <div className="space-y-3">
                           <div className="flex items-center">
                             <CalendarDays className="w-5 h-5 mr-2 text-blue-600" />
@@ -437,27 +474,56 @@ const VehicleDetails = () => {
                             <ShieldCheck className="w-5 h-5 mr-2 text-green-600" />
                             <div>
                               <p className="text-sm text-gray-600">Garantie</p>
-                              <p className="font-medium">
-                                {formatDate(vehicle.DT_EXP_GARANTIE)}
-                                {vehicle.DT_DBT_GARANTIE && (
-                                  <span className="text-xs text-gray-500 block">
-                                    Début: {formatDate(vehicle.DT_DBT_GARANTIE)}
-                                  </span>
-                                )}
-                              </p>
+                              <p className="font-medium">{formatDate(vehicle.DT_EXP_GARANTIE)}</p>
+                              {vehicle.DT_DBT_GARANTIE && (
+                                <p className="text-xs text-gray-500">
+                                  Début: {formatDate(vehicle.DT_DBT_GARANTIE)}
+                                </p>
+                              )}
                             </div>
                           </div>
-                          <div className="flex items-center">
-                            <Wrench className="w-5 h-5 mr-2 text-gray-600" />
+                          <div className="flex items-start">
+                            <Wrench className="w-5 h-5 mr-2 mt-1 text-gray-600" />
                             <div>
                               <p className="text-sm text-gray-600">Observations</p>
-                              <p className="font-medium">{vehicle.OBSERVATIONS || 'Aucune'}</p>
+                              <p className="font-medium">{vehicle.OBSERVATIONS || 'Aucune observation'}</p>
                             </div>
                           </div>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
+
+                  {/* Alertes et informations importantes */}
+                  {(vehicle.KMACTUEL && vehicle.KILOMETRAGE && vehicle.KMACTUEL !== vehicle.KILOMETRAGE) && (
+                    <Card className="border-orange-200">
+                      <CardHeader>
+                        <CardTitle className="flex items-center text-orange-600">
+                          <AlertTriangle className="w-5 h-5 mr-2" />
+                          Attention - Compteurs kilométriques différents
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="text-center">
+                            <div className="text-2xl font-bold text-blue-600">
+                              {vehicle.KMACTUEL.toLocaleString()} km
+                            </div>
+                            <div className="text-sm text-gray-600">Compteur véhicule</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-2xl font-bold text-green-600">
+                              {vehicle.KILOMETRAGE.toLocaleString()} km
+                            </div>
+                            <div className="text-sm text-gray-600">Compteur machine</div>
+                          </div>
+                        </div>
+                        <p className="text-sm text-orange-600 mt-3">
+                          Il est recommandé de synchroniser les compteurs kilométriques.
+                        </p>
+                      </CardContent>
+                    </Card>
+                  )}
                 </div>
               </TabsContent>
 
