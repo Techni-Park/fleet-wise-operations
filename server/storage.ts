@@ -508,12 +508,14 @@ export class MySQLStorage implements IStorage {
   }
 
   async updateDocument(id: number, document: Partial<InsertDocument>): Promise<Document | undefined> {
-    await db.update(documents).set(document).where(eq(documents.ID, id));
+    console.log('🔄 updateDocument appelé avec:', { id, document });
+    const result = await db.update(documents).set(document).where(eq(documents.IDDOCUMENT, id));
+    console.log('🔄 updateDocument résultat:', result);
     return this.getDocument(id);
   }
 
   async deleteDocument(id: number): Promise<boolean> {
-    const result = await db.delete(documents).where(eq(documents.ID, id));
+    const result = await db.delete(documents).where(eq(documents.IDDOCUMENT, id));
     return result[0].affectedRows > 0;
   }
 
@@ -1138,7 +1140,11 @@ export class MySQLStorage implements IStorage {
 
       // 4. Créer l'entrée en base de données
       const fileRef = `/assets/photos/INT${interventionId}/${fileName}`;
+      // Générer un IDDOCUMENT unique basé sur timestamp + random
+      const iddocument = Date.now() + Math.floor(Math.random() * 1000);
+      
       const insertData = {
+        IDDOCUMENT: iddocument,
         LIB100: file.originalname,
         FILEREF: fileRef, // Chemin relatif pour l'accès web
         COMMENTAIRE: `Fichier uploadé: ${file.originalname}`,
@@ -1152,10 +1158,10 @@ export class MySQLStorage implements IStorage {
       };
 
       const result = await db.insert(documents).values(insertData);
-      const insertId = result[0].insertId as number;
-      const newDocument = await this.getDocument(insertId);
+      console.log('📄 Document inséré avec result:', result[0]);
+      const newDocument = await this.getDocument(iddocument);
       
-      console.log(`Document créé en BDD avec ID: ${insertId}, FILEREF: ${fileRef}`);
+      console.log(`Document créé en BDD avec IDDOCUMENT: ${iddocument}, FILEREF: ${fileRef}`);
       return newDocument!;
     } catch (error) {
       console.error('Erreur saveFileToIntervention:', error);

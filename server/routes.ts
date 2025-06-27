@@ -259,6 +259,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // 1. Sauvegarder le fichier physiquement et créer l'entrée DOCUMENT
       const document = await storage.saveFileToIntervention(interventionId, file, cduser);
+      console.log('📄 Document créé:', { id: document.IDDOCUMENT, fileref: document.FILEREF });
 
       // 2. Créer l'action dans le chat
       const actionData = {
@@ -268,15 +269,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         CDUSER: cduser,
         TYPACT: 10,
         ID2GENRE_ACTION: 1,
-        IDACTION_PREC: parseInt(req.body.replyTo) || 0,
+        IDACTION_PREC: parseInt(req.body.replyTo || '0') || 0,
       };
 
       const action = await storage.createChatMessage(interventionId, actionData);
+      console.log('💬 Action créée:', { id: action.IDACTION, lib: action.LIB100 });
 
       // 3. Lier le document à l'action
       if (action && document) {
-        await storage.updateDocument(document.IDDOCUMENT, {
-          TRGCIBLE: `ACT${action.IDACTION}`
+        const trgcible = `ACT${action.IDACTION}`;
+        console.log('🔗 Liaison document-action:', { docId: document.IDDOCUMENT, trgcible });
+        
+        const updatedDocument = await storage.updateDocument(document.IDDOCUMENT, {
+          TRGCIBLE: trgcible
+        });
+        
+        console.log('✅ Document mis à jour:', { 
+          id: updatedDocument?.IDDOCUMENT, 
+          trgcible: updatedDocument?.TRGCIBLE 
+        });
+      } else {
+        console.error('❌ Erreur: action ou document manquant', { 
+          actionExists: !!action, 
+          documentExists: !!document 
         });
       }
 
