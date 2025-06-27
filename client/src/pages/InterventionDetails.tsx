@@ -1103,6 +1103,341 @@ const InterventionDetails = () => {
             </Card>
           </TabsContent>
 
+          <TabsContent value="customfields">
+            <InterventionCustomFields interventionId={intervention.IDINTERVENTION} />
+          </TabsContent>
+
+          <TabsContent value="anomalies">
+            <InterventionAnomalies interventionId={intervention.IDINTERVENTION} />
+          </TabsContent>
+
+          <TabsContent value="checklist">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Check className="w-5 h-5 mr-2" />
+                  Check List
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-3 p-3 border rounded">
+                      <input type="checkbox" id="check1" className="w-4 h-4" />
+                      <label htmlFor="check1" className="flex-1 font-medium">Vérification des niveaux</label>
+                      <Badge variant="outline" className="text-xs">Obligatoire</Badge>
+                    </div>
+                    <div className="flex items-center space-x-3 p-3 border rounded">
+                      <input type="checkbox" id="check2" className="w-4 h-4" defaultChecked />
+                      <label htmlFor="check2" className="flex-1 font-medium">Test des fonctions principales</label>
+                      <Badge variant="outline" className="text-xs">Obligatoire</Badge>
+                    </div>
+                    <div className="flex items-center space-x-3 p-3 border rounded">
+                      <input type="checkbox" id="check3" className="w-4 h-4" />
+                      <label htmlFor="check3" className="flex-1 font-medium">Contrôle visuel extérieur</label>
+                      <Badge variant="outline" className="text-xs">Recommandé</Badge>
+                    </div>
+                    <div className="flex items-center space-x-3 p-3 border rounded">
+                      <input type="checkbox" id="check4" className="w-4 h-4" defaultChecked />
+                      <label htmlFor="check4" className="flex-1 font-medium">Nettoyage et rangement</label>
+                      <Badge variant="outline" className="text-xs">Recommandé</Badge>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-6 p-4 bg-gray-50 rounded">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">Progression:</span>
+                      <span className="text-sm text-gray-600">2/4 éléments validés</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                      <div className="bg-green-600 h-2 rounded-full" style={{ width: '50%' }}></div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="rapport">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <FileText className="w-5 h-5 mr-2" />
+                  Rapport d'intervention
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  {/* Photos et documents */}
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="font-medium">Photos et documents</h4>
+                      <div className="flex space-x-2">
+                        <input
+                          type="file"
+                          id="report-file-upload"
+                          className="hidden"
+                          accept="image/*,.pdf,.doc,.docx,.txt"
+                          multiple
+                          onChange={handleReportFileUpload}
+                          disabled={uploadingFile}
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => document.getElementById('report-file-upload')?.click()}
+                          disabled={uploadingFile}
+                        >
+                          {uploadingFile ? (
+                            <div className="w-4 h-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600 mr-2"></div>
+                          ) : (
+                            <Camera className="w-4 h-4 mr-2" />
+                          )}
+                          Ajouter photo
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => document.getElementById('report-file-upload')?.click()}
+                          disabled={uploadingFile}
+                        >
+                          {uploadingFile ? (
+                            <div className="w-4 h-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600 mr-2"></div>
+                          ) : (
+                            <Upload className="w-4 h-4 mr-2" />
+                          )}
+                          Ajouter document
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {documents.length === 0 ? (
+                        <div className="col-span-full text-center py-8 text-gray-500">
+                          <Image className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                          <p>Aucun document ajouté</p>
+                        </div>
+                      ) : (
+                        documents.map((doc, index) => (
+                          <div key={index} className="border rounded-lg p-3">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center">
+                                {doc.TYPE_FICHIER?.startsWith('image/') ? (
+                                  <Image className="w-5 h-5 mr-2" />
+                                ) : (
+                                  <FileIcon className="w-5 h-5 mr-2" />
+                                )}
+                                <span className="text-sm font-medium truncate">{doc.LIB100}</span>
+                              </div>
+                              <Button variant="ghost" size="sm">
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                            </div>
+                            {doc.COMMENTAIRE && (
+                              <p className="text-xs text-gray-600 mb-2">{doc.COMMENTAIRE}</p>
+                            )}
+                            <p className="text-xs text-gray-500">
+                              {formatDateTime(doc.DHCRE)} - {doc.CDUSER}
+                            </p>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Commentaires du rapport */}
+                  <div>
+                    <h4 className="font-medium mb-4">Commentaires du rapport</h4>
+                    <div className="space-y-4">
+                      {comments.length === 0 ? (
+                        <div className="text-center py-8 text-gray-500">
+                          <MessageSquare className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                          <p>Aucun commentaire</p>
+                        </div>
+                      ) : (
+                        comments.map((comment, index) => (
+                          <div key={index} className="border rounded-lg p-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center">
+                                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-medium mr-3">
+                                  {getInitials(comment.CDUSER, '')}
+                                </div>
+                                <div>
+                                  <p className="font-medium">{comment.CDUSER}</p>
+                                  <p className="text-sm text-gray-500">{formatDateTime(comment.DHCRE)}</p>
+                                </div>
+                              </div>
+                            </div>
+                            <p className="text-sm whitespace-pre-wrap">{comment.LIB200}</p>
+                          </div>
+                        ))
+                      )}
+                    </div>
+
+                    {/* Nouveau commentaire */}
+                    <div className="mt-4 border rounded-lg p-4 bg-gray-50">
+                      <Label htmlFor="new-comment" className="text-sm font-medium">
+                        Ajouter un commentaire
+                      </Label>
+                      <Textarea
+                        id="new-comment"
+                        placeholder="Décrivez le travail effectué, les observations..."
+                        value={newComment}
+                        onChange={(e) => setNewComment(e.target.value)}
+                        rows={3}
+                        className="mt-2"
+                      />
+                      <div className="flex justify-end mt-3">
+                        <Button 
+                          onClick={handleAddComment}
+                          disabled={!newComment.trim()}
+                          size="sm"
+                        >
+                          <Send className="w-4 h-4 mr-2" />
+                          Ajouter commentaire
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="formulaires">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <FileText className="w-5 h-5 mr-2" />
+                  Formulaires
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <FileText className="w-8 h-8 text-blue-500 mr-3" />
+                          <div>
+                            <h5 className="font-medium">Rapport de maintenance</h5>
+                            <p className="text-sm text-gray-600">Formulaire standard de maintenance</p>
+                          </div>
+                        </div>
+                        <Badge variant="outline" className="text-xs">PDF</Badge>
+                      </div>
+                      <div className="flex justify-between items-center mt-3">
+                        <span className="text-xs text-gray-500">Dernière modification: Jamais</span>
+                        <div className="flex space-x-2">
+                          <Button variant="outline" size="sm">
+                            <Edit className="w-4 h-4 mr-1" />
+                            Remplir
+                          </Button>
+                          <Button variant="outline" size="sm">
+                            <Download className="w-4 h-4 mr-1" />
+                            Télécharger
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <FileText className="w-8 h-8 text-green-500 mr-3" />
+                          <div>
+                            <h5 className="font-medium">Fiche de contrôle qualité</h5>
+                            <p className="text-sm text-gray-600">Contrôles post-intervention</p>
+                          </div>
+                        </div>
+                        <Badge variant="outline" className="text-xs">PDF</Badge>
+                      </div>
+                      <div className="flex justify-between items-center mt-3">
+                        <span className="text-xs text-gray-500">Dernière modification: Jamais</span>
+                        <div className="flex space-x-2">
+                          <Button variant="outline" size="sm">
+                            <Edit className="w-4 h-4 mr-1" />
+                            Remplir
+                          </Button>
+                          <Button variant="outline" size="sm">
+                            <Download className="w-4 h-4 mr-1" />
+                            Télécharger
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <FileText className="w-8 h-8 text-orange-500 mr-3" />
+                          <div>
+                            <h5 className="font-medium">Bordereau de livraison</h5>
+                            <p className="text-sm text-gray-600">Pièces et fournitures utilisées</p>
+                          </div>
+                        </div>
+                        <Badge variant="outline" className="text-xs">PDF</Badge>
+                      </div>
+                      <div className="flex justify-between items-center mt-3">
+                        <span className="text-xs text-gray-500">Dernière modification: Jamais</span>
+                        <div className="flex space-x-2">
+                          <Button variant="outline" size="sm">
+                            <Edit className="w-4 h-4 mr-1" />
+                            Remplir
+                          </Button>
+                          <Button variant="outline" size="sm">
+                            <Download className="w-4 h-4 mr-1" />
+                            Télécharger
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <FileText className="w-8 h-8 text-purple-500 mr-3" />
+                          <div>
+                            <h5 className="font-medium">Fiche client</h5>
+                            <p className="text-sm text-gray-600">Satisfaction et remarques client</p>
+                          </div>
+                        </div>
+                        <Badge variant="outline" className="text-xs">PDF</Badge>
+                      </div>
+                      <div className="flex justify-between items-center mt-3">
+                        <span className="text-xs text-gray-500">Dernière modification: Jamais</span>
+                        <div className="flex space-x-2">
+                          <Button variant="outline" size="sm">
+                            <Edit className="w-4 h-4 mr-1" />
+                            Remplir
+                          </Button>
+                          <Button variant="outline" size="sm">
+                            <Download className="w-4 h-4 mr-1" />
+                            Télécharger
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                    <div className="flex items-center">
+                      <FileText className="w-5 h-5 text-blue-600 mr-2" />
+                      <h5 className="font-medium text-blue-900">Formulaires personnalisés</h5>
+                    </div>
+                    <p className="text-sm text-blue-700 mt-1">
+                      Vous pouvez créer et gérer vos propres formulaires dans les paramètres de l'application.
+                    </p>
+                    <Button variant="outline" size="sm" className="mt-3">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Créer un formulaire
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="chat">
             <Card className="h-[700px] flex flex-col">
               <CardHeader className="pb-3 flex-shrink-0">
