@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Edit, Trash2, Car, Calendar, FileText, AlertTriangle, CheckCircle, Clock, Loader, Wrench, Info, Tag, Fuel, Gauge, CalendarDays, ShieldCheck, MapPin } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, Car, Calendar, FileText, AlertTriangle, CheckCircle, Clock, Loader, Wrench, Info, Tag, Fuel, Gauge, CalendarDays, ShieldCheck, MapPin, Camera, Settings, Bug, Eye } from 'lucide-react';
 import AppLayout from '@/components/Layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,6 +18,8 @@ const VehicleDetails = () => {
   const { id } = useParams<{ id: string }>();
   const [vehicle, setVehicle] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [currentInterventions, setCurrentInterventions] = useState<any[]>([]);
+  const [vehicleLocation, setVehicleLocation] = useState<string>('');
 
   const loadVehicle = useCallback(async () => {
     try {
@@ -26,6 +28,11 @@ const VehicleDetails = () => {
       if (response.ok) {
         const data = await response.json();
         setVehicle(data);
+        
+        // Charger les interventions en cours pour déterminer la localisation
+        if (data.IDMACHINE) {
+          await loadCurrentInterventions(data.IDMACHINE);
+        }
       } else {
         console.error('Failed to fetch vehicle');
         setVehicle(null);
@@ -37,6 +44,72 @@ const VehicleDetails = () => {
       setLoading(false);
     }
   }, [id]);
+
+  const loadCurrentInterventions = async (idMachine: number) => {
+    try {
+      const response = await fetch(`/api/vehicles/${idMachine}/interventions`, {
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        const interventions = await response.json();
+        
+        // Filtrer les interventions en cours basées sur la date/heure actuelle
+        const now = new Date();
+        const currentTime = now.getHours() * 60 + now.getMinutes(); // Minutes depuis minuit
+        const today = now.toISOString().split('T')[0];
+        
+        const activeInterventions = interventions.filter((intervention: any) => {
+          // Vérifier si l'intervention est en cours aujourd'hui
+          const startDate = intervention.DT_INTER_DBT;
+          const endDate = intervention.DT_INTER_FIN || intervention.DT_INTER_DBT;
+          
+          if (!startDate) return false;
+          
+          // Convertir les dates pour comparaison
+          const startDateStr = new Date(startDate).toISOString().split('T')[0];
+          const endDateStr = new Date(endDate).toISOString().split('T')[0];
+          
+          // Vérifier si aujourd'hui est dans la plage de dates
+          if (today < startDateStr || today > endDateStr) return false;
+          
+          // Si c'est aujourd'hui, vérifier les heures
+          if (today === startDateStr && today === endDateStr) {
+            // Même jour - vérifier les heures
+            const startTime = intervention.HR_DEBUT ? 
+              parseInt(intervention.HR_DEBUT.split(':')[0]) * 60 + parseInt(intervention.HR_DEBUT.split(':')[1]) : 0;
+            const endTime = intervention.HR_FIN ? 
+              parseInt(intervention.HR_FIN.split(':')[0]) * 60 + parseInt(intervention.HR_FIN.split(':')[1]) : 1440; // Fin de journée par défaut
+            
+            return currentTime >= startTime && currentTime <= endTime;
+          }
+          
+          // Si on est entre les dates (pas le même jour), c'est actif
+          return true;
+        });
+        
+        setCurrentInterventions(activeInterventions);
+        
+        // Déterminer la localisation basée sur l'intervention en cours
+        if (activeInterventions.length > 0) {
+          const activeIntervention = activeInterventions[0];
+          if (activeIntervention.CONTACT_RAISON_SOCIALE) {
+            setVehicleLocation(`En intervention chez ${activeIntervention.CONTACT_RAISON_SOCIALE}`);
+          } else if (activeIntervention.CONTACT_NOM && activeIntervention.CONTACT_PRENOM) {
+            setVehicleLocation(`En intervention chez ${activeIntervention.CONTACT_PRENOM} ${activeIntervention.CONTACT_NOM}`);
+          } else {
+            setVehicleLocation('En intervention');
+          }
+        } else {
+          setVehicleLocation('');
+        }
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des interventions en cours:', error);
+      setCurrentInterventions([]);
+      setVehicleLocation('');
+    }
+  };
 
   useEffect(() => {
     loadVehicle();
@@ -176,6 +249,17 @@ const VehicleDetails = () => {
                     <p className="text-sm text-gray-600 dark:text-gray-400">Statut</p>
                     {getStatusBadge(vehicle.ID2_ETATMACHINE)}
                   </div>
+                  {vehicleLocation && (
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Localisation actuelle</p>
+                      <p className="font-medium text-blue-600 text-sm">{vehicleLocation}</p>
+                      {currentInterventions.length > 0 && (
+                        <p className="text-xs text-gray-500">
+                          {currentInterventions.length} intervention(s) en cours
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
@@ -291,13 +375,34 @@ const VehicleDetails = () => {
           <div className="lg:col-span-3">
             <Tabs defaultValue="overview" className="w-full">
               <TabsList className="grid w-full grid-cols-7">
-                <TabsTrigger value="overview">Aperçu</TabsTrigger>
-                <TabsTrigger value="interventions">Interventions</TabsTrigger>
-                <TabsTrigger value="alerts">Alertes</TabsTrigger>
-                <TabsTrigger value="documents">Documents</TabsTrigger>
-                <TabsTrigger value="photos">Photos</TabsTrigger>
-                <TabsTrigger value="anomalies">Anomalies</TabsTrigger>
-                <TabsTrigger value="custom-fields">Champs personnalisés</TabsTrigger>
+                <TabsTrigger value="overview">
+                  <Eye className="w-4 h-4 mr-2" />
+                  Aperçu
+                </TabsTrigger>
+                <TabsTrigger value="custom-fields">
+                  <Settings className="w-4 h-4 mr-2" />
+                  Compléments
+                </TabsTrigger>
+                <TabsTrigger value="alerts">
+                  <AlertTriangle className="w-4 h-4 mr-2" />
+                  Alertes
+                </TabsTrigger>
+                <TabsTrigger value="anomalies">
+                  <Bug className="w-4 h-4 mr-2" />
+                  Anomalies
+                </TabsTrigger>
+                <TabsTrigger value="interventions">
+                  <Wrench className="w-4 h-4 mr-2" />
+                  Interventions
+                </TabsTrigger>
+                <TabsTrigger value="documents">
+                  <FileText className="w-4 h-4 mr-2" />
+                  Documents
+                </TabsTrigger>
+                <TabsTrigger value="photos">
+                  <Camera className="w-4 h-4 mr-2" />
+                  Photos
+                </TabsTrigger>
               </TabsList>
               
               <TabsContent value="overview">
@@ -530,12 +635,20 @@ const VehicleDetails = () => {
                 </div>
               </TabsContent>
 
-              <TabsContent value="interventions">
-                <VehicleInterventions vehicleId={vehicle.IDVEHICULE} />
+              <TabsContent value="custom-fields">
+                <VehicleCustomFields vehicleId={vehicle.IDMACHINE} />
               </TabsContent>
               
               <TabsContent value="alerts">
-                <VehicleAlerts vehicleId={vehicle.IDVEHICULE} />
+                <VehicleAlerts vehicleId={vehicle.IDMACHINE} />
+              </TabsContent>
+              
+              <TabsContent value="anomalies">
+                <VehicleAnomalies vehicleId={vehicle.IDMACHINE} />
+              </TabsContent>
+              
+              <TabsContent value="interventions">
+                <VehicleInterventions vehicleId={vehicle.IDMACHINE} />
               </TabsContent>
               
               <TabsContent value="documents">
@@ -543,15 +656,7 @@ const VehicleDetails = () => {
               </TabsContent>
               
               <TabsContent value="photos">
-                <VehiclePhotos vehicleId={vehicle.IDVEHICULE} />
-              </TabsContent>
-              
-              <TabsContent value="anomalies">
-                <VehicleAnomalies vehicleId={vehicle.IDVEHICULE} />
-              </TabsContent>
-              
-              <TabsContent value="custom-fields">
-                <VehicleCustomFields vehicleId={vehicle.IDMACHINE} />
+                <VehiclePhotos vehicleId={vehicle.IDMACHINE} />
               </TabsContent>
             </Tabs>
           </div>
