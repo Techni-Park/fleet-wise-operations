@@ -1574,9 +1574,8 @@ const InterventionDetails = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
-  </AppLayout>
-);
+    </AppLayout>
+  );
 };
 
 export default InterventionDetails;
