@@ -49,6 +49,13 @@ export default function CustomFieldsSettings() {
   const [editingField, setEditingField] = useState<CustomField | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  
+  // Gestion des sous-ensembles
+  const [availableSubsets, setAvailableSubsets] = useState<string[]>([]);
+  const [selectedSubset, setSelectedSubset] = useState<string>('');
+  const [newSubsetName, setNewSubsetName] = useState<string>('');
+  const [isAddingNewSubset, setIsAddingNewSubset] = useState<boolean>(false);
+  const [groupBySubset, setGroupBySubset] = useState<boolean>(false);
 
   // État du formulaire
   const [formData, setFormData] = useState({
@@ -70,6 +77,31 @@ export default function CustomFieldsSettings() {
   useEffect(() => {
     loadCustomFields();
   }, [selectedEntityType]);
+
+  // Extraire les sous-ensembles existants des champs
+  useEffect(() => {
+    const subsets = new Set<string>();
+    customFields.forEach(field => {
+      if (field.options) {
+        try {
+          const parsed = JSON.parse(field.options);
+          if (parsed.subset) {
+            subsets.add(parsed.subset);
+          }
+        } catch (error) {
+          // Ignorer les erreurs JSON
+        }
+      }
+    });
+    setAvailableSubsets(Array.from(subsets).sort());
+  }, [customFields]);
+
+  // Mettre à jour les options JSON quand le sous-ensemble change
+  useEffect(() => {
+    if (isDialogOpen) {
+      updateOptionsWithSubset();
+    }
+  }, [selectedSubset]);
 
   const loadCustomFields = async () => {
     setLoading(true);
@@ -175,6 +207,23 @@ export default function CustomFieldsSettings() {
       obligatoire: field.obligatoire,
       options: field.options || ''
     });
+    
+    // Extraire le sous-ensemble si présent
+    if (field.options) {
+      try {
+        const parsed = JSON.parse(field.options);
+        if (parsed.subset) {
+          setSelectedSubset(parsed.subset);
+        } else {
+          setSelectedSubset('');
+        }
+      } catch (error) {
+        setSelectedSubset('');
+      }
+    } else {
+      setSelectedSubset('');
+    }
+    
     setIsDialogOpen(true);
   };
 
@@ -267,22 +316,64 @@ export default function CustomFieldsSettings() {
       obligatoire: false,
       options: ''
     });
+    setSelectedSubset('');
+    setNewSubsetName('');
+    setIsAddingNewSubset(false);
   };
 
   const generateOptionsExample = () => {
+    const baseOptions: any = {
+      subset: selectedSubset || "Informations générales",
+      genre_filter: ["VP", "CTTE"] // Afficher seulement pour ces genres
+    };
+
     if (formData.type === 'select' || formData.type === 'radio') {
-      return JSON.stringify({
-        genre_filter: ["VP", "CTTE"], // Afficher seulement pour ces genres
-        values: [
-          { value: "option1", label: "Option 1" },
-          { value: "option2", label: "Option 2" }
-        ]
-      }, null, 2);
+      baseOptions.values = [
+        { value: "option1", label: "Option 1" },
+        { value: "option2", label: "Option 2" }
+      ];
+    } else {
+      baseOptions.placeholder = "Texte d'aide";
     }
-    return JSON.stringify({
-      genre_filter: ["VP", "CTTE"], // Afficher seulement pour ces genres
-      placeholder: "Texte d'aide"
-    }, null, 2);
+
+    return JSON.stringify(baseOptions, null, 2);
+  };
+
+  const handleAddNewSubset = () => {
+    if (newSubsetName.trim()) {
+      if (!availableSubsets.includes(newSubsetName.trim())) {
+        setAvailableSubsets([...availableSubsets, newSubsetName.trim()].sort());
+      }
+      setSelectedSubset(newSubsetName.trim());
+      setNewSubsetName('');
+      setIsAddingNewSubset(false);
+    }
+  };
+
+  const updateOptionsWithSubset = () => {
+    let currentOptions = {};
+    if (formData.options.trim()) {
+      try {
+        currentOptions = JSON.parse(formData.options);
+      } catch (error) {
+        currentOptions = {};
+      }
+    }
+
+    const updatedOptions = {
+      ...currentOptions,
+      subset: selectedSubset || undefined
+    };
+
+    // Nettoyer les valeurs undefined
+    if (!updatedOptions.subset) {
+      delete updatedOptions.subset;
+    }
+
+    setFormData({
+      ...formData,
+      options: JSON.stringify(updatedOptions, null, 2)
+    });
   };
 
   const renderOptionsPreview = (options: string | null) => {
@@ -291,18 +382,45 @@ export default function CustomFieldsSettings() {
     try {
       const parsed = JSON.parse(options);
       return (
-        <div className="text-xs text-muted-foreground">
+        <div className="text-xs text-muted-foreground space-y-1">
           {parsed.genre_filter && (
-            <div>Genres: {parsed.genre_filter.join(', ')}</div>
+            <div><strong>Genres:</strong> {parsed.genre_filter.join(', ')}</div>
           )}
           {parsed.values && (
-            <div>Options: {parsed.values.map((v: any) => v.label).join(', ')}</div>
+            <div><strong>Options:</strong> {parsed.values.map((v: any) => v.label).join(', ')}</div>
+          )}
+          {parsed.placeholder && (
+            <div><strong>Placeholder:</strong> {parsed.placeholder}</div>
           )}
         </div>
       );
     } catch {
       return <div className="text-xs text-red-500">JSON invalide</div>;
     }
+  };
+
+  // Regrouper les champs par sous-ensemble
+  const groupFieldsBySubset = (fields: CustomField[]) => {
+    const groups: { [key: string]: CustomField[] } = {};
+    
+    fields.forEach(field => {
+      let subset = 'Sans sous-ensemble';
+      try {
+        const options = field.options ? JSON.parse(field.options) : {};
+        if (options.subset) {
+          subset = options.subset;
+        }
+      } catch {
+        // Ignorer les erreurs JSON
+      }
+      
+      if (!groups[subset]) {
+        groups[subset] = [];
+      }
+      groups[subset].push(field);
+    });
+    
+    return groups;
   };
 
   return (
@@ -355,13 +473,21 @@ export default function CustomFieldsSettings() {
                 Liste des champs personnalisés pour {entityTypes.find(t => t.id === selectedEntityType)?.name}
               </CardDescription>
             </div>
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button onClick={resetForm}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Ajouter un champ
-                </Button>
-              </DialogTrigger>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setGroupBySubset(!groupBySubset)}
+              >
+                {groupBySubset ? 'Vue normale' : 'Grouper par sous-ensemble'}
+              </Button>
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button onClick={resetForm}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Ajouter un champ
+                  </Button>
+                </DialogTrigger>
               <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>
@@ -419,6 +545,76 @@ export default function CustomFieldsSettings() {
                     </Select>
                   </div>
 
+                  {/* Sélecteur de sous-ensemble */}
+                  <div className="space-y-2">
+                    <Label htmlFor="subset">Sous-ensemble</Label>
+                    <div className="flex gap-2">
+                      <Select
+                        value={selectedSubset}
+                        onValueChange={setSelectedSubset}
+                      >
+                        <SelectTrigger className="flex-1" id="subset">
+                          <SelectValue placeholder="Sélectionner ou créer un sous-ensemble" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">Aucun sous-ensemble</SelectItem>
+                          {availableSubsets.map(subset => (
+                            <SelectItem key={subset} value={subset}>
+                              {subset}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsAddingNewSubset(true)}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    
+                    {isAddingNewSubset && (
+                      <div className="flex gap-2 mt-2">
+                        <Input
+                          placeholder="Nom du nouveau sous-ensemble"
+                          value={newSubsetName}
+                          onChange={(e) => setNewSubsetName(e.target.value)}
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleAddNewSubset();
+                            }
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={handleAddNewSubset}
+                          disabled={!newSubsetName.trim()}
+                        >
+                          Ajouter
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setIsAddingNewSubset(false);
+                            setNewSubsetName('');
+                          }}
+                        >
+                          Annuler
+                        </Button>
+                      </div>
+                    )}
+                    
+                    <p className="text-xs text-muted-foreground">
+                      Regroupez vos champs personnalisés en sections logiques
+                    </p>
+                  </div>
+
                   <div className="flex items-center space-x-6">
                     <div className="flex items-center space-x-2">
                       <Switch
@@ -452,6 +648,7 @@ export default function CustomFieldsSettings() {
                     <Alert>
                       <AlertTriangle className="h-4 w-4" />
                       <AlertDescription>
+                        <strong>subset</strong> : Nom du sous-ensemble pour regrouper les champs<br/>
                         <strong>genre_filter</strong> : Array des genres de véhicules pour lesquels afficher ce champ (VP, CTTE, CAM)<br/>
                         <strong>values</strong> : Pour select/radio, array d'objets {"{value, label}"}<br/>
                         <strong>placeholder</strong> : Texte d'aide pour les champs de saisie
@@ -474,6 +671,7 @@ export default function CustomFieldsSettings() {
                 </form>
               </DialogContent>
             </Dialog>
+            </div>
           </CardHeader>
           
           <CardContent>
@@ -491,6 +689,7 @@ export default function CustomFieldsSettings() {
                     <TableHead>Nom</TableHead>
                     <TableHead>Libellé</TableHead>
                     <TableHead>Type</TableHead>
+                    <TableHead>Sous-ensemble</TableHead>
                     <TableHead>Propriétés</TableHead>
                     <TableHead>Options</TableHead>
                     <TableHead>Actions</TableHead>
@@ -530,6 +729,22 @@ export default function CustomFieldsSettings() {
                         <Badge variant="outline">
                           {fieldTypes.find(t => t.value === field.type)?.label}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {(() => {
+                          try {
+                            const options = field.options ? JSON.parse(field.options) : {};
+                            return options.subset ? (
+                              <Badge variant="secondary" className="text-xs">
+                                {options.subset}
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground text-xs">Aucun</span>
+                            );
+                          } catch {
+                            return <span className="text-muted-foreground text-xs">Aucun</span>;
+                          }
+                        })()}
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-1">
