@@ -1377,29 +1377,27 @@ const InterventionDetails = () => {
                         </div>
                         
                         <div className="flex flex-col space-y-1 flex-1">
-                          {/* Nom utilisateur - toujours affiché quand avatar visible */}
-                          {showAvatar && (
-                            <span className={`text-xs font-medium ${isCurrentUser ? 'text-right text-green-600' : 'text-left text-gray-700'} ${isCurrentUser ? 'mr-2' : 'ml-2'}`}>
-                              {isCurrentUser ? 'Vous' : userName}
-                            </span>
-                          )}
+                          {/* Nom utilisateur - toujours affiché au-dessus de chaque message */}
+                          <span className={`text-xs font-medium ${isCurrentUser ? 'text-right text-green-600' : 'text-left text-gray-700'} ${isCurrentUser ? 'mr-2' : 'ml-2'}`}>
+                            {isCurrentUser ? 'Vous' : userName}
+                          </span>
                           
 
                           
-                          {/* Message de réponse style WhatsApp */}
-                          {message.IDACTION_PREC && message.IDACTION_PREC !== 0 && (
+                          {/* Message de réponse style WhatsApp - seulement si IDACTION_PREC > 0 */}
+                          {message.IDACTION_PREC && message.IDACTION_PREC > 0 && (
                             <div className={`mb-3 pl-3 border-l-4 py-2 rounded-r-lg ${
                               isCurrentUser 
                                 ? 'border-green-300 bg-green-600/10' 
                                 : 'border-blue-400 bg-blue-50/80 dark:bg-blue-900/20'
                             }`}>
                               <p className={`text-xs font-semibold mb-1 ${
-                                isCurrentUser ? 'text-green-200' : 'text-blue-600 dark:text-blue-400'
+                                isCurrentUser ? 'text-green-700' : 'text-blue-600 dark:text-blue-400'
                               }`}>
                                 {formatFullName(message.PARENT_USER_NOM, message.PARENT_USER_PRENOM) || 'Utilisateur'}
                               </p>
                               <p className={`text-xs opacity-90 ${
-                                isCurrentUser ? 'text-green-100' : 'text-gray-700 dark:text-gray-300'
+                                isCurrentUser ? 'text-gray-700' : 'text-gray-700 dark:text-gray-300'
                               }`} 
                                  style={{
                                    display: '-webkit-box',
@@ -1618,13 +1616,13 @@ const InterventionDetails = () => {
                                   {/* Picker d'emojis */}
                                   {showEmojiPicker === message.IDACTION && (
                                     <div 
-                                      className="absolute bottom-full right-0 mb-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-2 grid grid-cols-6 gap-1 z-10"
+                                      className="absolute bottom-full right-0 mb-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-2 flex flex-wrap gap-1 z-10 max-w-xs"
                                       onClick={(e) => e.stopPropagation()}
                                     >
                                       {['👍', '❤️', '😂', '😮', '😢', '😡', '🙌', '👏', '🔥', '💯', '🎉', '💪'].map(emoji => (
                                         <button
                                           key={emoji}
-                                          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-lg transition-colors"
+                                          className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-lg transition-colors flex-shrink-0"
                                           onClick={() => handleAddReaction(message.IDACTION, emoji)}
                                         >
                                           {emoji}
