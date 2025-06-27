@@ -974,10 +974,16 @@ export class MySQLStorage implements IStorage {
   async createInterventionDocument(interventionId: number, documentData: any): Promise<Document> {
     try {
       const insertData = {
-        ...documentData,
+        LIB100: documentData.LIB100 || 'Document',
+        FILEREF: documentData.FILEREF || '',
+        COMMENTAIRE: documentData.COMMENTAIRE || '',
+        CDUSER: documentData.CDUSER || 'WEB',
+        ID2GENRE_DOCUMENT: documentData.ID2GENRE_DOCUMENT || 2,
         TRGCIBLE: documentData.TRGCIBLE || `INT${interventionId}`,
         DHCRE: new Date(),
-        DHMODIF: new Date()
+        DHMOD: new Date(),
+        USCRE: documentData.CDUSER || 'WEB',
+        USMOD: documentData.CDUSER || 'WEB'
       };
 
       const result = await db.insert(documents).values(insertData);
@@ -997,7 +1003,7 @@ export class MySQLStorage implements IStorage {
         SELECT a.*, u.NOMFAMILLE, u.PRENOM
         FROM ACTION a
         LEFT JOIN USER u ON a.CDUSER = u.CDUSER
-        WHERE a.TRGCIBLE = ${`INT${interventionId}`} 
+        WHERE a.CLE_MACHINE_CIBLE = ${`INT${interventionId}`} 
         AND a.LIB100 = 'Commentaire intervention'
         ORDER BY a.DHCRE DESC
       `);
@@ -1011,10 +1017,14 @@ export class MySQLStorage implements IStorage {
   async createInterventionComment(interventionId: number, commentData: any): Promise<Action> {
     try {
       const insertData = {
-        ...commentData,
-        TRGCIBLE: `INT${interventionId}`,
+        LIB100: commentData.LIB100 || 'Commentaire intervention',
+        COMMENTAIRE: commentData.COMMENTAIRE || '',
+        CDUSER: commentData.CDUSER || 'WEB',
+        CLE_MACHINE_CIBLE: `INT${interventionId}`,
         DHCRE: new Date(),
-        DHMODIF: new Date()
+        DHMOD: new Date(),
+        USCRE: commentData.CDUSER || 'WEB',
+        USMOD: commentData.CDUSER || 'WEB'
       };
 
       const result = await db.insert(actions).values(insertData);
@@ -1035,37 +1045,35 @@ export class MySQLStorage implements IStorage {
           a.*,
           u.NOMFAMILLE,
           u.PRENOM,
-          ru.NOMFAMILLE as REPLY_USER_NOM,
-          ru.PRENOM as REPLY_USER_PRENOM,
-          ra.CDUSER as REPLY_CDUSER,
-          ra.COMMENTAIRE as REPLY_COMMENTAIRE,
-          JSON_ARRAYAGG(
+          pa.COMMENTAIRE as PARENT_COMMENTAIRE,
+          pu.NOMFAMILLE as PARENT_USER_NOM,
+          pu.PRENOM as PARENT_USER_PRENOM,
+          GROUP_CONCAT(
             CASE WHEN d.IDDOCUMENT IS NOT NULL THEN
-              JSON_OBJECT(
-                'IDDOCUMENT', d.IDDOCUMENT,
-                'LIB100', d.LIB100,
-                'FILEREF', d.FILEREF,
-                'ID2GENRE_DOCUMENT', d.ID2GENRE_DOCUMENT,
-                'DHCRE', d.DHCRE
-              )
+              CONCAT(d.IDDOCUMENT, '|', d.LIB100, '|', d.FILEREF, '|', d.ID2GENRE_DOCUMENT, '|', d.DHCRE)
             END
-          ) as DOCUMENTS
+            SEPARATOR '###'
+          ) as DOCUMENTS_STR
         FROM ACTION a
         LEFT JOIN USER u ON a.CDUSER = u.CDUSER
-        LEFT JOIN ACTION ra ON a.REPLY_TO = ra.IDACTION
-        LEFT JOIN USER ru ON ra.CDUSER = ru.CDUSER
+        LEFT JOIN ACTION pa ON a.IDACTION_PREC = pa.IDACTION
+        LEFT JOIN USER pu ON pa.CDUSER = pu.CDUSER
         LEFT JOIN DOCUMENT d ON d.TRGCIBLE = CONCAT('ACT', a.IDACTION)
-        WHERE a.TRGCIBLE = ${`INT${interventionId}`} 
-        AND a.LIB100 IN ('Message chat', 'Photo partagée', 'Document partagé')
+        WHERE a.CLE_MACHINE_CIBLE = ${`INT${interventionId}`}
+        AND a.TYPACT = 10
         GROUP BY a.IDACTION
         ORDER BY a.DHCRE ASC
       `);
       
-      // Traiter les documents JSON pour chaque message
-             const messages = (result[0] as any[]) || [];
+      // Traiter les documents de façon plus sûre
+      const messages = (result[0] as any[]) || [];
       return messages.map(message => ({
         ...message,
-        DOCUMENTS: message.DOCUMENTS ? JSON.parse(message.DOCUMENTS).filter((doc: any) => doc !== null) : []
+        DOCUMENTS: message.DOCUMENTS_STR ? 
+          message.DOCUMENTS_STR.split('###').map((docStr: string) => {
+            const [IDDOCUMENT, LIB100, FILEREF, ID2GENRE_DOCUMENT, DHCRE] = docStr.split('|');
+            return { IDDOCUMENT, LIB100, FILEREF, ID2GENRE_DOCUMENT: parseInt(ID2GENRE_DOCUMENT), DHCRE };
+          }).filter((doc: any) => doc.IDDOCUMENT) : []
       }));
     } catch (error) {
       console.error('Erreur getChatMessages:', error);
@@ -1075,19 +1083,29 @@ export class MySQLStorage implements IStorage {
 
   async createChatMessage(interventionId: number, messageData: any): Promise<Action> {
     try {
+      // Champs obligatoires pour les messages chat
       const insertData = {
-        ...messageData,
-        TRGCIBLE: messageData.TRGCIBLE || `INT${interventionId}`,
+        LIB100: messageData.LIB100 || 'Message chat',
+        COMMENTAIRE: messageData.COMMENTAIRE || '',
+        CDUSER: messageData.CDUSER || 'WEB',
+        CLE_MACHINE_CIBLE: messageData.CLE_MACHINE_CIBLE || `INT${interventionId}`,
+        TYPACT: 10, // Messages chat
+        ID2GENRE_ACTION: 1, // Genre pour chat
+        IDACTION_PREC: messageData.IDACTION_PREC || 0, // Message auquel on répond (0 si pas de réponse)
         DHCRE: new Date(),
-        DHMODIF: new Date()
+        DHMOD: new Date(),
+        USCRE: messageData.CDUSER || 'WEB',
+        USMOD: messageData.CDUSER || 'WEB'
       };
 
+      console.log('Tentative d\'insertion ACTION avec data:', insertData);
       const result = await db.insert(actions).values(insertData);
       const insertId = result[0].insertId as number;
+      console.log('Action créée avec ID:', insertId);
       const newAction = await this.getAction(insertId);
       return newAction!;
     } catch (error) {
-      console.error('Erreur createChatMessage:', error);
+      console.error('Erreur createChatMessage - détail:', error);
       throw error;
     }
   }

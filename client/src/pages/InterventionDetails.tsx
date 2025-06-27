@@ -228,11 +228,11 @@ const InterventionDetails = () => {
         },
         credentials: 'include',
         body: JSON.stringify({
-          TRGCIBLE: `INT${id}`,
+          CLE_MACHINE_CIBLE: `INT${id}`,
           LIB100: 'Message chat',
           COMMENTAIRE: newChatMessage,
           CDUSER: 'WEB', // TODO: utiliser l'utilisateur connecté
-          REPLY_TO: replyingTo?.IDACTION || null,
+          IDACTION_PREC: replyingTo?.IDACTION || 0,
         }),
       });
 
@@ -269,11 +269,11 @@ const InterventionDetails = () => {
         },
         credentials: 'include',
         body: JSON.stringify({
-          TRGCIBLE: `INT${id}`,
+          CLE_MACHINE_CIBLE: `INT${id}`,
           LIB100: file.type.includes('image') ? 'Photo partagée' : 'Document partagé',
           COMMENTAIRE: `${file.type.includes('image') ? 'Photo' : 'Document'}: ${file.name}`,
           CDUSER: 'WEB', // TODO: utiliser l'utilisateur connecté
-          REPLY_TO: replyingTo?.IDACTION || null,
+          IDACTION_PREC: replyingTo?.IDACTION || 0,
         }),
       });
 
@@ -1311,16 +1311,18 @@ const InterventionDetails = () => {
                             </span>
                           )}
                           
+
+                          
                           {/* Message de réponse */}
-                          {message.REPLY_TO && (
+                          {message.IDACTION_PREC && message.IDACTION_PREC !== 0 && (
                             <div className={`text-xs bg-gray-100 dark:bg-gray-700 rounded p-2 mb-1 border-l-2 border-blue-500 ${isCurrentUser ? 'mr-2' : 'ml-2'}`}>
                               <p className="font-medium text-blue-600">
-                                Réponse à {formatFullName(message.REPLY_USER_NOM, message.REPLY_USER_PRENOM) || message.REPLY_CDUSER}
+                                Réponse à {formatFullName(message.PARENT_USER_NOM, message.PARENT_USER_PRENOM) || 'Utilisateur'}
                               </p>
-                              <p className="text-gray-600 truncate">{message.REPLY_COMMENTAIRE}</p>
+                              <p className="text-gray-600 truncate">{message.PARENT_COMMENTAIRE}</p>
                             </div>
                           )}
-                          
+
                           {/* Bulle de message */}
                           <div className={`relative rounded-lg p-3 ${
                             isCurrentUser 
@@ -1394,6 +1396,7 @@ const InterventionDetails = () => {
                                 <Reply className="w-3 h-3" />
                               </Button>
                             )}
+
                           </div>
                         </div>
                       </div>
