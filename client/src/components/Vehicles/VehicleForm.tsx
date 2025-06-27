@@ -57,13 +57,15 @@ interface VehicleFormProps {
   onSubmit: (data: VehicleFormData) => void;
   onCancel: () => void;
   isEdit?: boolean;
+  saving?: boolean;
 }
 
 const VehicleForm: React.FC<VehicleFormProps> = ({ 
   initialData, 
   onSubmit, 
   onCancel, 
-  isEdit = false 
+  isEdit = false,
+  saving = false
 }) => {
   const { toast } = useToast();
   const { register, handleSubmit, formState: { errors } } = useForm<VehicleFormData>({
@@ -484,11 +486,16 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       </Card>
 
       <div className="flex justify-end space-x-4">
-        <Button type="button" variant="outline" onClick={onCancel}>
+        <Button type="button" variant="outline" onClick={onCancel} disabled={saving}>
           Annuler
         </Button>
-        <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
-          {isEdit ? 'Enregistrer les modifications' : 'Créer le véhicule'}
+        <Button 
+          id="vehicle-form-submit"
+          type="submit" 
+          className="bg-blue-600 hover:bg-blue-700"
+          disabled={saving}
+        >
+          {saving ? 'Sauvegarde...' : (isEdit ? 'Enregistrer les modifications' : 'Créer le véhicule')}
         </Button>
       </div>
     </form>

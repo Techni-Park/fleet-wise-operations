@@ -91,6 +91,8 @@ export interface IStorage {
   getVehicule(id: number): Promise<Vehicule | undefined>;
   getAllVehicules(): Promise<Vehicule[]>;
   createVehicule(vehicule: InsertVehicule): Promise<Vehicule>;
+  createVehiculeWithMachine(vehicleData: Partial<InsertVehicule>, machineData: Partial<InsertMachineMnt>): Promise<Vehicule>;
+  updateVehicule(id: number, vehicleData: Partial<InsertVehicule>, machineData?: Partial<InsertMachineMnt>): Promise<Vehicule | undefined>;
 
   // Anomalies
   getAnomalie(id: number): Promise<Anomalie | undefined>;
@@ -546,6 +548,54 @@ export class MySQLStorage implements IStorage {
   async createVehicule(vehicule: InsertVehicule): Promise<Vehicule> {
     const result = await db.insert(vehicules).values(vehicule).returning();
     return result[0];
+  }
+
+  async createVehiculeWithMachine(vehicleData: Partial<InsertVehicule>, machineData: Partial<InsertMachineMnt>): Promise<Vehicule> {
+    try {
+      // D'abord créer la machine
+      const machineResult = await db.insert(machinesMnt).values(machineData as InsertMachineMnt);
+      const machineId = machineResult[0].insertId as number;
+
+      // Ensuite créer le véhicule avec l'ID de la machine
+      const vehicleWithMachine = {
+        ...vehicleData,
+        IDMACHINE: machineId
+      };
+      
+      const vehicleResult = await db.insert(vehicules).values(vehicleWithMachine as InsertVehicule);
+      const vehicleId = vehicleResult[0].insertId as number;
+
+      // Retourner le véhicule avec la jointure
+      const newVehicle = await this.getVehicule(vehicleId);
+      return newVehicle!;
+    } catch (error) {
+      console.error('Erreur createVehiculeWithMachine:', error);
+      throw error;
+    }
+  }
+
+  async updateVehicule(id: number, vehicleData: Partial<InsertVehicule>, machineData?: Partial<InsertMachineMnt>): Promise<Vehicule | undefined> {
+    try {
+      // Mettre à jour la table VEHICULE
+      if (Object.keys(vehicleData).length > 0) {
+        await db.update(vehicules).set(vehicleData).where(eq(vehicules.IDVEHICULE, id));
+      }
+
+      // Si on a des données de machine et qu'on a l'IDMACHINE du véhicule
+      if (machineData && Object.keys(machineData).length > 0) {
+        // D'abord récupérer l'IDMACHINE du véhicule
+        const vehicleResult = await db.select({ IDMACHINE: vehicules.IDMACHINE }).from(vehicules).where(eq(vehicules.IDVEHICULE, id)).limit(1);
+        if (vehicleResult[0]?.IDMACHINE) {
+          await db.update(machinesMnt).set(machineData).where(eq(machinesMnt.IDMACHINE, vehicleResult[0].IDMACHINE));
+        }
+      }
+
+      // Retourner le véhicule mis à jour avec la jointure
+      return this.getVehicule(id);
+    } catch (error) {
+      console.error('Erreur updateVehicule:', error);
+      return undefined;
+    }
   }
 
   // Anomalies

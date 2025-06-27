@@ -480,10 +480,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/vehicules", async (req, res) => {
     try {
-      const vehicule = await storage.createVehicule(req.body);
-      res.status(201).json(vehicule);
+      const { vehicleData, machineData } = req.body;
+      
+      if (vehicleData && machineData) {
+        // Création avec les deux tables
+        const vehicule = await storage.createVehiculeWithMachine(vehicleData, machineData);
+        res.status(201).json(vehicule);
+      } else {
+        // Fallback pour l'ancienne méthode
+        const vehicule = await storage.createVehicule(req.body);
+        res.status(201).json(vehicule);
+      }
     } catch (error) {
+      console.error('Erreur POST vehicule:', error);
       res.status(500).json({ error: "Failed to create vehicule" });
+    }
+  });
+
+  app.put("/api/vehicules/:id", async (req, res) => {
+    try {
+      const { vehicleData, machineData } = req.body;
+      const vehicule = await storage.updateVehicule(parseInt(req.params.id), vehicleData, machineData);
+      if (!vehicule) {
+        return res.status(404).json({ error: "Vehicule not found or update failed" });
+      }
+      res.json(vehicule);
+    } catch (error) {
+      console.error('Erreur PUT vehicule:', error);
+      res.status(500).json({ error: "Failed to update vehicule" });
     }
   });
 
