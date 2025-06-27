@@ -1396,6 +1396,161 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Route de test pour la vraie table USER native (avec mots de passe en clair)
+  app.get("/api/test-native-user-table", async (req, res) => {
+    try {
+      console.log('=== TEST TABLE USER NATIVE ===');
+      
+      // Récupérer quelques utilisateurs de la table USER native
+      const testUsers = [];
+      
+      // Tester avec des emails courants
+      const testEmails = [
+        "dev@techni-park.com",
+        "admin@techni-park.com", 
+        "test@techni-park.com",
+        "s.vaudremont@techni-park.com"
+      ];
+      
+      for (const email of testEmails) {
+        try {
+          const user = await storage.getUserByEmail(email);
+          if (user) {
+            testUsers.push({
+              IDUSER: user.IDUSER,
+              EMAILP: user.EMAILP,
+              NOMFAMILLE: user.NOMFAMILLE,
+              PRENOM: user.PRENOM,
+              CDUSER: user.CDUSER,
+              PASSWORD: user.PASSWORD, // Mot de passe en clair
+              IAUTORISE: user.IAUTORISE
+            });
+          }
+        } catch (error) {
+          console.log('Erreur pour email', email, ':', error);
+        }
+      }
+      
+      res.json({
+        success: true,
+        message: `Table USER native trouvée avec ${testUsers.length} utilisateur(s) de test`,
+        count: testUsers.length,
+        data: testUsers,
+        note: "Ces utilisateurs proviennent de la table USER native avec mots de passe en clair"
+      });
+    } catch (error) {
+      console.error('Erreur test table USER native:', error);
+      res.json({
+        success: false,
+        error: (error as Error).message,
+        message: "Erreur lors du test de la table USER native: " + (error as Error).message
+      });
+    }
+  });
+
+  // Route de test pour récupérer un utilisateur par email
+  app.get("/api/test-get-user", async (req, res) => {
+    try {
+      const email = req.query.email as string;
+      if (!email) {
+        return res.status(400).json({ error: 'Email requis' });
+      }
+      
+      console.log('Test getUserByEmail pour:', email);
+      
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(404).json({ 
+          success: false, 
+          message: `Utilisateur non trouvé pour l'email: ${email}` 
+        });
+      }
+      
+      res.json({
+        success: true,
+        message: 'Utilisateur trouvé',
+        data: {
+          IDUSER: user.IDUSER,
+          EMAILP: user.EMAILP,
+          NOMFAMILLE: user.NOMFAMILLE,
+          PRENOM: user.PRENOM,
+          CDUSER: user.CDUSER,
+          PASSWORD: user.PASSWORD,
+          IARCHIVE: user.IARCHIVE
+        }
+      });
+    } catch (error) {
+      console.error('Erreur test getUserByEmail:', error);
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
+  // Route de test pour simuler l'authentification sans Passport
+  app.post("/api/test-login", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      console.log('Test login pour:', email, '/ mot de passe:', password);
+      
+      if (!email || !password) {
+        return res.status(400).json({ error: 'Email et mot de passe requis' });
+      }
+      
+      // Étape 1: Récupérer l'utilisateur
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        console.log('Utilisateur non trouvé pour:', email);
+        return res.status(401).json({ error: 'Email incorrect' });
+      }
+      
+      console.log('Utilisateur trouvé:', {
+        IDUSER: user.IDUSER,
+        EMAILP: user.EMAILP,
+        IARCHIVE: user.IARCHIVE,
+        PASSWORD: user.PASSWORD
+      });
+      
+      // Étape 2: Vérifier si actif
+      if (user.IARCHIVE !== 0) {
+        console.log('Utilisateur archivé (IARCHIVE != 0)');
+        return res.status(401).json({ error: 'Compte archivé' });
+      }
+      
+      // Étape 3: Vérifier le mot de passe
+      console.log('Comparaison mots de passe:');
+      console.log('  Saisi:', `"${password}"`);
+      console.log('  Stocké:', `"${user.PASSWORD}"`);
+      console.log('  Égaux?', user.PASSWORD === password);
+      
+      if (user.PASSWORD !== password) {
+        console.log('Mot de passe incorrect');
+        return res.status(401).json({ error: 'Mot de passe incorrect' });
+      }
+      
+      console.log('✅ Authentification réussie pour:', email);
+      
+      res.json({
+        success: true,
+        message: 'Authentification réussie',
+        user: {
+          IDUSER: user.IDUSER,
+          EMAILP: user.EMAILP,
+          NOMFAMILLE: user.NOMFAMILLE,
+          PRENOM: user.PRENOM,
+          CDUSER: user.CDUSER
+        }
+      });
+    } catch (error) {
+      console.error('Erreur test login:', error);
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

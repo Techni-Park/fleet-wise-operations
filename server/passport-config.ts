@@ -3,10 +3,10 @@ import { Strategy as LocalStrategy } from "passport-local";
 import { storage } from "./storage";
 
 passport.use(new LocalStrategy(
-  { usernameField: 'email' }, // Use EMAIL from USER table
+  { usernameField: 'email' }, // Use EMAILP from USER table
   async (email, password, done) => {
     try {
-      console.log('Tentative de connexion avec table USER pour:', email);
+      console.log('Tentative de connexion avec table USER native pour:', email);
       
       const user = await storage.getUserByEmail(email);
       if (!user) {
@@ -14,12 +14,17 @@ passport.use(new LocalStrategy(
         return done(null, false, { message: 'Email incorrect.' });
       }
       
-      console.log('Utilisateur trouvé dans USER:', { IDUSER: user.IDUSER, EMAILP: user.EMAILP, IAUTORISE: user.IAUTORISE });
+      console.log('Utilisateur trouvé dans USER:', { 
+        IDUSER: user.IDUSER, 
+        EMAILP: user.EMAILP, 
+        IARCHIVE: user.IARCHIVE,
+        PASSWORD: user.PASSWORD ? '[PRÉSENT]' : '[ABSENT]'
+      });
       
-      // Vérifier si l'utilisateur est autorisé (IAUTORISE = 1)
-      if (user.IAUTORISE !== 1) {
-        console.log('Utilisateur non autorisé (IAUTORISE != 1) pour:', email);
-        return done(null, false, { message: 'Compte non autorisé.' });
+      // Vérifier si l'utilisateur est actif (IARCHIVE = 0)
+      if (user.IARCHIVE !== 0) {
+        console.log('Utilisateur archivé (IARCHIVE != 0) pour:', email);
+        return done(null, false, { message: 'Compte archivé.' });
       }
       
       // Comparer le mot de passe en clair (pas de hachage)
