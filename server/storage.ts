@@ -41,7 +41,7 @@ export interface IStorage {
   createIntervention(intervention: InsertIntervention): Promise<Intervention>;
   updateIntervention(id: number, intervention: Partial<InsertIntervention>): Promise<Intervention | undefined>;
   deleteIntervention(id: number): Promise<boolean>;
-  getAllInterventions(): Promise<Intervention[]>;
+  getAllInterventions(page: number, limit: number): Promise<{ interventions: Intervention[], total: number }>;
   getInterventionsByVehicle(vehicleId: number): Promise<Intervention[]>;
 
   // Alerts
@@ -114,6 +114,14 @@ export interface IStorage {
   updateCustomField(id: number, field: Partial<CustomField>): Promise<void>;
   deleteCustomField(id: number): Promise<boolean>;
   updateCustomFieldOrder(id: number, ordre: number): Promise<void>;
+
+  // Documents pour interventions
+  getDocumentsByIntervention(interventionId: number): Promise<Document[]>;
+  createInterventionDocument(interventionId: number, documentData: any): Promise<Document>;
+
+  // Commentaires d'intervention (utilisation de la table ACTION pour les rapports)
+  getInterventionComments(interventionId: number): Promise<Action[]>;
+  createInterventionComment(interventionId: number, commentData: any): Promise<Action>;
 }
 
 export class MySQLStorage implements IStorage {
@@ -236,7 +244,102 @@ export class MySQLStorage implements IStorage {
   // Interventions
   async getIntervention(id: number): Promise<Intervention | undefined> {
     try {
-      // Récupérer une intervention avec jointures
+      // Requête avec toutes les jointures pour un seul enregistrement
+      const query = sql`
+        SELECT 
+          i.*,
+          c.NOMFAMILLE as CONTACT_NOM,
+          c.PRENOM as CONTACT_PRENOM,
+          c.RAISON_SOCIALE as CONTACT_RAISON_SOCIALE,
+          c.EMAIL as CONTACT_EMAIL,
+          c.TEL1 as CONTACT_TEL,
+          c.EMAILP as CONTACT_EMAILP,
+          c.TELP1 as CONTACT_TELP1,
+          c.ADRESSE1 as CONTACT_ADRESSE1,
+          c.VILLE as CONTACT_VILLE,
+          v.IMMAT as VEHICULE_IMMAT,
+          m.MARQUE as VEHICULE_MARQUE,
+          m.MODELE as VEHICULE_MODELE,
+          m.CD_MACHINE as VEHICULE_CODE,
+          m.LIB_MACHINE as VEHICULE_LIB_MACHINE,
+          m.IDMACHINE as VEHICULE_IDMACHINE,
+          u.NOMFAMILLE as TECHNICIEN_NOM,
+          u.PRENOM as TECHNICIEN_PRENOM,
+          u.EMAIL as TECHNICIEN_EMAIL,
+          u.TELBUR as TECHNICIEN_TEL
+        FROM INTERVENTION i
+        LEFT JOIN CONTACT c ON i.IDCONTACT = c.IDCONTACT
+        LEFT JOIN MACHINE_MNT m ON SUBSTRING(i.CLE_MACHINE_CIBLE, 2) = CAST(m.IDMACHINE AS CHAR)
+        LEFT JOIN VEHICULE v ON m.IDMACHINE = v.IDMACHINE
+        LEFT JOIN USER u ON i.CDUSER = u.CDUSER
+        WHERE i.IDINTERVENTION = ${id}
+        LIMIT 1
+      `;
+      
+      const result = await db.execute(query);
+      return (result[0] as any[])[0];
+    } catch (error) {
+      console.error('Erreur getIntervention avec jointures:', error);
+      // Fallback sans jointures
+      const result = await db.select().from(interventions).where(eq(interventions.IDINTERVENTION, id)).limit(1);
+      return result[0];
+    }
+  }
+
+  async getAllInterventions(page: number = 1, limit: number = 12): Promise<{ interventions: Intervention[], total: number }> {
+    try {
+      // Calcul de l'offset
+      const offset = (page - 1) * limit;
+      
+      // Requête principale avec toutes les jointures nécessaires
+      const query = sql`
+        SELECT 
+          i.*,
+          c.NOMFAMILLE as CONTACT_NOM,
+          c.PRENOM as CONTACT_PRENOM,
+          c.RAISON_SOCIALE as CONTACT_RAISON_SOCIALE,
+          c.EMAIL as CONTACT_EMAIL,
+          c.TEL1 as CONTACT_TEL,
+          c.EMAILP as CONTACT_EMAILP,
+          c.TELP1 as CONTACT_TELP1,
+          v.IMMAT as VEHICULE_IMMAT,
+          m.MARQUE as VEHICULE_MARQUE,
+          m.MODELE as VEHICULE_MODELE,
+          m.CD_MACHINE as VEHICULE_CODE,
+          m.LIB_MACHINE as VEHICULE_LIB_MACHINE,
+          m.IDMACHINE as VEHICULE_IDMACHINE,
+          u.NOMFAMILLE as TECHNICIEN_NOM,
+          u.PRENOM as TECHNICIEN_PRENOM,
+          u.EMAIL as TECHNICIEN_EMAIL
+        FROM INTERVENTION i
+        LEFT JOIN CONTACT c ON i.IDCONTACT = c.IDCONTACT
+        LEFT JOIN MACHINE_MNT m ON SUBSTRING(i.CLE_MACHINE_CIBLE, 2) = CAST(m.IDMACHINE AS CHAR)
+        LEFT JOIN VEHICULE v ON m.IDMACHINE = v.IDMACHINE
+        LEFT JOIN USER u ON i.CDUSER = u.CDUSER
+        ORDER BY i.IDINTERVENTION DESC
+        LIMIT ${limit} OFFSET ${offset}
+      `;
+      
+      const interventionsResult = await db.execute(query);
+      
+      // Compter le total
+      const countQuery = sql`SELECT COUNT(*) as total FROM INTERVENTION`;
+      const countResult = await db.execute(countQuery);
+      const total = (countResult[0] as any[])[0]?.total || 0;
+      
+      return {
+        interventions: (interventionsResult[0] as any[]) || [],
+        total: total
+      };
+    } catch (error) {
+      console.error('Erreur getAllInterventions avec pagination:', error);
+      return { interventions: [], total: 0 };
+    }
+  }
+
+  async getInterventionsByVehicle(vehicleId: number): Promise<Intervention[]> {
+    try {
+      // Récupérer les interventions pour un véhicule spécifique via CLE_MACHINE_CIBLE
       const query = sql`
         SELECT 
           i.*,
@@ -249,74 +352,23 @@ export class MySQLStorage implements IStorage {
           m.MARQUE as VEHICULE_MARQUE,
           m.MODELE as VEHICULE_MODELE,
           m.CD_MACHINE as VEHICULE_CODE,
-          m.IDMACHINE as VEHICULE_IDMACHINE
+          m.LIB_MACHINE as VEHICULE_LIB_MACHINE,
+          u.NOMFAMILLE as TECHNICIEN_NOM,
+          u.PRENOM as TECHNICIEN_PRENOM
         FROM INTERVENTION i
         LEFT JOIN CONTACT c ON i.IDCONTACT = c.IDCONTACT
-        LEFT JOIN MACHINE_MNT m ON i.CLE_MACHINE_CIBLE = CONCAT('R', m.IDMACHINE)
+        LEFT JOIN MACHINE_MNT m ON SUBSTRING(i.CLE_MACHINE_CIBLE, 2) = CAST(m.IDMACHINE AS CHAR)
         LEFT JOIN VEHICULE v ON m.IDMACHINE = v.IDMACHINE
-        WHERE i.IDINTERVENTION = ${id}
-        LIMIT 1
+        LEFT JOIN USER u ON i.CDUSER = u.CDUSER
+        WHERE m.IDMACHINE = ${vehicleId}
+        ORDER BY i.DT_INTER_DBT DESC, i.IDINTERVENTION DESC
       `;
+      
       const result = await db.execute(query);
-      return (result[0] as any[])[0];
-    } catch (error) {
-      console.error('Erreur getIntervention avec jointures:', error);
-      const result = await db.select().from(interventions).where(eq(interventions.IDINTERVENTION, id)).limit(1);
-      return result[0];
-    }
-  }
-
-  async getAllInterventions(): Promise<Intervention[]> {
-    try {
-      // Récupérer les interventions avec jointures sur CONTACT et MACHINE_MNT/VEHICULE
-      const query = sql`
-        SELECT 
-          i.*,
-          c.NOMFAMILLE as CONTACT_NOM,
-          c.PRENOM as CONTACT_PRENOM,
-          c.RAISON_SOCIALE as CONTACT_RAISON_SOCIALE,
-          v.IMMAT as VEHICULE_IMMAT,
-          m.MARQUE as VEHICULE_MARQUE,
-          m.MODELE as VEHICULE_MODELE,
-          m.CD_MACHINE as VEHICULE_CODE
-        FROM INTERVENTION i
-        LEFT JOIN CONTACT c ON i.IDCONTACT = c.IDCONTACT
-        LEFT JOIN MACHINE_MNT m ON i.CLE_MACHINE_CIBLE = CONCAT('R', m.IDMACHINE)
-        LEFT JOIN VEHICULE v ON m.IDMACHINE = v.IDMACHINE
-        ORDER BY i.IDINTERVENTION DESC
-      `;
-      const result = await db.execute(query);
-      return result[0] as Intervention[];
-    } catch (error) {
-      console.error('Erreur getAllInterventions avec jointures:', error);
-      // Fallback sans jointure
-      return db.select().from(interventions).orderBy(desc(interventions.IDINTERVENTION));
-    }
-  }
-
-  async getInterventionsByVehicle(vehicleId: number): Promise<Intervention[]> {
-    try {
-      // Recherche par machine cible avec format "R{IDMACHINE}"
-      const machineCible = `R${vehicleId}`;
-      const query = sql`
-        SELECT 
-          i.*,
-          c.NOMFAMILLE as CONTACT_NOM,
-          c.PRENOM as CONTACT_PRENOM,
-          c.RAISON_SOCIALE as CONTACT_RAISON_SOCIALE
-        FROM INTERVENTION i
-        LEFT JOIN CONTACT c ON i.IDCONTACT = c.IDCONTACT
-        WHERE i.CLE_MACHINE_CIBLE = ${machineCible}
-        ORDER BY i.IDINTERVENTION DESC
-        LIMIT 50
-      `;
-      const result = await db.execute(query);
-      return result[0] as Intervention[];
+      return (result[0] as any[]) || [];
     } catch (error) {
       console.error('Erreur getInterventionsByVehicle:', error);
-      const machineCible = `R${vehicleId}`;
-      const result = await db.select().from(interventions).where(eq(interventions.CLE_MACHINE_CIBLE, machineCible)).limit(50);
-      return result;
+      return [];
     }
   }
 

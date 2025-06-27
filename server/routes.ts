@@ -103,11 +103,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Interventions API - données réelles MySQL
+  // Interventions API - données réelles MySQL avec pagination
   app.get("/api/interventions", async (req, res) => {
     try {
-      const interventions = await storage.getAllInterventions();
-      res.json(interventions);
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 12;
+      
+      const result = await storage.getAllInterventions(page, limit);
+      res.json(result);
     } catch (error) {
       console.error('Erreur API interventions:', error);
       res.status(500).json({ error: (error as Error).message });
@@ -154,6 +157,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(interventions);
     } catch (error) {
       console.error('Erreur API interventions par véhicule:', error);
+      res.status(500).json({ error: (error as Error).message });
+    }
+  });
+
+  // Documents d'intervention
+  app.get("/api/interventions/:id/documents", async (req, res) => {
+    try {
+      const documents = await storage.getDocumentsByIntervention(parseInt(req.params.id));
+      res.json(documents);
+    } catch (error) {
+      console.error('Erreur API documents intervention:', error);
+      res.status(500).json({ error: (error as Error).message });
+    }
+  });
+
+  app.post("/api/interventions/:id/documents", async (req, res) => {
+    try {
+      const document = await storage.createInterventionDocument(parseInt(req.params.id), req.body);
+      res.status(201).json(document);
+    } catch (error) {
+      console.error('Erreur création document intervention:', error);
+      res.status(500).json({ error: (error as Error).message });
+    }
+  });
+
+  // Commentaires d'intervention
+  app.get("/api/interventions/:id/comments", async (req, res) => {
+    try {
+      const comments = await storage.getInterventionComments(parseInt(req.params.id));
+      res.json(comments);
+    } catch (error) {
+      console.error('Erreur API commentaires intervention:', error);
+      res.status(500).json({ error: (error as Error).message });
+    }
+  });
+
+  app.post("/api/interventions/:id/comments", async (req, res) => {
+    try {
+      const comment = await storage.createInterventionComment(parseInt(req.params.id), req.body);
+      res.status(201).json(comment);
+    } catch (error) {
+      console.error('Erreur création commentaire intervention:', error);
       res.status(500).json({ error: (error as Error).message });
     }
   });

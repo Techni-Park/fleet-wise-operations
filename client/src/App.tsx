@@ -12,6 +12,7 @@ import EditVehicle from "./pages/EditVehicle";
 import Interventions from "./pages/Interventions";
 import InterventionDetails from "./pages/InterventionDetails";
 import EditIntervention from "./pages/EditIntervention";
+import CreateIntervention from "./pages/CreateIntervention";
 import Planning from "./pages/Planning";
 import Alerts from "./pages/Alerts";
 import Reports from "./pages/Reports";
@@ -51,6 +52,7 @@ const App = () => {
           <Route path="/vehicles/:id" element={<ProtectedRoute><VehicleDetails /></ProtectedRoute>} />
           <Route path="/vehicles/:id/edit" element={<ProtectedRoute><EditVehicle /></ProtectedRoute>} />
           <Route path="/interventions" element={<ProtectedRoute><Interventions /></ProtectedRoute>} />
+          <Route path="/interventions/create" element={<ProtectedRoute><CreateIntervention /></ProtectedRoute>} />
           <Route path="/interventions/:id" element={<ProtectedRoute><InterventionDetails /></ProtectedRoute>} />
           <Route path="/interventions/:id/edit" element={<ProtectedRoute><EditIntervention /></ProtectedRoute>} />
           <Route path="/planning" element={<ProtectedRoute><Planning /></ProtectedRoute>} />
