@@ -27,20 +27,36 @@ const Interventions = () => {
     if (showRefresh) setRefreshing(true);
     else setLoading(true);
 
+    console.log('🔍 Client: Chargement des interventions, page:', pagination.page, 'limit:', pagination.limit);
+
     try {
-      const response = await fetch(`/api/interventions?page=${pagination.page}&limit=${pagination.limit}`, {
+      const url = `/api/interventions?page=${pagination.page}&limit=${pagination.limit}`;
+      console.log('🌐 Client: URL de requête:', url);
+      
+      const response = await fetch(url, {
         credentials: 'include'
       });
       
+      console.log('📡 Client: Statut de la réponse:', response.status);
+      
       if (response.ok) {
         const data = await response.json();
+        console.log('📋 Client: Données reçues:', {
+          interventionsCount: data.interventions?.length || 0,
+          total: data.total,
+          isArray: Array.isArray(data.interventions),
+          firstIntervention: data.interventions?.[0]
+        });
+        
         setInterventions(Array.isArray(data.interventions) ? data.interventions : []);
         setPagination(prev => ({ ...prev, total: data.total || 0 }));
       } else {
+        const errorText = await response.text();
+        console.error('❌ Client: Erreur de réponse:', response.status, errorText);
         throw new Error(`Erreur HTTP: ${response.status}`);
       }
     } catch (error) {
-      console.error('Erreur lors du chargement des interventions:', error);
+      console.error('❌ Client: Erreur lors du chargement des interventions:', error);
       setInterventions([]);
     } finally {
       setLoading(false);

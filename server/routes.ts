@@ -109,10 +109,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 12;
       
+      console.log('🎯 API: Route /api/interventions appelée avec params:', { page, limit });
+      console.log('🔗 API: Query params reçus:', req.query);
+      
       const result = await storage.getAllInterventions(page, limit);
+      
+      console.log('📤 API: Résultat à envoyer:', {
+        interventionsCount: result.interventions?.length || 0,
+        total: result.total
+      });
+      
       res.json(result);
     } catch (error) {
-      console.error('Erreur API interventions:', error);
+      console.error('❌ API: Erreur lors de la récupération des interventions:', error);
       res.status(500).json({ error: (error as Error).message });
     }
   });
