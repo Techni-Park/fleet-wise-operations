@@ -30,6 +30,7 @@ interface CustomField {
 
 const entityTypes = [
   { id: 1, name: 'Véhicule' },
+  { id: 3, name: 'Intervention' },
   // Futurs types d'entités peuvent être ajoutés ici
 ];
 

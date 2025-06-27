@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import InterventionAnomalies from '@/components/Interventions/InterventionAnomalies';
+import InterventionCustomFields from '@/components/Interventions/InterventionCustomFields';
 
 const InterventionDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -741,59 +742,9 @@ const InterventionDetails = () => {
       </TabsContent>
 
       <TabsContent value="customfields">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Settings className="w-5 h-5 mr-2" />
-              Champs personnalisés
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <Label htmlFor="usdef-lib">Champ texte personnalisé</Label>
-                <Input
-                  id="usdef-lib"
-                  value={intervention?.USDEF_LIB || ''}
-                  placeholder="Texte libre"
-                  readOnly
-                />
-              </div>
-              <div>
-                <Label htmlFor="usdef-num">Champ numérique personnalisé</Label>
-                <Input
-                  id="usdef-num"
-                  type="number"
-                  value={intervention?.USDEF_NUM || ''}
-                  placeholder="Valeur numérique"
-                  readOnly
-                />
-              </div>
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="usdef-boo"
-                  checked={intervention?.USDEF_BOO === 1}
-                  readOnly
-                  className="rounded"
-                />
-                <Label htmlFor="usdef-boo">Option personnalisée</Label>
-              </div>
-              <div>
-                <Label htmlFor="usdef-date">Date personnalisée</Label>
-                <Input
-                  id="usdef-date"
-                  type="date"
-                  value={intervention?.USDEF_DATE || ''}
-                  readOnly
-                />
-              </div>
-            </div>
-            <p className="text-sm text-gray-500 mt-4">
-              Ces champs peuvent être modifiés dans l'édition de l'intervention.
-            </p>
-          </CardContent>
-        </Card>
+        {intervention && (
+          <InterventionCustomFields interventionId={intervention.IDINTERVENTION} />
+        )}
       </TabsContent>
 
       <TabsContent value="instructions">
