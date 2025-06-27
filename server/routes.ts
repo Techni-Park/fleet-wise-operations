@@ -340,6 +340,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Instructions avancées Z83_INTERVENTION
+  app.get("/api/interventions/:id/instructions", async (req, res) => {
+    try {
+      const instructions = await storage.getZ83Intervention(parseInt(req.params.id));
+      res.json(instructions || { INSTRUCTIONS: '' });
+    } catch (error) {
+      console.error('Erreur API instructions:', error);
+      res.status(500).json({ error: (error as Error).message });
+    }
+  });
+
+  app.post("/api/interventions/:id/instructions", async (req, res) => {
+    try {
+      const { instructions } = req.body;
+      const userId = req.body.userId || 'WEB';
+      const result = await storage.createOrUpdateZ83Intervention(
+        parseInt(req.params.id), 
+        instructions, 
+        userId
+      );
+      res.json(result);
+    } catch (error) {
+      console.error('Erreur sauvegarde instructions:', error);
+      res.status(500).json({ error: (error as Error).message });
+    }
+  });
+
   // Téléchargement de documents
   app.get("/api/documents/:id/download", async (req, res) => {
     try {

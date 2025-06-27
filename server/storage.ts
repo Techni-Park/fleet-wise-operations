@@ -3,13 +3,13 @@ import { db } from "./db";
 import * as fs from "fs";
 import * as path from "path";
 import { 
-  users, vehicles, interventions, alerts, documents, actions, anomalies, contacts, ingredients, machinesMnt, produits, societes, userSystem, vehicules, customFields, customFieldValues,
+  users, vehicles, interventions, alerts, documents, actions, anomalies, contacts, ingredients, machinesMnt, produits, societes, userSystem, vehicules, customFields, customFieldValues, z83Interventions,
   type User, type InsertUser, type Vehicle, type InsertVehicle, type Intervention, type InsertIntervention, 
   type Alert, type InsertAlert, type Document, type InsertDocument, type Action, type InsertAction,
   type Anomalie, type InsertAnomalie, type Contact, type InsertContact, type Ingredient, type InsertIngredient,
   type MachineMnt, type InsertMachineMnt, type Produit, type InsertProduit, type Societe, type InsertSociete,
   type UserSystem, type InsertUserSystem, type Vehicule, type InsertVehicule, type CustomField, type InsertCustomField,
-  type CustomFieldValue, type InsertCustomFieldValue
+  type CustomFieldValue, type InsertCustomFieldValue, type Z83Intervention, type InsertZ83Intervention
 } from "@shared/schema";
 
 export interface IStorage {
@@ -132,6 +132,10 @@ export interface IStorage {
   // Gestion des fichiers physiques
   saveFileToIntervention(interventionId: number, file: Express.Multer.File, cduser: string): Promise<Document>;
   savePhotoToInterventionReport(interventionId: number, file: Express.Multer.File, cduser: string, comment?: string): Promise<Document>;
+
+  // Z83_INTERVENTION - Instructions avancées
+  getZ83Intervention(interventionId: number): Promise<Z83Intervention | undefined>;
+  createOrUpdateZ83Intervention(interventionId: number, instructions: string, userId: string): Promise<Z83Intervention>;
 }
 
 export class MySQLStorage implements IStorage {
@@ -254,6 +258,8 @@ export class MySQLStorage implements IStorage {
   // Interventions
   async getIntervention(id: number): Promise<Intervention | undefined> {
     try {
+      console.log(`🔍 getIntervention - Recherche intervention ID: ${id}`);
+      
       // Requête avec toutes les jointures pour un seul enregistrement
       const query = sql`
         SELECT 
@@ -278,16 +284,38 @@ export class MySQLStorage implements IStorage {
           u.EMAIL as TECHNICIEN_EMAIL,
           u.TELBUR as TECHNICIEN_TEL
         FROM INTERVENTION i
-        LEFT JOIN CONTACT c ON i.IDCONTACT = c.IDCONTACT
-        LEFT JOIN MACHINE_MNT m ON SUBSTRING(i.CLE_MACHINE_CIBLE, 2) = CAST(m.IDMACHINE AS CHAR)
+        LEFT JOIN CONTACT c ON i.IDCONTACT = c.IDCONTACT AND c.IDCONTACT > 0
+        LEFT JOIN MACHINE_MNT m ON (
+          CASE 
+            WHEN i.CLE_MACHINE_CIBLE LIKE 'R%' 
+            THEN SUBSTRING(i.CLE_MACHINE_CIBLE, 2) = CAST(m.IDMACHINE AS CHAR)
+            ELSE i.CLE_MACHINE_CIBLE = CAST(m.IDMACHINE AS CHAR)
+          END
+        )
         LEFT JOIN VEHICULE v ON m.IDMACHINE = v.IDMACHINE
-        LEFT JOIN USER u ON i.CDUSER = u.CDUSER
+        LEFT JOIN USER u ON i.CDUSER = u.CDUSER AND i.CDUSER IS NOT NULL AND i.CDUSER != ''
         WHERE i.IDINTERVENTION = ${id}
         LIMIT 1
       `;
       
       const result = await db.execute(query);
-      return (result[0] as any[])[0];
+      const intervention = (result as any[])[0];
+      
+      if (intervention) {
+        console.log(`✅ getIntervention - Intervention trouvée:`, {
+          id: intervention.IDINTERVENTION,
+          client: intervention.CONTACT_RAISON_SOCIALE || `${intervention.CONTACT_PRENOM} ${intervention.CONTACT_NOM}`,
+          vehicule: intervention.VEHICULE_LIB_MACHINE || `${intervention.VEHICULE_MARQUE} ${intervention.VEHICULE_MODELE}`,
+          technicien: `${intervention.TECHNICIEN_PRENOM} ${intervention.TECHNICIEN_NOM}`,
+          cle_machine_cible: intervention.CLE_MACHINE_CIBLE,
+          idcontact: intervention.IDCONTACT,
+          cduser: intervention.CDUSER
+        });
+      } else {
+        console.log(`❌ getIntervention - Aucune intervention trouvée pour ID: ${id}`);
+      }
+      
+      return intervention;
     } catch (error) {
       console.error('Erreur getIntervention avec jointures:', error);
       // Fallback sans jointures
@@ -331,10 +359,16 @@ export class MySQLStorage implements IStorage {
           u.PRENOM as TECHNICIEN_PRENOM,
           u.EMAIL as TECHNICIEN_EMAIL
         FROM INTERVENTION i
-        LEFT JOIN CONTACT c ON i.IDCONTACT = c.IDCONTACT
-        LEFT JOIN MACHINE_MNT m ON SUBSTRING(i.CLE_MACHINE_CIBLE, 2) = CAST(m.IDMACHINE AS CHAR)
+        LEFT JOIN CONTACT c ON i.IDCONTACT = c.IDCONTACT AND c.IDCONTACT > 0
+        LEFT JOIN MACHINE_MNT m ON (
+          CASE 
+            WHEN i.CLE_MACHINE_CIBLE LIKE 'R%' 
+            THEN SUBSTRING(i.CLE_MACHINE_CIBLE, 2) = CAST(m.IDMACHINE AS CHAR)
+            ELSE i.CLE_MACHINE_CIBLE = CAST(m.IDMACHINE AS CHAR)
+          END
+        )
         LEFT JOIN VEHICULE v ON m.IDMACHINE = v.IDMACHINE
-        LEFT JOIN USER u ON i.CDUSER = u.CDUSER
+        LEFT JOIN USER u ON i.CDUSER = u.CDUSER AND i.CDUSER IS NOT NULL AND i.CDUSER != ''
         ORDER BY i.IDINTERVENTION DESC
         LIMIT ${limit} OFFSET ${offset}
       `;
@@ -389,10 +423,16 @@ export class MySQLStorage implements IStorage {
           u.NOMFAMILLE as TECHNICIEN_NOM,
           u.PRENOM as TECHNICIEN_PRENOM
         FROM INTERVENTION i
-        LEFT JOIN CONTACT c ON i.IDCONTACT = c.IDCONTACT
-        LEFT JOIN MACHINE_MNT m ON SUBSTRING(i.CLE_MACHINE_CIBLE, 2) = CAST(m.IDMACHINE AS CHAR)
+        LEFT JOIN CONTACT c ON i.IDCONTACT = c.IDCONTACT AND c.IDCONTACT > 0
+        LEFT JOIN MACHINE_MNT m ON (
+          CASE 
+            WHEN i.CLE_MACHINE_CIBLE LIKE 'R%' 
+            THEN SUBSTRING(i.CLE_MACHINE_CIBLE, 2) = CAST(m.IDMACHINE AS CHAR)
+            ELSE i.CLE_MACHINE_CIBLE = CAST(m.IDMACHINE AS CHAR)
+          END
+        )
         LEFT JOIN VEHICULE v ON m.IDMACHINE = v.IDMACHINE
-        LEFT JOIN USER u ON i.CDUSER = u.CDUSER
+        LEFT JOIN USER u ON i.CDUSER = u.CDUSER AND i.CDUSER IS NOT NULL AND i.CDUSER != ''
         WHERE m.IDMACHINE = ${vehicleId}
         ORDER BY i.DT_INTER_DBT DESC, i.IDINTERVENTION DESC
       `;
@@ -1310,6 +1350,65 @@ export class MySQLStorage implements IStorage {
       return newDocument!;
     } catch (error) {
       console.error('Erreur savePhotoToInterventionReport:', error);
+      throw error;
+    }
+  }
+
+  // Z83_INTERVENTION - Instructions avancées
+  async getZ83Intervention(interventionId: number): Promise<Z83Intervention | undefined> {
+    try {
+      const result = await db.select()
+        .from(z83Interventions)
+        .where(eq(z83Interventions.IDINTERVENTION, interventionId))
+        .limit(1);
+      
+      return result[0];
+    } catch (error) {
+      console.error('Erreur lors de la récupération des instructions Z83:', error);
+      throw error;
+    }
+  }
+
+  async createOrUpdateZ83Intervention(interventionId: number, instructions: string, userId: string): Promise<Z83Intervention> {
+    try {
+      // Vérifier si une entrée existe déjà
+      const existing = await this.getZ83Intervention(interventionId);
+      
+      if (existing) {
+        // Mettre à jour
+        const updateData = {
+          INSTRUCTIONS: instructions,
+          DHMOD: new Date().toISOString(),
+          USMOD: userId.substring(0, 3), // Limiter à 3 caractères
+          updated_at: new Date()
+        };
+
+        const result = await db.update(z83Interventions)
+          .set(updateData)
+          .where(eq(z83Interventions.IDINTERVENTION, interventionId));
+
+        // Récupérer l'enregistrement mis à jour
+        return await this.getZ83Intervention(interventionId) as Z83Intervention;
+      } else {
+        // Créer un nouveau
+        const newData: InsertZ83Intervention = {
+          IDINTERVENTION: interventionId,
+          INSTRUCTIONS: instructions,
+          DHCRE: new Date().toISOString(),
+          USCRE: userId.substring(0, 50), // Limiter à 50 caractères
+          DHMOD: new Date().toISOString(),
+          USMOD: userId.substring(0, 3), // Limiter à 3 caractères
+          created_at: new Date(),
+          updated_at: new Date()
+        };
+
+        const result = await db.insert(z83Interventions).values(newData);
+        
+        // Récupérer l'enregistrement créé
+        return await this.getZ83Intervention(interventionId) as Z83Intervention;
+      }
+    } catch (error) {
+      console.error('Erreur lors de la création/mise à jour des instructions Z83:', error);
       throw error;
     }
   }

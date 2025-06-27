@@ -417,6 +417,32 @@ export const machinesMntOld = mysqlTable("machines_mnt_old", {
   CAPACITE: varchar("CAPACITE", { length: 50 }).default("0"),
 });
 
+// Table Z83_INTERVENTION
+export const z83Interventions = mysqlTable("Z83_INTERVENTION", {
+  IDZ83_INTERVENTION: bigint("IDZ83_INTERVENTION", { mode: "number" }).primaryKey().autoincrement(),
+  IDINTERVENTION: bigint("IDINTERVENTION", { mode: "number" }).default(0),
+  INSTRUCTIONS: longtext("INSTRUCTIONS"),
+  IDCTCREFERENT: int("IDCTCREFERENT", { unsigned: true }).default(0),
+  IDCTCMATERIEL: int("IDCTCMATERIEL").default(0),
+  IDADRMATERIEL: int("IDADRMATERIEL", { unsigned: true }).default(0),
+  IDADRREFERENT: int("IDADRREFERENT").default(0),
+  IDADRLIEU: int("IDADRLIEU").default(0),
+  ADRINTER: varchar("ADRINTER", { length: 100 }),
+  TPS_PASSE: smallint("TPS_PASSE", { unsigned: true }).default(0),
+  PRIORITE: tinyint("PRIORITE", { unsigned: true }).default(0),
+  DH_DEBUT_REEL: datetime("DH_DEBUT_REEL", { mode: "string", fsp: 3 }),
+  DH_FIN_REEL: datetime("DH_FIN_REEL", { mode: "string", fsp: 3 }),
+  SATISFACTION_CLIENT: tinyint("SATISFACTION_CLIENT", { unsigned: true }).default(0),
+  CHARGE_ESTIMEE: smallint("CHARGE_ESTIMEE", { unsigned: true }).default(0),
+  created_at: datetime("created_at").defaultNow(),
+  updated_at: datetime("updated_at").defaultNow(),
+  DHCRE: datetime("DHCRE", { mode: "string", fsp: 3 }),
+  USCRE: varchar("USCRE", { length: 50 }).default(""),
+  DHMOD: datetime("DHMOD", { mode: "string", fsp: 3 }),
+  USMOD: varchar("USMOD", { length: 3 }),
+  DH_SYNCHRO: date("DH_SYNCHRO"),
+});
+
 // Table DOCUMENT (conservée avec les autres)
 export const documents = mysqlTable("DOCUMENT", {
   ID: int("ID").primaryKey().autoincrement(),
@@ -776,6 +802,7 @@ export const insertProduitSchema = createInsertSchema(produits);
 export const insertSocieteSchema = createInsertSchema(societes);
 export const insertUserSystemSchema = createInsertSchema(userSystem);
 export const insertVehiculeSchema = createInsertSchema(vehicules);
+export const insertZ83InterventionSchema = createInsertSchema(z83Interventions);
 
 // Table custom_fields pour définir les champs personnalisés
 export const customFields = mysqlTable("custom_fields", {
@@ -838,3 +865,5 @@ export type InsertVehicule = z.infer<typeof insertVehiculeSchema>;
 export type Vehicule = typeof vehicules.$inferSelect;
 export type InsertMachineMnt = z.infer<typeof insertMachineMntSchema>;
 export type MachineMnt = typeof machinesMnt.$inferSelect;
+export type InsertZ83Intervention = z.infer<typeof insertZ83InterventionSchema>;
+export type Z83Intervention = typeof z83Interventions.$inferSelect;
