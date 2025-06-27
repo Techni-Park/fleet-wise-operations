@@ -106,28 +106,21 @@ const VehicleDetails = () => {
     <AppLayout>
       <div className="space-y-6">
         {/* En-tête de page */}
-        <div className="grid grid-cols-3 gap-6 items-start mb-8">
-          {/* Colonne 1 : Titre principal et immatriculation */}
-          <div>
+        <div className="grid grid-cols-4 gap-6 items-start mb-8">
+          {/* Colonne 1 : Informations principales (3/4 de l'espace) */}
+          <div className="col-span-3">
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-              {vehicle.LIB_MACHINE || vehicle.CD_MACHINE || 'Véhicule sans libellé'}
+              {vehicle.LIB_MACHINE || 'Véhicule sans libellé'}
             </h1>
-            <p className="text-lg text-gray-600 dark:text-gray-400">
+            <p className="text-lg text-gray-600 dark:text-gray-400 mb-1">
               {vehicle.IMMAT || 'Non immatriculé'}
             </p>
-          </div>
-
-          {/* Colonne 2 : Marque, Modèle et Code machine */}
-          <div>
-            <div className="text-xl font-semibold text-gray-900 dark:text-white mb-1">
+            <p className="text-xl font-semibold text-gray-700 dark:text-gray-300">
               {vehicle.MARQUE} {vehicle.MODELE}
-            </div>
-            <p className="text-sm text-gray-500">
-              Code machine: {vehicle.CD_MACHINE || 'Non défini'}
             </p>
           </div>
 
-          {/* Colonne 3 : Boutons d'action */}
+          {/* Colonne 2 : Boutons d'action (1/4 de l'espace) */}
           <div className="flex justify-end space-x-2">
             <Link to="/vehicles">
               <Button variant="outline" size="sm" title="Retour à la liste des véhicules">
