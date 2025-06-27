@@ -469,12 +469,78 @@ export class MySQLStorage implements IStorage {
 
   // Vehicules
   async getVehicule(id: number): Promise<Vehicule | undefined> {
-    const result = await db.select().from(vehicules).where(eq(vehicules.IDVEHICULE, id)).limit(1);
-    return result[0];
+    try {
+      // Jointure entre VEHICULE et MACHINE_MNT via IDMACHINE
+      const query = sql`
+        SELECT 
+          v.*,
+          m.CD_MACHINE,
+          m.LIB_MACHINE,
+          m.ID2_ETATMACHINE,
+          m.MARQUE,
+          m.MODELE,
+          m.TYPE_MACHINE,
+          m.NUM_SERIE,
+          m.PUISSANCEW,
+          m.KILOMETRAGE,
+          m.DT_MISEENFONCTION,
+          m.DT_PROCH_MNT,
+          m.DT_EXP_GARANTIE,
+          m.DT_DBT_GARANTIE,
+          m.ADRESSE1,
+          m.ADRESSE2,
+          m.CPOSTAL,
+          m.VILLE,
+          m.OBSERVATIONS
+        FROM VEHICULE v
+        LEFT JOIN MACHINE_MNT m ON v.IDMACHINE = m.IDMACHINE
+        WHERE v.IDVEHICULE = ${id}
+      `;
+      const result = await db.execute(query);
+      return (result[0] as any[])[0];
+    } catch (error) {
+      console.error('Erreur getVehicule avec jointure:', error);
+      // Fallback sans jointure
+      const result = await db.select().from(vehicules).where(eq(vehicules.IDVEHICULE, id)).limit(1);
+      return result[0];
+    }
   }
 
   async getAllVehicules(): Promise<Vehicule[]> {
-    return db.select().from(vehicules);
+    try {
+      // Jointure entre VEHICULE et MACHINE_MNT via IDMACHINE
+      const query = sql`
+        SELECT 
+          v.*,
+          m.CD_MACHINE,
+          m.LIB_MACHINE,
+          m.ID2_ETATMACHINE,
+          m.MARQUE,
+          m.MODELE,
+          m.TYPE_MACHINE,
+          m.NUM_SERIE,
+          m.PUISSANCEW,
+          m.KILOMETRAGE,
+          m.DT_MISEENFONCTION,
+          m.DT_PROCH_MNT,
+          m.DT_EXP_GARANTIE,
+          m.DT_DBT_GARANTIE,
+          m.ADRESSE1,
+          m.ADRESSE2,
+          m.CPOSTAL,
+          m.VILLE,
+          m.OBSERVATIONS
+        FROM VEHICULE v
+        LEFT JOIN MACHINE_MNT m ON v.IDMACHINE = m.IDMACHINE
+        ORDER BY v.IDVEHICULE
+      `;
+      const result = await db.execute(query);
+      return result[0] as Vehicule[];
+    } catch (error) {
+      console.error('Erreur getAllVehicules avec jointure:', error);
+      // Fallback sans jointure
+      return db.select().from(vehicules);
+    }
   }
 
   async createVehicule(vehicule: InsertVehicule): Promise<Vehicule> {
