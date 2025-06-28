@@ -21,14 +21,21 @@ const VehicleInterventions: React.FC<VehicleInterventionsProps> = ({ vehicleId }
     else setLoading(true);
 
     try {
-      const cleMachineCible = `R${vehicleId}`;
-      const response = await fetch(`/api/interventions?cle_machine_cible=${encodeURIComponent(cleMachineCible)}`, {
+      // Fetch all interventions and filter on the client
+      const response = await fetch(`/api/interventions?limit=9999`, {
         credentials: 'include'
       });
       
       if (response.ok) {
         const data = await response.json();
-        setInterventions(Array.isArray(data) ? data : []);
+        const allInterventions = data.interventions && Array.isArray(data.interventions) ? data.interventions : [];
+        
+        const cleMachineCible = `R${vehicleId}`;
+        const vehicleInterventions = allInterventions.filter((intervention: any) =>
+          intervention.CLE_MACHINE_CIBLE === cleMachineCible
+        );
+        
+        setInterventions(vehicleInterventions);
       } else {
         throw new Error(`Erreur HTTP: ${response.status}`);
       }
