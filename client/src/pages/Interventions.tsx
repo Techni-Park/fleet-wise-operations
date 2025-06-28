@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Search, Filter, Eye, Edit, Trash2, Calendar, Clock, User, AlertTriangle, Loader, RefreshCw, Car, Info, Grid3X3, List, MapPin, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Search, Filter, Eye, Edit, Trash2, Calendar, Clock, User, AlertTriangle, Loader, RefreshCw, Car, Info, Grid3X3, List, MapPin, ChevronLeft, ChevronRight, Map, X, RotateCcw } from 'lucide-react';
 import AppLayout from '@/components/Layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Label } from '@/components/ui/label';
+import { InterventionsMap } from '@/components/Maps/InterventionsMap';
 
 
 const Interventions = () => {
@@ -15,14 +17,19 @@ const Interventions = () => {
   const [interventions, setInterventions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 12,
     total: 0,
   });
-  const [vehicleMap, setVehicleMap] = useState<Map<number, any>>(new Map());
-  const [contactMap, setContactMap] = useState<Map<number, any>>(new Map());
+  const [vehicleMap, setVehicleMap] = useState(() => new Map<number, any>());
+  const [contactMap, setContactMap] = useState(() => new Map<number, any>());
+  
+  // États pour les filtres et la vue carte
+  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'map'>('grid');
+  const [dateDebut, setDateDebut] = useState('');
+  const [dateFin, setDateFin] = useState('');
+  const [selectedStatuses, setSelectedStatuses] = useState<number[]>([]);
 
   // Charger toutes les données nécessaires (interventions, véhicules, contacts)
   const loadData = useCallback(async (showRefresh = false) => {
@@ -51,11 +58,11 @@ const Interventions = () => {
       const allContacts = contactsData.contacts && Array.isArray(contactsData.contacts) ? contactsData.contacts : (Array.isArray(contactsData) ? contactsData : []);
 
       const newVehicleMap = new Map();
-      allVehicles.forEach(v => newVehicleMap.set(v.IDMACHINE, v));
+      allVehicles.forEach((v: any) => newVehicleMap.set(v.IDMACHINE, v));
       setVehicleMap(newVehicleMap);
 
       const newContactMap = new Map();
-      allContacts.forEach(c => newContactMap.set(c.IDCONTACT, c));
+      allContacts.forEach((c: any) => newContactMap.set(c.IDCONTACT, c));
       setContactMap(newContactMap);
 
     } catch (error) {
@@ -110,14 +117,76 @@ const Interventions = () => {
     return `${prenom || ''} ${nom || ''}`.trim();
   };
 
+  // Fonction pour formater l'affichage des techniciens (CDUSER + US_TEAM)
+  const formatTechnicienDisplay = (intervention: any) => {
+    const techniciens = [];
+    
+    // Ajouter le technicien principal (CDUSER)
+    if (intervention.TECHNICIEN_NOM || intervention.TECHNICIEN_PRENOM) {
+      const mainTech = formatFullName(intervention.TECHNICIEN_NOM, intervention.TECHNICIEN_PRENOM);
+      if (mainTech !== '-') {
+        techniciens.push(mainTech);
+      }
+    }
+    
+    // Ajouter les techniciens de l'équipe (US_TEAM)
+    if (intervention.TECHNICIEN_TEAM) {
+      const teamTechs = intervention.TECHNICIEN_TEAM.split(',')
+        .map((tech: string) => tech.trim())
+        .filter((tech: string) => tech.length > 0);
+      techniciens.push(...teamTechs);
+    }
+    
+    // Supprimer les doublons et retourner la liste
+    const uniqueTechniciens = Array.from(new Set(techniciens));
+    return uniqueTechniciens.length > 0 ? uniqueTechniciens.join(', ') : null;
+  };
+
+  // Options de statuts pour les filtres
+  const statusOptions = [
+    { value: 0, label: 'Planifiée', color: 'bg-orange-100 text-orange-800' },
+    { value: 1, label: 'En cours', color: 'bg-blue-100 text-blue-800' },
+    { value: 9, label: 'Terminée', color: 'bg-green-100 text-green-800' },
+    { value: 10, label: 'Annulée', color: 'bg-red-100 text-red-800' },
+  ];
+
+  // Fonction pour réinitialiser les filtres
+  const resetFilters = () => {
+    setDateDebut('');
+    setDateFin('');
+    setSelectedStatuses([]);
+  };
+
+  // Fonction pour basculer un statut dans les filtres
+  const toggleStatus = (status: number) => {
+    if (selectedStatuses.includes(status)) {
+      setSelectedStatuses(selectedStatuses.filter(s => s !== status));
+    } else {
+      setSelectedStatuses([...selectedStatuses, status]);
+    }
+  };
+
   // Filtrer les interventions localement
-  const filteredInterventions = interventions.filter(intervention =>
-    (intervention.LIB50?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-     intervention.CONTACT_RAISON_SOCIALE?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-     intervention.VEHICULE_LIB_MACHINE?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-     intervention.TECHNICIEN_NOM?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-     intervention.TECHNICIEN_PRENOM?.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredInterventions = interventions.filter(intervention => {
+    // Filtre par terme de recherche
+    const matchesSearch = !searchTerm || (
+      intervention.LIB50?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      intervention.CONTACT_RAISON_SOCIALE?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      intervention.VEHICULE_LIB_MACHINE?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      intervention.TECHNICIEN_NOM?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      intervention.TECHNICIEN_PRENOM?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    // Filtre par dates
+    const interventionDate = new Date(intervention.DT_INTER_DBT);
+    const matchesDateDebut = !dateDebut || interventionDate >= new Date(dateDebut);
+    const matchesDateFin = !dateFin || interventionDate <= new Date(dateFin + 'T23:59:59');
+
+    // Filtre par statuts
+    const matchesStatus = selectedStatuses.length === 0 || selectedStatuses.includes(intervention.ST_INTER);
+
+    return matchesSearch && matchesDateDebut && matchesDateFin && matchesStatus;
+  });
 
   // Gestion de la pagination
   const handlePageChange = (newPage: number) => {
@@ -152,19 +221,14 @@ const Interventions = () => {
       ? "flex flex-col sm:flex-row w-full"
       : "flex flex-col";
 
-    // Find vehicle
+    // Find vehicle - utiliser directement VEHICULE_LIB_MACHINE de la jointure
     let vehicleDisplay = 'Véhicule non défini';
-    if (intervention.CLE_MACHINE_CIBLE) {
-        const machineIdStr = intervention.CLE_MACHINE_CIBLE.replace('R', '');
-        const machineId = parseInt(machineIdStr, 10);
-        if (!isNaN(machineId)) {
-            const vehicle = vehicleMap.get(machineId);
-            if (vehicle) {
-                vehicleDisplay = vehicle.LIB_MACHINE || `${vehicle.MARQUE || ''} ${vehicle.MODELE || ''}`.trim() || `ID: ${vehicle.IDVEHICULE}`;
-            } else {
-                vehicleDisplay = `Machine ID: ${machineIdStr}`;
-            }
-        }
+    if (intervention.VEHICULE_LIB_MACHINE) {
+        vehicleDisplay = intervention.VEHICULE_LIB_MACHINE;
+    } else if (intervention.VEHICULE_MARQUE || intervention.VEHICULE_MODELE) {
+        vehicleDisplay = `${intervention.VEHICULE_MARQUE || ''} ${intervention.VEHICULE_MODELE || ''}`.trim();
+    } else if (intervention.CLE_MACHINE_CIBLE) {
+        vehicleDisplay = `Machine: ${intervention.CLE_MACHINE_CIBLE}`;
     }
 
     // Find contact
@@ -228,8 +292,7 @@ const Interventions = () => {
                 <div className="flex items-center">
                   <AlertTriangle className="w-4 h-4 mr-2 text-orange-600 flex-shrink-0" />
                   <span className="truncate">
-                    {formatFullName(intervention.TECHNICIEN_NOM, intervention.TECHNICIEN_PRENOM) ||
-                     'Non assigné'}
+                    {formatTechnicienDisplay(intervention) || 'Non assigné'}
                   </span>
                 </div>
               </div>
@@ -360,6 +423,169 @@ const Interventions = () => {
                 >
                   <List className="w-4 h-4" />
                 </Button>
+                <Button 
+                  variant={viewMode === 'map' ? 'secondary' : 'outline'} 
+                  onClick={() => setViewMode('map')}
+                  size="sm"
+                  className="px-2"
+                  title="Affichage carte"
+                >
+                  <Map className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Filtres avancés */}
+        <Card>
+          <CardContent className="p-4">
+            <div className="space-y-4">
+              {/* En-tête des filtres */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Filter className="w-4 h-4" />
+                  <h3 className="font-semibold">Filtres avancés</h3>
+                  {(dateDebut || dateFin || selectedStatuses.length > 0) && (
+                    <Badge variant="secondary" className="text-xs">
+                      {filteredInterventions.length} / {interventions.length}
+                    </Badge>
+                  )}
+                </div>
+                {(dateDebut || dateFin || selectedStatuses.length > 0) && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={resetFilters}
+                    className="text-xs"
+                  >
+                    <RotateCcw className="w-3 h-3 mr-1" />
+                    Réinitialiser
+                  </Button>
+                )}
+              </div>
+
+              {/* Filtres par date */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="date-debut" className="text-sm font-medium">
+                    Date de début
+                  </Label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Input
+                      id="date-debut"
+                      type="date"
+                      value={dateDebut}
+                      onChange={(e) => setDateDebut(e.target.value)}
+                      className="pl-10"
+                    />
+                    {dateDebut && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setDateDebut('')}
+                        className="absolute right-1 top-1/2 transform -translate-y-1/2 p-1 h-6 w-6"
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="date-fin" className="text-sm font-medium">
+                    Date de fin
+                  </Label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Input
+                      id="date-fin"
+                      type="date"
+                      value={dateFin}
+                      onChange={(e) => setDateFin(e.target.value)}
+                      className="pl-10"
+                    />
+                    {dateFin && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setDateFin('')}
+                        className="absolute right-1 top-1/2 transform -translate-y-1/2 p-1 h-6 w-6"
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Filtres par statut */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Statuts</Label>
+                <div className="flex flex-wrap gap-2">
+                  {statusOptions.map((status) => (
+                    <Badge
+                      key={status.value}
+                      variant={selectedStatuses.includes(status.value) ? "default" : "outline"}
+                      className={`cursor-pointer transition-all ${
+                        selectedStatuses.includes(status.value) 
+                          ? status.color 
+                          : 'hover:bg-gray-100'
+                      }`}
+                      onClick={() => toggleStatus(status.value)}
+                    >
+                      {status.label}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              {/* Raccourcis de dates */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Raccourcis</Label>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const today = new Date().toISOString().split('T')[0];
+                      setDateDebut(today);
+                      setDateFin(today);
+                    }}
+                    className="text-xs"
+                  >
+                    Aujourd'hui
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const today = new Date();
+                      const weekStart = new Date(today.setDate(today.getDate() - today.getDay() + 1));
+                      const weekEnd = new Date(today.setDate(today.getDate() - today.getDay() + 7));
+                      setDateDebut(weekStart.toISOString().split('T')[0]);
+                      setDateFin(weekEnd.toISOString().split('T')[0]);
+                    }}
+                    className="text-xs"
+                  >
+                    Cette semaine
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const today = new Date();
+                      const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+                      const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+                      setDateDebut(monthStart.toISOString().split('T')[0]);
+                      setDateFin(monthEnd.toISOString().split('T')[0]);
+                    }}
+                    className="text-xs"
+                  >
+                    Ce mois
+                  </Button>
+                </div>
               </div>
             </div>
           </CardContent>
@@ -419,14 +645,24 @@ const Interventions = () => {
           </Card>
         </div>
 
-        {/* Liste des interventions */}
+        {/* Affichage des interventions */}
         {filteredInterventions.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-500">
-              {searchTerm ? 'Aucune intervention trouvée pour cette recherche' : 'Aucune intervention à afficher'}
+              {searchTerm || dateDebut || dateFin || selectedStatuses.length > 0 
+                ? 'Aucune intervention trouvée pour ces critères' 
+                : 'Aucune intervention à afficher'}
             </p>
           </div>
+        ) : viewMode === 'map' ? (
+          /* Vue carte */
+          <InterventionsMap 
+            interventions={filteredInterventions} 
+            height="600px"
+            className="w-full"
+          />
         ) : (
+          /* Vue grille ou liste */
           <div className={viewMode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6' : 'space-y-4'}>
             {filteredInterventions.map((intervention) => 
               renderInterventionCard(intervention, viewMode === 'list')

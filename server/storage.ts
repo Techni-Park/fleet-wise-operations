@@ -297,6 +297,8 @@ export class MySQLStorage implements IStorage {
           c.TELP1 as CONTACT_TELP1,
           c.ADRESSE1 as CONTACT_ADRESSE1,
           c.VILLE as CONTACT_VILLE,
+          c.CPOSTAL as CONTACT_CPOSTAL,
+          c.PAYS as CONTACT_PAYS,
           v.IMMAT as VEHICULE_IMMAT,
           m.MARQUE as VEHICULE_MARQUE,
           m.MODELE as VEHICULE_MODELE,
@@ -306,7 +308,8 @@ export class MySQLStorage implements IStorage {
           u.NOMFAMILLE as TECHNICIEN_NOM,
           u.PRENOM as TECHNICIEN_PRENOM,
           u.EMAIL as TECHNICIEN_EMAIL,
-          u.TELBUR as TECHNICIEN_TEL
+          u.TELBUR as TECHNICIEN_TEL,
+          u.US_TEAM as TECHNICIEN_TEAM
         FROM INTERVENTION i
         LEFT JOIN CONTACT c ON i.IDCONTACT = c.IDCONTACT AND c.IDCONTACT > 0
         LEFT JOIN MACHINE_MNT m ON (
@@ -373,6 +376,10 @@ export class MySQLStorage implements IStorage {
           c.TEL1 as CONTACT_TEL,
           c.EMAILP as CONTACT_EMAILP,
           c.TELP1 as CONTACT_TELP1,
+          c.ADRESSE1 as ADRESSE1,
+          c.VILLE as VILLE,
+          c.CPOSTAL as CPOSTAL,
+          c.PAYS as PAYS,
           v.IMMAT as VEHICULE_IMMAT,
           m.MARQUE as VEHICULE_MARQUE,
           m.MODELE as VEHICULE_MODELE,
@@ -381,7 +388,8 @@ export class MySQLStorage implements IStorage {
           m.IDMACHINE as VEHICULE_IDMACHINE,
           u.NOMFAMILLE as TECHNICIEN_NOM,
           u.PRENOM as TECHNICIEN_PRENOM,
-          u.EMAIL as TECHNICIEN_EMAIL
+          u.EMAIL as TECHNICIEN_EMAIL,
+          u.US_TEAM as TECHNICIEN_TEAM
         FROM INTERVENTION i
         LEFT JOIN CONTACT c ON i.IDCONTACT = c.IDCONTACT AND c.IDCONTACT > 0
         LEFT JOIN MACHINE_MNT m ON (
@@ -439,13 +447,18 @@ export class MySQLStorage implements IStorage {
           c.RAISON_SOCIALE as CONTACT_RAISON_SOCIALE,
           c.EMAIL as CONTACT_EMAIL,
           c.TEL1 as CONTACT_TEL,
+          c.ADRESSE1 as ADRESSE1,
+          c.VILLE as VILLE,
+          c.CPOSTAL as CPOSTAL,
+          c.PAYS as PAYS,
           v.IMMAT as VEHICULE_IMMAT,
           m.MARQUE as VEHICULE_MARQUE,
           m.MODELE as VEHICULE_MODELE,
           m.CD_MACHINE as VEHICULE_CODE,
           m.LIB_MACHINE as VEHICULE_LIB_MACHINE,
           u.NOMFAMILLE as TECHNICIEN_NOM,
-          u.PRENOM as TECHNICIEN_PRENOM
+          u.PRENOM as TECHNICIEN_PRENOM,
+          u.US_TEAM as TECHNICIEN_TEAM
         FROM INTERVENTION i
         LEFT JOIN CONTACT c ON i.IDCONTACT = c.IDCONTACT AND c.IDCONTACT > 0
         LEFT JOIN MACHINE_MNT m ON (

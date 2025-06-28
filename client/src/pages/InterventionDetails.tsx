@@ -22,6 +22,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import InterventionAnomalies from '@/components/Interventions/InterventionAnomalies';
 import InterventionCustomFields from '@/components/Interventions/InterventionCustomFields';
 import InterventionFormsTab from '@/components/Interventions/InterventionFormsTab';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
 
 const InterventionDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -963,20 +964,18 @@ const InterventionDetails = () => {
                           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                         </div>
                       ) : (
-                        <div className="border rounded-lg">
-                          <Textarea
-                            value={instructions}
-                            onChange={(e) => setInstructions(e.target.value)}
-                            placeholder="Saisissez les instructions détaillées pour cette intervention..."
-                            className="min-h-[300px] border-0 resize-none"
-                            style={{ whiteSpace: 'pre-wrap' }}
-                          />
-                        </div>
+                        <RichTextEditor
+                          value={instructions}
+                          onChange={setInstructions}
+                          placeholder="Saisissez les instructions détaillées pour cette intervention..."
+                          height="350px"
+                          enableImageUpload={true}
+                        />
                       )}
                       
                       <div className="text-sm text-gray-500">
-                        <p>💡 Vous pouvez utiliser du HTML pour formater le texte et insérer des images.</p>
-                        <p>Exemple: &lt;b&gt;Texte en gras&lt;/b&gt;, &lt;img src="url" /&gt;</p>
+                        <p>💡 Utilisez la barre d'outils pour formater le texte, insérer des images et créer des listes.</p>
+                        <p>Le contenu est automatiquement sauvegardé en HTML.</p>
                       </div>
                     </div>
                   </TabsContent>
