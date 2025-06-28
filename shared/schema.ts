@@ -917,3 +917,79 @@ export type FormField = typeof formsFields.$inferSelect;
 export type InsertFormField = typeof formsFields.$inferInsert;
 export type FormFieldValue = typeof formsFieldsValues.$inferSelect;
 export type InsertFormFieldValue = typeof formsFieldsValues.$inferInsert;
+
+// ================================================================
+// TABLES PWA POUR FONCTIONNALITÉS OFFLINE
+// ================================================================
+
+// Table pour stocker les médias (photos, signatures, documents)
+export const interventionMedia = mysqlTable("INTERVENTION_MEDIA", {
+  ID: bigint("ID", { mode: "number" }).primaryKey().autoincrement(),
+  IDINTERVENTION: bigint("IDINTERVENTION", { mode: "number" }).notNull(),
+  FILENAME: varchar("FILENAME", { length: 255 }).notNull(),
+  ORIGINAL_NAME: varchar("ORIGINAL_NAME", { length: 255 }),
+  FILE_PATH: varchar("FILE_PATH", { length: 500 }),
+  MIMETYPE: varchar("MIMETYPE", { length: 100 }),
+  SIZE: bigint("SIZE", { mode: "number" }),
+  TYPE: mysqlEnum("TYPE", ["photo", "signature", "document"]).notNull(),
+  DESCRIPTION: text("DESCRIPTION"),
+  GPS_LATITUDE: decimal("GPS_LATITUDE", { precision: 10, scale: 8 }),
+  GPS_LONGITUDE: decimal("GPS_LONGITUDE", { precision: 11, scale: 8 }),
+  TAKEN_AT: datetime("TAKEN_AT", { mode: "string", fsp: 3 }),
+  CDUSER: varchar("CDUSER", { length: 10 }),
+  CREATED_AT: datetime("CREATED_AT", { mode: "string", fsp: 3 }),
+  UPDATED_AT: datetime("UPDATED_AT", { mode: "string", fsp: 3 }),
+});
+
+// Table pour la synchronisation offline
+export const interventionSync = mysqlTable("INTERVENTION_SYNC", {
+  ID: bigint("ID", { mode: "number" }).primaryKey().autoincrement(),
+  IDINTERVENTION: bigint("IDINTERVENTION", { mode: "number" }).notNull(),
+  SYNC_STATUS: mysqlEnum("SYNC_STATUS", ["pending", "synced", "error"]).default("pending"),
+  OFFLINE_DATA: longtext("OFFLINE_DATA"),
+  ERROR_MESSAGE: text("ERROR_MESSAGE"),
+  LAST_SYNC: datetime("LAST_SYNC", { mode: "string", fsp: 3 }),
+  CDUSER: varchar("CDUSER", { length: 10 }),
+  CREATED_AT: datetime("CREATED_AT", { mode: "string", fsp: 3 }),
+  UPDATED_AT: datetime("UPDATED_AT", { mode: "string", fsp: 3 }),
+});
+
+// Table pour stocker les données offline des techniciens
+export const pwaOfflineCache = mysqlTable("PWA_OFFLINE_CACHE", {
+  ID: bigint("ID", { mode: "number" }).primaryKey().autoincrement(),
+  CDUSER: varchar("CDUSER", { length: 10 }).notNull(),
+  CACHE_KEY: varchar("CACHE_KEY", { length: 255 }).notNull(),
+  CACHE_DATA: longtext("CACHE_DATA").notNull(),
+  EXPIRES_AT: datetime("EXPIRES_AT", { mode: "string", fsp: 3 }),
+  CREATED_AT: datetime("CREATED_AT", { mode: "string", fsp: 3 }),
+  UPDATED_AT: datetime("UPDATED_AT", { mode: "string", fsp: 3 }),
+});
+
+// Table pour les paramètres PWA par utilisateur
+export const pwaSettings = mysqlTable("PWA_SETTINGS", {
+  ID: bigint("ID", { mode: "number" }).primaryKey().autoincrement(),
+  CDUSER: varchar("CDUSER", { length: 10 }).notNull().unique(),
+  PUSH_NOTIFICATIONS: tinyint("PUSH_NOTIFICATIONS").default(1),
+  OFFLINE_SYNC_INTERVAL: int("OFFLINE_SYNC_INTERVAL").default(300),
+  AUTO_PHOTO_UPLOAD: tinyint("AUTO_PHOTO_UPLOAD").default(1),
+  GPS_TRACKING: tinyint("GPS_TRACKING").default(1),
+  SETTINGS_JSON: json("SETTINGS_JSON"),
+  CREATED_AT: datetime("CREATED_AT", { mode: "string", fsp: 3 }),
+  UPDATED_AT: datetime("UPDATED_AT", { mode: "string", fsp: 3 }),
+});
+
+// Schémas Zod pour les nouvelles tables PWA
+export const insertInterventionMediaSchema = createInsertSchema(interventionMedia);
+export const insertInterventionSyncSchema = createInsertSchema(interventionSync);
+export const insertPwaOfflineCacheSchema = createInsertSchema(pwaOfflineCache);
+export const insertPwaSettingsSchema = createInsertSchema(pwaSettings);
+
+// Types TypeScript pour les nouvelles tables PWA
+export type InterventionMedia = typeof interventionMedia.$inferSelect;
+export type InsertInterventionMedia = typeof interventionMedia.$inferInsert;
+export type InterventionSync = typeof interventionSync.$inferSelect;
+export type InsertInterventionSync = typeof interventionSync.$inferInsert;
+export type PwaOfflineCache = typeof pwaOfflineCache.$inferSelect;
+export type InsertPwaOfflineCache = typeof pwaOfflineCache.$inferInsert;
+export type PwaSettings = typeof pwaSettings.$inferSelect;
+export type InsertPwaSettings = typeof pwaSettings.$inferInsert;

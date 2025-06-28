@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mode Offline - Fleet Tech</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .offline-container {
+            text-align: center;
+            background: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .offline-icon {
+            width: 80px;
+            height: 80px;
+            background: #e3f2fd;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .offline-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #1976d2;
+            margin-bottom: 1rem;
+        }
+
+        .offline-message {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+        }
+
+        .features-list {
+            text-align: left;
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .features-list h3 {
+            color: #1976d2;
+            margin-bottom: 0.5rem;
+            font-size: 1rem;
+        }
+
+        .features-list ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .features-list li {
+            padding: 0.25rem 0;
+            color: #555;
+        }
+
+        .features-list li::before {
+            content: "✓";
+            color: #4caf50;
+            font-weight: bold;
+            margin-right: 0.5rem;
+        }
+
+        .retry-button {
+            background: #1976d2;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .retry-button:hover {
+            background: #1565c0;
+        }
+
+        .network-status {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: bold;
+        }
+
+        .network-status.offline {
+            background: #f44336;
+            color: white;
+        }
+
+        .network-status.online {
+            background: #4caf50;
+            color: white;
+        }
+
+        .sync-info {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-top: 1rem;
+            color: #856404;
+            font-size: 0.875rem;
+        }
+
+        @media (max-width: 480px) {
+            .offline-container {
+                padding: 1.5rem;
+            }
+            
+            .offline-title {
+                font-size: 1.25rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="network-status" id="networkStatus">
+        📡 Hors ligne
+    </div>
+
+    <div class="offline-container">
+        <div class="offline-icon">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#1976d2" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+            </svg>
+        </div>
+
+        <div class="offline-title">
+            Mode Offline Actif
+        </div>
+
+        <div class="offline-message">
+            Vous êtes actuellement hors ligne, mais Fleet Tech continue de fonctionner !
+        </div>
+
+        <div class="features-list">
+            <h3>Fonctionnalités disponibles :</h3>
+            <ul>
+                <li>Consulter les interventions en cache</li>
+                <li>Modifier les interventions</li>
+                <li>Prendre des photos</li>
+                <li>Ajouter des signatures</li>
+                <li>Consulter les véhicules</li>
+            </ul>
+        </div>
+
+        <div class="sync-info">
+            <strong>📱 Synchronisation automatique</strong><br>
+            Vos modifications seront automatiquement synchronisées dès que la connexion sera rétablie.
+        </div>
+
+        <button class="retry-button" onclick="retryConnection()">
+            🔄 Réessayer la connexion
+        </button>
+    </div>
+
+    <script>
+        // Gestion du statut réseau
+        function updateNetworkStatus() {
+            const status = document.getElementById('networkStatus');
+            if (navigator.onLine) {
+                status.textContent = '📡 En ligne';
+                status.className = 'network-status online';
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            } else {
+                status.textContent = '📡 Hors ligne';
+                status.className = 'network-status offline';
+            }
+        }
+
+        // Fonction de retry
+        function retryConnection() {
+            if (navigator.onLine) {
+                window.location.href = '/';
+            } else {
+                // Tenter un ping vers le serveur
+                fetch('/api/pwa/test', { 
+                    method: 'GET',
+                    cache: 'no-cache' 
+                }).then(() => {
+                    window.location.href = '/';
+                }).catch(() => {
+                    alert('Connexion toujours indisponible. Veuillez réessayer plus tard.');
+                });
+            }
+        }
+
+        // Écouter les changements de statut réseau
+        window.addEventListener('online', updateNetworkStatus);
+        window.addEventListener('offline', updateNetworkStatus);
+
+        // Initialiser le statut
+        updateNetworkStatus();
+
+        // Vérifier périodiquement la connexion
+        setInterval(() => {
+            if (navigator.onLine) {
+                fetch('/api/pwa/test', { 
+                    method: 'GET',
+                    cache: 'no-cache',
+                    signal: AbortSignal.timeout(5000)
+                }).then(() => {
+                    window.location.href = '/';
+                }).catch(() => {
+                    // Connexion toujours indisponible
+                });
+            }
+        }, 10000); // Vérifier toutes les 10 secondes
+
+        console.log('[Offline] Page offline chargée - Fleet Tech PWA');
+    </script>
+</body>
+</html> 

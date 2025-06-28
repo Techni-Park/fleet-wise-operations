@@ -1,0 +1,121 @@
+{
+  "timestamp": "2025-06-28T22:46:28.490Z",
+  "summary": {
+    "passed": 22,
+    "total": 22,
+    "percentage": 100
+  },
+  "results": [
+    {
+      "name": "Manifest existe",
+      "passed": true,
+      "details": "manifest.json trouvé"
+    },
+    {
+      "name": "Manifest name",
+      "passed": true,
+      "details": "name: Fleet Wise Operations - Technicien"
+    },
+    {
+      "name": "Manifest start_url",
+      "passed": true,
+      "details": "start_url: /"
+    },
+    {
+      "name": "Manifest display",
+      "passed": true,
+      "details": "display: standalone"
+    },
+    {
+      "name": "Manifest icons",
+      "passed": true,
+      "details": "8 icônes définies"
+    },
+    {
+      "name": "Service Worker existe",
+      "passed": true,
+      "details": "sw.js trouvé"
+    },
+    {
+      "name": "SW install event",
+      "passed": true,
+      "details": "Event install trouvé"
+    },
+    {
+      "name": "SW activate event",
+      "passed": true,
+      "details": "Event activate trouvé"
+    },
+    {
+      "name": "SW fetch event",
+      "passed": true,
+      "details": "Event fetch trouvé"
+    },
+    {
+      "name": "SW sync event",
+      "passed": true,
+      "details": "Event sync trouvé"
+    },
+    {
+      "name": "Page offline existe",
+      "passed": true,
+      "details": "offline.html trouvé"
+    },
+    {
+      "name": "Page offline interactive",
+      "passed": true,
+      "details": "Fonction retry trouvée"
+    },
+    {
+      "name": "Script SQL PWA existe",
+      "passed": true,
+      "details": "create_pwa_tables.sql trouvé"
+    },
+    {
+      "name": "Table INTERVENTION_MEDIA",
+      "passed": true,
+      "details": "Définition trouvée"
+    },
+    {
+      "name": "Table INTERVENTION_SYNC",
+      "passed": true,
+      "details": "Définition trouvée"
+    },
+    {
+      "name": "Table PWA_OFFLINE_CACHE",
+      "passed": true,
+      "details": "Définition trouvée"
+    },
+    {
+      "name": "Table PWA_SETTINGS",
+      "passed": true,
+      "details": "Définition trouvée"
+    },
+    {
+      "name": "Composant CameraCapture",
+      "passed": true,
+      "details": "CameraCapture.tsx trouvé"
+    },
+    {
+      "name": "Service OfflineStorage",
+      "passed": true,
+      "details": "offlineStorage.ts trouvé"
+    },
+    {
+      "name": "IndexedDB implementation",
+      "passed": true,
+      "details": "API IndexedDB utilisée"
+    },
+    {
+      "name": "Offline interventions",
+      "passed": true,
+      "details": "Gestion interventions offline"
+    },
+    {
+      "name": "Offline media",
+      "passed": true,
+      "details": "Gestion médias offline"
+    }
+  ],
+  "baseURL": "http://localhost:5000"
+}

@@ -1776,6 +1776,290 @@ app.get("/api/contacts/:contactId", async (req, res) => {
   }
 });
 
+// ================================================================
+// ENDPOINTS PWA POUR FONCTIONNALITÉS OFFLINE
+// ================================================================
+
+// Configuration multer pour PWA avec stockage sur disque
+const pwaUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      const uploadPath = path.join(process.cwd(), 'uploads', 'interventions', 
+        new Date().getFullYear().toString(),
+        (new Date().getMonth() + 1).toString().padStart(2, '0')
+      );
+      
+      // Créer le dossier s'il n'existe pas
+      if (!fs.existsSync(uploadPath)) {
+        fs.mkdirSync(uploadPath, { recursive: true });
+      }
+      
+      cb(null, uploadPath);
+    },
+    filename: (req, file, cb) => {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      const ext = path.extname(file.originalname);
+      cb(null, `${file.fieldname}-${uniqueSuffix}${ext}`);
+    }
+  }),
+  limits: { 
+    fileSize: 10 * 1024 * 1024, // 10MB
+    files: 10 // Maximum 10 fichiers
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png|webp|svg|pdf|doc|docx/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+    
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Type de fichier non autorisé pour PWA'));
+    }
+  }
+});
+
+// Upload de médias pour une intervention (PWA)
+app.post("/api/pwa/interventions/:id/media", pwaUpload.array('files', 10), async (req, res) => {
+  try {
+    const interventionId = parseInt(req.params.id);
+    const files = req.files as Express.Multer.File[];
+    const mediaRecords = [];
+
+    if (!files || files.length === 0) {
+      return res.status(400).json({ error: 'Aucun fichier fourni' });
+    }
+
+    for (const file of files) {
+      try {
+        // Créer une miniature si c'est une image
+        let thumbnailPath = null;
+        if (file.mimetype.startsWith('image/')) {
+          // TODO: Implémenter la création de miniatures avec Sharp
+          // thumbnailPath = await createThumbnail(file.path);
+        }
+
+        const mediaRecord = {
+          IDINTERVENTION: interventionId,
+          FILENAME: file.filename,
+          ORIGINAL_NAME: file.originalname,
+          FILE_PATH: file.path.replace(process.cwd(), ''),
+          MIMETYPE: file.mimetype,
+          SIZE: file.size,
+          TYPE: (req.body.type || 'photo') as 'photo' | 'signature' | 'document',
+          DESCRIPTION: req.body.description || '',
+          GPS_LATITUDE: req.body.latitude ? parseFloat(req.body.latitude) : null,
+          GPS_LONGITUDE: req.body.longitude ? parseFloat(req.body.longitude) : null,
+          TAKEN_AT: new Date().toISOString(),
+          CDUSER: req.user?.CDUSER || 'PWA',
+          CREATED_AT: new Date().toISOString(),
+          UPDATED_AT: new Date().toISOString()
+        };
+
+        // Sauvegarder en base (à implémenter dans storage.ts)
+        // const saved = await storage.createInterventionMedia(mediaRecord);
+        mediaRecords.push(mediaRecord);
+
+        console.log(`[PWA] Média sauvegardé: ${file.filename} pour intervention ${interventionId}`);
+      } catch (fileError) {
+        console.error(`[PWA] Erreur traitement fichier ${file.filename}:`, fileError);
+      }
+    }
+
+    res.json({ 
+      success: true, 
+      media: mediaRecords,
+      count: mediaRecords.length
+    });
+
+  } catch (error) {
+    console.error('[PWA] Erreur upload média:', error);
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+// Synchronisation des interventions offline
+app.post("/api/pwa/sync/interventions", async (req, res) => {
+  try {
+    const { interventions, lastSync } = req.body;
+    const userId = req.user?.CDUSER || 'PWA';
+    const results = [];
+
+    console.log(`[PWA] Début synchronisation de ${interventions?.length || 0} interventions pour ${userId}`);
+
+    if (interventions && interventions.length > 0) {
+      for (const interventionData of interventions) {
+        try {
+          let result;
+          
+          if (interventionData.id && interventionData.id > 0) {
+            // Mise à jour d'une intervention existante
+            result = await storage.updateIntervention(interventionData.id, interventionData.data);
+            console.log(`[PWA] Intervention ${interventionData.id} mise à jour`);
+          } else {
+            // Création d'une nouvelle intervention
+            result = await storage.createIntervention({
+              ...interventionData.data,
+              CDUSER: userId,
+              DHCRE: new Date().toISOString(),
+              USCRE: userId
+            });
+            console.log(`[PWA] Nouvelle intervention créée: ${result?.IDINTERVENTION}`);
+          }
+
+          results.push({
+            localId: interventionData.localId || interventionData.id,
+            serverId: result?.IDINTERVENTION || interventionData.id,
+            status: 'synced',
+            data: result
+          });
+
+        } catch (syncError) {
+          console.error(`[PWA] Erreur sync intervention:`, syncError);
+          results.push({
+            localId: interventionData.localId || interventionData.id,
+            status: 'error',
+            error: (syncError as Error).message
+          });
+        }
+      }
+    }
+
+    // Récupérer les interventions modifiées depuis lastSync
+    const updates = [];
+    if (lastSync) {
+      try {
+        // TODO: Implémenter getInterventionsSince dans storage.ts
+        // const recentUpdates = await storage.getInterventionsSince(new Date(lastSync), userId);
+        // updates.push(...recentUpdates);
+      } catch (error) {
+        console.error('[PWA] Erreur récupération updates:', error);
+      }
+    }
+
+    res.json({
+      success: true,
+      syncResults: results,
+      updates: updates,
+      serverTime: new Date().toISOString(),
+      syncedCount: results.filter(r => r.status === 'synced').length,
+      errorCount: results.filter(r => r.status === 'error').length
+    });
+
+  } catch (error) {
+    console.error('[PWA] Erreur synchronisation:', error);
+    res.status(500).json({ 
+      success: false,
+      error: (error as Error).message 
+    });
+  }
+});
+
+// Récupérer les données pour le cache offline
+app.get("/api/pwa/cache/:entity", async (req, res) => {
+  try {
+    const { entity } = req.params;
+    const { lastSync } = req.query;
+    const userId = req.user?.CDUSER || 'PWA';
+
+    let data = [];
+    let cacheExpiry = 24 * 60 * 60 * 1000; // 24h par défaut
+
+    switch (entity) {
+      case 'interventions':
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 50;
+        const result = await storage.getAllInterventions(page, limit);
+        data = result.interventions;
+        cacheExpiry = 2 * 60 * 60 * 1000; // 2h pour les interventions
+        break;
+
+      case 'vehicles':
+        data = await storage.getAllVehicles();
+        cacheExpiry = 24 * 60 * 60 * 1000; // 24h pour les véhicules
+        break;
+
+      case 'contacts':
+        data = await storage.getAllContacts();
+        cacheExpiry = 24 * 60 * 60 * 1000; // 24h pour les contacts
+        break;
+
+      case 'anomalies':
+        data = await storage.getAllAnomalies();
+        cacheExpiry = 24 * 60 * 60 * 1000; // 24h pour les anomalies
+        break;
+
+      case 'machines':
+        data = await storage.getAllMachines();
+        cacheExpiry = 24 * 60 * 60 * 1000; // 24h pour les machines
+        break;
+
+      default:
+        return res.status(400).json({ error: 'Entité non supportée' });
+    }
+
+    res.set('Cache-Control', `public, max-age=${Math.floor(cacheExpiry / 1000)}`);
+    res.json({
+      success: true,
+      entity,
+      data,
+      count: data.length,
+      timestamp: new Date().toISOString(),
+      cacheExpiry
+    });
+
+  } catch (error) {
+    console.error(`[PWA] Erreur cache ${req.params.entity}:`, error);
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+// Statut de synchronisation PWA pour un utilisateur
+app.get("/api/pwa/sync/status", async (req, res) => {
+  try {
+    const userId = req.user?.CDUSER || 'PWA';
+    
+    // TODO: Implémenter la récupération du statut de sync depuis les tables PWA
+    const status = {
+      lastSync: new Date().toISOString(),
+      pendingInterventions: 0,
+      pendingMedia: 0,
+      cacheSize: 0,
+      isOnline: true,
+      user: userId
+    };
+
+    res.json(status);
+  } catch (error) {
+    console.error('[PWA] Erreur statut sync:', error);
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+// Servir les fichiers uploadés PWA
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads'), {
+  maxAge: '30d',
+  etag: true,
+  lastModified: true
+}));
+
+// Endpoint pour tester les fonctionnalités PWA  
+app.get("/api/pwa/test", async (req, res) => {
+  res.json({
+    success: true,
+    message: 'PWA endpoints opérationnels',
+    timestamp: new Date().toISOString(),
+    features: [
+      'Upload médias',
+      'Synchronisation offline',
+      'Cache API',
+      'Statut sync'
+    ]
+  });
+});
+
+console.log('[PWA] Endpoints PWA enregistrés');
+
 const httpServer = createServer(app);
 
   return httpServer;
