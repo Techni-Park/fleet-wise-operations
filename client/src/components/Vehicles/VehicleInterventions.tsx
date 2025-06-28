@@ -21,7 +21,8 @@ const VehicleInterventions: React.FC<VehicleInterventionsProps> = ({ vehicleId }
     else setLoading(true);
 
     try {
-      const response = await fetch(`/api/vehicles/${vehicleId}/interventions`, {
+      const cleMachineCible = `R${vehicleId}`;
+      const response = await fetch(`/api/interventions?cle_machine_cible=${encodeURIComponent(cleMachineCible)}`, {
         credentials: 'include'
       });
       
