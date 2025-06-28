@@ -13,7 +13,9 @@
     "db:create-pwa": "mysql -u root -p gestinter_test < create_pwa_tables.sql",
     "pwa:icons": "node scripts/generate-pwa-icons.js",
     "pwa:test": "node scripts/test-pwa-features.js",
-    "pwa:deploy": "npm run build:pwa && node scripts/deploy-pwa.js"
+    "pwa:deploy": "npm run build:pwa && node scripts/deploy-pwa.js",
+    "pwa:update-sw": "echo 'Forçage mise à jour Service Worker...' && npm run build:pwa && echo 'Redémarrez le serveur pour appliquer les changements SW'",
+    "pwa:test-auth": "curl -s http://localhost:5000/api/test-user-auth || echo 'Serveur non démarré - Lancez npm start'"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
