@@ -21,26 +21,45 @@ const Interventions = () => {
     limit: 12,
     total: 0,
   });
+  const [vehicleMap, setVehicleMap] = useState<Map<number, any>>(new Map());
+  const [contactMap, setContactMap] = useState<Map<number, any>>(new Map());
 
-  // Charger les interventions avec pagination
-  const loadInterventions = useCallback(async (showRefresh = false) => {
+  // Charger toutes les données nécessaires (interventions, véhicules, contacts)
+  const loadData = useCallback(async (showRefresh = false) => {
     if (showRefresh) setRefreshing(true);
     else setLoading(true);
 
     try {
-      const response = await fetch(`/api/interventions?page=${pagination.page}&limit=${pagination.limit}`, {
-        credentials: 'include'
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setInterventions(Array.isArray(data.interventions) ? data.interventions : []);
-        setPagination(prev => ({ ...prev, total: data.total || 0 }));
-      } else {
-        throw new Error(`Erreur HTTP: ${response.status}`);
+      const [interventionsRes, vehiclesRes, contactsRes] = await Promise.all([
+        fetch(`/api/interventions?page=${pagination.page}&limit=${pagination.limit}`, { credentials: 'include' }),
+        fetch('/api/vehicules?limit=9999', { credentials: 'include' }),
+        fetch('/api/contacts?limit=9999', { credentials: 'include' })
+      ]);
+
+      if (!interventionsRes.ok || !vehiclesRes.ok || !contactsRes.ok) {
+        throw new Error('Failed to fetch data');
       }
+
+      const interventionsData = await interventionsRes.json();
+      const vehiclesData = await vehiclesRes.json();
+      const contactsData = await contactsRes.json();
+
+      setInterventions(Array.isArray(interventionsData.interventions) ? interventionsData.interventions : []);
+      setPagination(prev => ({ ...prev, total: interventionsData.total || 0 }));
+
+      const allVehicles = vehiclesData.vehicles && Array.isArray(vehiclesData.vehicles) ? vehiclesData.vehicles : (Array.isArray(vehiclesData) ? vehiclesData : []);
+      const allContacts = contactsData.contacts && Array.isArray(contactsData.contacts) ? contactsData.contacts : (Array.isArray(contactsData) ? contactsData : []);
+
+      const newVehicleMap = new Map();
+      allVehicles.forEach(v => newVehicleMap.set(v.IDMACHINE, v));
+      setVehicleMap(newVehicleMap);
+
+      const newContactMap = new Map();
+      allContacts.forEach(c => newContactMap.set(c.IDCONTACT, c));
+      setContactMap(newContactMap);
+
     } catch (error) {
-      console.error('Erreur lors du chargement des interventions:', error);
+      console.error('Erreur lors du chargement des données:', error);
       setInterventions([]);
     } finally {
       setLoading(false);
@@ -49,8 +68,8 @@ const Interventions = () => {
   }, [pagination.page, pagination.limit]);
 
   useEffect(() => {
-    loadInterventions();
-  }, [loadInterventions]);
+    loadData();
+  }, [loadData]);
 
   // Fonction pour formater le statut
   const getStatusBadge = (status: number) => {
@@ -116,7 +135,7 @@ const Interventions = () => {
           credentials: 'include'
         });
         if (response.ok) {
-          loadInterventions();
+          loadData();
         } else {
           alert('Erreur lors de la suppression de l\'intervention');
         }
@@ -132,6 +151,32 @@ const Interventions = () => {
     const cardClass = isListView
       ? "flex flex-col sm:flex-row w-full"
       : "flex flex-col";
+
+    // Find vehicle
+    let vehicleDisplay = 'Véhicule non défini';
+    if (intervention.CLE_MACHINE_CIBLE) {
+        const machineIdStr = intervention.CLE_MACHINE_CIBLE.replace('R', '');
+        const machineId = parseInt(machineIdStr, 10);
+        if (!isNaN(machineId)) {
+            const vehicle = vehicleMap.get(machineId);
+            if (vehicle) {
+                vehicleDisplay = vehicle.LIB_MACHINE || `${vehicle.MARQUE || ''} ${vehicle.MODELE || ''}`.trim() || `ID: ${vehicle.IDVEHICULE}`;
+            } else {
+                vehicleDisplay = `Machine ID: ${machineIdStr}`;
+            }
+        }
+    }
+
+    // Find contact
+    let contactDisplay = 'Client non défini';
+    if (intervention.IDCONTACT) {
+        const contact = contactMap.get(intervention.IDCONTACT);
+        if (contact) {
+            contactDisplay = contact.RAISON_SOCIALE || formatFullName(contact.NOM, contact.PRENOM);
+        } else {
+            contactDisplay = `Contact ID: ${intervention.IDCONTACT}`;
+        }
+    }
 
     return (
       <Card key={intervention.IDINTERVENTION} className={cardClass}>
@@ -163,9 +208,7 @@ const Interventions = () => {
                 <div className="flex items-center min-w-0 flex-1">
                   <User className="w-4 h-4 mr-2 text-blue-600 flex-shrink-0" />
                   <span className="truncate font-medium">
-                    {intervention.CONTACT_RAISON_SOCIALE || 
-                     formatFullName(intervention.CONTACT_NOM, intervention.CONTACT_PRENOM) || 
-                     'Client non défini'}
+                    {contactDisplay}
                   </span>
                 </div>
                 <div className="flex items-center text-gray-600 ml-2">
@@ -179,15 +222,13 @@ const Interventions = () => {
                 <div className="flex items-center">
                   <Car className="w-4 h-4 mr-2 text-green-600 flex-shrink-0" />
                   <span className="truncate">
-                    {intervention.VEHICULE_LIB_MACHINE || 
-                     `${intervention.VEHICULE_MARQUE || ''} ${intervention.VEHICULE_MODELE || ''}`.trim() ||
-                     'Véhicule non défini'}
+                    {vehicleDisplay}
                   </span>
                 </div>
                 <div className="flex items-center">
                   <AlertTriangle className="w-4 h-4 mr-2 text-orange-600 flex-shrink-0" />
                   <span className="truncate">
-                    {formatFullName(intervention.TECHNICIEN_NOM, intervention.TECHNICIEN_PRENOM) || 
+                    {formatFullName(intervention.TECHNICIEN_NOM, intervention.TECHNICIEN_PRENOM) ||
                      'Non assigné'}
                   </span>
                 </div>
@@ -269,7 +310,7 @@ const Interventions = () => {
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
             <Button 
-              onClick={() => loadInterventions(true)} 
+              onClick={() => loadData(true)}
               disabled={refreshing} 
               variant="outline"
               size="sm"
