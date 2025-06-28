@@ -22,8 +22,8 @@ const Interventions = () => {
     limit: 12,
     total: 0,
   });
-  const [vehicleMap, setVehicleMap] = useState(() => new Map<number, any>());
-  const [contactMap, setContactMap] = useState(() => new Map<number, any>());
+  const [vehicleMap, setVehicleMap] = useState<{[key: number]: any}>({});
+  const [contactMap, setContactMap] = useState<{[key: number]: any}>({});
   
   // États pour les filtres et la vue carte
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'map'>('grid');
@@ -57,12 +57,12 @@ const Interventions = () => {
       const allVehicles = vehiclesData.vehicles && Array.isArray(vehiclesData.vehicles) ? vehiclesData.vehicles : (Array.isArray(vehiclesData) ? vehiclesData : []);
       const allContacts = contactsData.contacts && Array.isArray(contactsData.contacts) ? contactsData.contacts : (Array.isArray(contactsData) ? contactsData : []);
 
-      const newVehicleMap = new Map();
-      allVehicles.forEach((v: any) => newVehicleMap.set(v.IDMACHINE, v));
+      const newVehicleMap: {[key: number]: any} = {};
+      allVehicles.forEach((v: any) => newVehicleMap[v.IDMACHINE] = v);
       setVehicleMap(newVehicleMap);
 
-      const newContactMap = new Map();
-      allContacts.forEach((c: any) => newContactMap.set(c.IDCONTACT, c));
+      const newContactMap: {[key: number]: any} = {};
+      allContacts.forEach((c: any) => newContactMap[c.IDCONTACT] = c);
       setContactMap(newContactMap);
 
     } catch (error) {
@@ -234,7 +234,7 @@ const Interventions = () => {
     // Find contact
     let contactDisplay = 'Client non défini';
     if (intervention.IDCONTACT) {
-        const contact = contactMap.get(intervention.IDCONTACT);
+        const contact = contactMap[intervention.IDCONTACT];
         if (contact) {
             contactDisplay = contact.RAISON_SOCIALE || formatFullName(contact.NOM, contact.PRENOM);
         } else {
