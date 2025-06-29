@@ -17,7 +17,10 @@
     "pwa:update-sw": "echo 'Forçage mise à jour Service Worker...' && npm run build:pwa && echo 'Redémarrez le serveur pour appliquer les changements SW'",
     "pwa:test-auth": "curl -s http://localhost:5000/api/test-user-auth || echo 'Serveur non démarré - Lancez npm start'",
     "pwa:test-offline": "node test-offline-mode.js",
-    "pwa:create-icons": "scripts\\create-pwa-icons.bat"
+    "pwa:create-icons": "scripts\\create-pwa-icons.bat",
+    "pwa:diagnose": "node scripts/diagnose-pwa-install.js",
+    "pwa:diagnose-prod": "node scripts/diagnose-pwa-install.js --prod",
+    "pwa:test-final": "node scripts/test-final-pwa.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
