@@ -155,14 +155,179 @@ async function handleStaticRequest(request) {
 
 // Synchronisation background
 self.addEventListener('sync', (event) => {
+  console.log('[SW] Event sync reçu:', event.tag);
+  
   if (event.tag === 'sync-interventions') {
     event.waitUntil(syncOfflineData());
+  } else if (event.tag === 'sync-media') {
+    event.waitUntil(syncOfflineMedia());
+  } else if (event.tag === 'refresh-cache') {
+    event.waitUntil(refreshCachedData());
   }
 });
 
 async function syncOfflineData() {
-  console.log('[SW] Synchronisation des données offline');
-  // À implémenter avec IndexedDB
+  console.log('[SW] Synchronisation des interventions offline');
+  
+  try {
+    // Ouvrir IndexedDB
+    const db = await openOfflineDB();
+    const transaction = db.transaction(['interventions'], 'readonly');
+    const store = transaction.objectStore('interventions');
+    const index = store.index('status');
+    
+    return new Promise((resolve, reject) => {
+      const request = index.getAll('offline');
+      request.onsuccess = async () => {
+        const pendingInterventions = request.result;
+        console.log('[SW] Interventions à synchroniser:', pendingInterventions.length);
+        
+        if (pendingInterventions.length > 0) {
+          try {
+            const response = await fetch('/api/pwa/sync/interventions', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify({
+                interventions: pendingInterventions,
+                source: 'background-sync'
+              })
+            });
+            
+            if (response.ok) {
+              console.log('[SW] Synchronisation réussie');
+              // Notifier l'utilisateur si possible
+              self.registration.showNotification('Fleet Tech PWA', {
+                body: `${pendingInterventions.length} intervention(s) synchronisée(s)`,
+                icon: '/icons/icon-192.png',
+                badge: '/icons/icon-96.png',
+                tag: 'sync-success'
+              });
+            }
+          } catch (error) {
+            console.error('[SW] Erreur synchronisation:', error);
+          }
+        }
+        resolve();
+      };
+      request.onerror = () => reject(request.error);
+    });
+  } catch (error) {
+    console.error('[SW] Erreur sync offline data:', error);
+  }
+}
+
+async function syncOfflineMedia() {
+  console.log('[SW] Synchronisation des médias offline');
+  
+  try {
+    const db = await openOfflineDB();
+    const transaction = db.transaction(['media'], 'readonly');
+    const store = transaction.objectStore('media');
+    const index = store.index('status');
+    
+    return new Promise((resolve, reject) => {
+      const request = index.getAll('pending');
+      request.onsuccess = async () => {
+        const pendingMedia = request.result;
+        console.log('[SW] Médias à synchroniser:', pendingMedia.length);
+        
+        for (const media of pendingMedia) {
+          try {
+            await uploadMedia(media);
+          } catch (error) {
+            console.error('[SW] Erreur upload média:', error);
+          }
+        }
+        resolve();
+      };
+      request.onerror = () => reject(request.error);
+    });
+  } catch (error) {
+    console.error('[SW] Erreur sync media:', error);
+  }
+}
+
+async function uploadMedia(media) {
+  const formData = new FormData();
+  formData.append('file', media.file);
+  formData.append('type', media.type);
+  formData.append('description', media.description || '');
+  
+  if (media.gps) {
+    formData.append('latitude', media.gps.latitude.toString());
+    formData.append('longitude', media.gps.longitude.toString());
+  }
+
+  const response = await fetch(`/api/pwa/interventions/${media.interventionId}/media`, {
+    method: 'POST',
+    credentials: 'include',
+    body: formData
+  });
+
+  if (response.ok) {
+    // Mettre à jour le statut dans IndexedDB
+    await updateMediaStatus(media.id, 'uploaded');
+  }
+}
+
+async function refreshCachedData() {
+  console.log('[SW] Actualisation du cache en arrière-plan');
+  
+  const entities = ['vehicles', 'contacts', 'anomalies'];
+  
+  for (const entity of entities) {
+    try {
+      const response = await fetch(`/api/pwa/cache/${entity}`, {
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        // Mettre à jour le cache API
+        const cache = await caches.open(API_CACHE_NAME);
+        cache.put(`/api/pwa/cache/${entity}`, response.clone());
+        console.log(`[SW] Cache ${entity} actualisé`);
+      }
+    } catch (error) {
+      console.error(`[SW] Erreur actualisation cache ${entity}:`, error);
+    }
+  }
+}
+
+async function openOfflineDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open('FleetTechPWA', 1);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function updateMediaStatus(mediaId, status) {
+  try {
+    const db = await openOfflineDB();
+    const transaction = db.transaction(['media'], 'readwrite');
+    const store = transaction.objectStore('media');
+    
+    return new Promise((resolve, reject) => {
+      const getRequest = store.get(mediaId);
+      getRequest.onsuccess = () => {
+        const media = getRequest.result;
+        if (media) {
+          media.status = status;
+          media.timestamp = Date.now();
+          
+          const putRequest = store.put(media);
+          putRequest.onsuccess = () => resolve();
+          putRequest.onerror = () => reject(putRequest.error);
+        } else {
+          resolve(); // Média non trouvé, pas d'erreur
+        }
+      };
+      getRequest.onerror = () => reject(getRequest.error);
+    });
+  } catch (error) {
+    console.error('[SW] Erreur update media status:', error);
+  }
 }
 
 console.log('[SW] Service Worker chargé - Auth URLs exclus du cache'); 

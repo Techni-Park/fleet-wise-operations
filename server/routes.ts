@@ -1960,7 +1960,7 @@ app.post("/api/pwa/sync/interventions", async (req, res) => {
 app.get("/api/pwa/cache/:entity", async (req, res) => {
   try {
     const { entity } = req.params;
-    const { lastSync } = req.query;
+    const { lastSync, limit } = req.query;
     const userId = req.user?.CDUSER || 'PWA';
 
     let data = [];
@@ -1969,19 +1969,23 @@ app.get("/api/pwa/cache/:entity", async (req, res) => {
     switch (entity) {
       case 'interventions':
         const page = parseInt(req.query.page as string) || 1;
-        const limit = parseInt(req.query.limit as string) || 50;
-        const result = await storage.getAllInterventions(page, limit);
+        const interventionLimit = parseInt(limit as string) || 50;
+        const result = await storage.getAllInterventions(page, interventionLimit);
         data = result.interventions;
         cacheExpiry = 2 * 60 * 60 * 1000; // 2h pour les interventions
         break;
 
       case 'vehicles':
-        data = await storage.getAllVehicles();
+        const vehicleLimit = parseInt(limit as string) || 0;
+        const allVehicles = await storage.getAllVehicles();
+        data = vehicleLimit > 0 ? allVehicles.slice(0, vehicleLimit) : allVehicles;
         cacheExpiry = 24 * 60 * 60 * 1000; // 24h pour les véhicules
         break;
 
       case 'contacts':
-        data = await storage.getAllContacts();
+        const contactLimit = parseInt(limit as string) || 0;
+        const allContacts = await storage.getAllContacts();
+        data = contactLimit > 0 ? allContacts.slice(0, contactLimit) : allContacts;
         cacheExpiry = 24 * 60 * 60 * 1000; // 24h pour les contacts
         break;
 
@@ -2011,6 +2015,61 @@ app.get("/api/pwa/cache/:entity", async (req, res) => {
 
   } catch (error) {
     console.error(`[PWA] Erreur cache ${req.params.entity}:`, error);
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+// Endpoint pour pré-chargement géographique
+app.get("/api/pwa/cache/geography", async (req, res) => {
+  try {
+    const { lat, lng, radius } = req.query;
+    const latitude = parseFloat(lat as string);
+    const longitude = parseFloat(lng as string);
+    const radiusKm = parseInt(radius as string) || 50;
+
+    if (isNaN(latitude) || isNaN(longitude)) {
+      return res.status(400).json({ error: 'Coordonnées GPS invalides' });
+    }
+
+    // Calculer les bornes approximatives (degré ≈ 111km)
+    const latDelta = radiusKm / 111;
+    const lngDelta = radiusKm / (111 * Math.cos(latitude * Math.PI / 180));
+
+    const minLat = latitude - latDelta;
+    const maxLat = latitude + latDelta;
+    const minLng = longitude - lngDelta;
+    const maxLng = longitude + lngDelta;
+
+    console.log(`[PWA] Recherche géographique: centre(${latitude}, ${longitude}), rayon ${radiusKm}km`);
+
+    // TODO: Implémenter requêtes SQL avec filtrage géographique
+    // Pour l'instant, retourner données de base avec métadonnées GPS
+    const [vehicles, contacts, interventions] = await Promise.all([
+      storage.getAllVehicles(),
+      storage.getAllContacts(),
+      storage.getAllInterventions(1, 20).then(r => r.interventions)
+    ]);
+
+    const geoData = {
+      vehicles: vehicles.slice(0, 20), // Limiter pour les tests
+      contacts: contacts.slice(0, 15),
+      interventions: interventions.slice(0, 10),
+      center: { lat: latitude, lng: longitude },
+      radius: radiusKm,
+      bounds: { minLat, maxLat, minLng, maxLng }
+    };
+
+    res.json({
+      success: true,
+      entity: 'geography',
+      data: geoData,
+      count: geoData.vehicles.length + geoData.contacts.length + geoData.interventions.length,
+      timestamp: new Date().toISOString(),
+      cacheExpiry: 48 * 60 * 60 * 1000 // 48h pour données géographiques
+    });
+
+  } catch (error) {
+    console.error('[PWA] Erreur cache géographique:', error);
     res.status(500).json({ error: (error as Error).message });
   }
 });

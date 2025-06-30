@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { autoSync, SyncResult } from '../services/autoSync';
 
 interface User {
   id: number;
@@ -17,8 +18,11 @@ interface User {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  isPreloading: boolean;
+  preloadResults: SyncResult[];
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
+  getAutoSyncStatus: () => Promise<any>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -26,6 +30,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isPreloading, setIsPreloading] = useState(false);
+  const [preloadResults, setPreloadResults] = useState<SyncResult[]>([]);
 
   useEffect(() => {
     const checkLoggedIn = async () => {
@@ -83,6 +89,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const userData = await response.json();
         console.log('[Auth] Connexion réussie pour:', userData.EMAILP || userData.email);
         setUser(userData);
+        
+        // Déclencher le pré-chargement des données essentielles
+        performPreload(userData.CDUSER || userData.email);
+        
         setLoading(false);
         return { success: true };
       } else {
@@ -104,8 +114,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const performPreload = async (userId: string) => {
+    try {
+      setIsPreloading(true);
+      console.log('[Auth] Début du pré-chargement pour:', userId);
+      
+      const results = await autoSync.preloadEssentialData(userId);
+      setPreloadResults(results);
+      
+      console.log('[Auth] Pré-chargement terminé:', results.length, 'entités');
+    } catch (error) {
+      console.error('[Auth] Erreur pré-chargement:', error);
+    } finally {
+      setIsPreloading(false);
+    }
+  };
+
   const logout = async () => {
     try {
+      // Arrêter la synchronisation en arrière-plan
+      autoSync.stopBackgroundSync();
+      
       await fetch('/api/logout', {
         method: 'POST',
         credentials: 'include',
@@ -114,10 +143,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error('Erreur lors de la déconnexion:', error);
     } finally {
       setUser(null);
+      setPreloadResults([]);
     }
   };
 
-  const value = { user, loading, login, logout };
+  const getAutoSyncStatus = async () => {
+    return await autoSync.getStatus();
+  };
+
+  const value = { user, loading, isPreloading, preloadResults, login, logout, getAutoSyncStatus };
 
   return (
     <AuthContext.Provider value={value}>
