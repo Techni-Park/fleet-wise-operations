@@ -10,8 +10,21 @@ interface ProtectedRouteProps {
  * Composant ProtectedRoute utilisant le contexte d'authentification
  */
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-  const { user, loading } = useAuth();
   const location = useLocation();
+  
+  // Gestion sécurisée du contexte d'authentification
+  let user = null;
+  let loading = true;
+  
+  try {
+    const auth = useAuth();
+    user = auth.user;
+    loading = auth.loading;
+  } catch (error) {
+    console.error('[ProtectedRoute] Erreur useAuth:', error);
+    // En cas d'erreur du contexte, rediriger vers login
+    return <Navigate to="/login" state={{ from: location, error: 'Context error' }} replace />;
+  }
 
   // Affichage du loading pendant la vérification
   if (loading) {

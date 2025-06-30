@@ -4,7 +4,6 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './App.tsx'
 import './index.css'
 import { AuthProvider } from './context/AuthContext.tsx'
-import { Toaster } from 'sonner'
 
 // Fonction d'enregistrement du Service Worker
 const registerServiceWorker = async () => {
@@ -67,35 +66,89 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-const rootElement = document.getElementById("root");
+// Fonction pour vérifier si on est en mode incognito
+const detectIncognito = (): Promise<boolean> => {
+  return new Promise((resolve) => {
+    // Test pour Chrome/Edge
+    if ('webkitRequestFileSystem' in window) {
+      (window as any).webkitRequestFileSystem(
+        0,
+        1,
+        () => resolve(false),
+        () => resolve(true)
+      );
+    }
+    // Test pour Firefox
+    else if ('MozAppearance' in document.documentElement.style) {
+      const db = indexedDB.open('test');
+      db.onerror = () => resolve(true);
+      db.onsuccess = () => resolve(false);
+    }
+    // Fallback
+    else {
+      resolve(false);
+    }
+  });
+};
 
-if (!rootElement) {
-  throw new Error("Root element not found");
-}
+// Fonction d'initialisation sécurisée
+const initializeApp = async () => {
+  try {
+    const isIncognito = await detectIncognito();
+    if (isIncognito) {
+      console.warn('[PWA] Mode incognito détecté - certaines fonctionnalités peuvent être limitées');
+    }
 
-ReactDOM.createRoot(rootElement).render(
-  <React.StrictMode>
-    <BrowserRouter>
-      <AuthProvider>
-        <App />
-        <Toaster position="top-right" richColors />
-      </AuthProvider>
-    </BrowserRouter>
-  </React.StrictMode>
-);
+    const rootElement = document.getElementById("root");
 
-// Enregistrer le Service Worker après que React soit monté (seulement en production)
-if (import.meta.env.PROD) {
-  setTimeout(() => {
-    registerServiceWorker();
-  }, 2000); // Délai pour laisser React s'initialiser complètement
-} else {
-  console.log('[PWA] Service Worker désactivé en mode développement - pour l\'activer: ajoutez ?sw à l\'URL');
-  
-  // Activer le SW en dev seulement si demandé explicitement
-  if (window.location.search.includes('?sw') || window.location.search.includes('&sw')) {
-    setTimeout(() => {
-      registerServiceWorker();
-    }, 3000);
+    if (!rootElement) {
+      throw new Error("Root element not found");
+    }
+
+    ReactDOM.createRoot(rootElement).render(
+      <React.StrictMode>
+        <BrowserRouter>
+          <AuthProvider>
+            <App />
+          </AuthProvider>
+        </BrowserRouter>
+      </React.StrictMode>
+    );
+
+    // Enregistrer le Service Worker après que React soit monté (seulement en production)
+    if (import.meta.env.PROD) {
+      setTimeout(() => {
+        registerServiceWorker();
+      }, 2000); // Délai pour laisser React s'initialiser complètement
+    } else {
+      console.log('[PWA] Service Worker désactivé en mode développement - pour l\'activer: ajoutez ?sw à l\'URL');
+      
+      // Activer le SW en dev seulement si demandé explicitement
+      if (window.location.search.includes('?sw') || window.location.search.includes('&sw')) {
+        setTimeout(() => {
+          registerServiceWorker();
+        }, 3000);
+      }
+    }
+
+  } catch (error) {
+    console.error('[App] Erreur d\'initialisation:', error);
+    
+    // Fallback d'urgence
+    const rootElement = document.getElementById("root");
+    if (rootElement) {
+      rootElement.innerHTML = `
+        <div style="padding: 20px; text-align: center; color: red;">
+          <h2>Erreur d'initialisation de l'application</h2>
+          <p>Veuillez recharger la page ou essayer en mode navigation normale.</p>
+          <button onclick="window.location.reload()" style="padding: 10px 20px; margin-top: 10px;">
+            Recharger
+          </button>
+        </div>
+      `;
+    }
   }
-}
+};
+
+// Démarrer l'application
+initializeApp();
