@@ -2,6 +2,9 @@
 const CACHE_NAME = 'fleet-tech-pwa-v1';
 const API_CACHE_NAME = 'fleet-tech-api-v1';
 
+// Détecter mode développement
+const isDevelopment = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+
 const STATIC_CACHE_URLS = [
   '/',
   '/index.html',
@@ -49,6 +52,22 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
+  
+  // Ignorer les requêtes qui ne doivent pas être interceptées
+  if (url.protocol === 'chrome-extension:' ||
+      url.protocol === 'moz-extension:' ||
+      url.protocol === 'devtools:' ||
+      (isDevelopment && (
+        url.pathname.startsWith('/@fs/') ||
+        url.pathname.startsWith('/@vite/') ||
+        url.pathname.startsWith('/node_modules/') ||
+        url.pathname.includes('/__vite') ||
+        request.url.includes('?v=') && request.url.includes('@fs')
+      ))) {
+    // Laisser passer ces requêtes sans interception
+    console.log('[SW] Ignoring request:', url.pathname);
+    return;
+  }
   
   // Vérifier si c'est une requête d'authentification
   const isAuthRequest = AUTH_URLS.some(authUrl => url.pathname === authUrl);
@@ -131,6 +150,14 @@ async function handleApiRequest(request) {
 }
 
 async function handleStaticRequest(request) {
+  const url = new URL(request.url);
+  
+  // Ne traiter que les requêtes HTTP/HTTPS
+  if (!url.protocol.startsWith('http')) {
+    console.log('[SW] Ignoring non-HTTP request:', url.protocol);
+    return fetch(request);
+  }
+  
   const cache = await caches.open(CACHE_NAME);
   const cachedResponse = await cache.match(request);
   
@@ -140,14 +167,21 @@ async function handleStaticRequest(request) {
   
   try {
     const networkResponse = await fetch(request);
-    if (networkResponse.ok) {
-      cache.put(request, networkResponse.clone());
+    if (networkResponse.ok && request.method === 'GET') {
+      // Seulement mettre en cache les réponses réussies
+      try {
+        await cache.put(request, networkResponse.clone());
+      } catch (cacheError) {
+        console.warn('[SW] Cache put failed:', cacheError.message);
+      }
     }
     return networkResponse;
   } catch (error) {
+    console.log('[SW] Network failed for:', request.url);
     // Page offline pour les requêtes de navigation
     if (request.mode === 'navigate') {
-      return caches.match('/offline.html');
+      const offlinePage = await caches.match('/offline.html');
+      return offlinePage || new Response('Offline', { status: 503 });
     }
     return new Response('Offline', { status: 503 });
   }
