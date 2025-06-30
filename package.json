@@ -20,7 +20,8 @@
     "pwa:create-icons": "scripts\\create-pwa-icons.bat",
     "pwa:diagnose": "node scripts/diagnose-pwa-install.js",
     "pwa:diagnose-prod": "node scripts/diagnose-pwa-install.js --prod",
-    "pwa:test-final": "node scripts/test-final-pwa.js"
+    "pwa:test-final": "node scripts/test-final-pwa.js",
+    "test:preload": "node scripts/test-preload-system.cjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

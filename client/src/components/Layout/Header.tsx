@@ -6,6 +6,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import UserMenu from '../ui/UserMenu';
+import { PWAStatusIndicator } from '../PWA/PWAStatusIndicator';
 
 interface HeaderProps {
   onMenuToggle?: () => void;
@@ -77,6 +78,9 @@ const Header = ({ onMenuToggle }: HeaderProps) => {
               <Search className="w-5 h-5" />
             </Button>
           )}
+
+          {/* PWA Status Indicator */}
+          {user && <PWAStatusIndicator />}
 
           {/* Theme Toggle */}
           <Button

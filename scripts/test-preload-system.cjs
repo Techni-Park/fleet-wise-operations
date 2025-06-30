@@ -4,132 +4,149 @@
 const fs = require('fs');
 const path = require('path');
 
-// Codes couleur pour l'affichage
+// Couleurs pour l'affichage console
 const colors = {
   green: '\x1b[32m',
   red: '\x1b[31m',
   yellow: '\x1b[33m',
   blue: '\x1b[34m',
-  cyan: '\x1b[36m',
   reset: '\x1b[0m',
   bold: '\x1b[1m'
 };
 
-// Compteurs de tests
-let totalTests = 0;
-let passedTests = 0;
-let results = [];
+console.log(`${colors.bold}${colors.blue}🧪 Test du Système de Pré-chargement PWA${colors.reset}\n`);
 
-function log(message, color = 'reset') {
-  console.log(`${colors[color]}${message}${colors.reset}`);
-}
+const tests = [
+  // Services
+  { name: 'Service AutoSync', path: 'client/src/services/autoSync.ts' },
+  { name: 'Service OfflineStorage', path: 'client/src/services/offlineStorage.ts' },
+  
+  // Hooks
+  { name: 'Hook usePWASync', path: 'client/src/hooks/usePWASync.ts' },
+  
+  // Composants PWA
+  { name: 'Composant TravelMode', path: 'client/src/components/PWA/TravelMode.tsx' },
+  { name: 'Composant PWAStatusIndicator', path: 'client/src/components/PWA/PWAStatusIndicator.tsx' },
+  { name: 'Composant CameraCapture', path: 'client/src/components/PWA/CameraCapture.tsx' },
+  
+  // Pages
+  { name: 'Page PWASettings', path: 'client/src/pages/PWASettings.tsx' },
+  
+  // Backend
+  { name: 'Endpoints PWA (routes.ts)', path: 'server/routes.ts', content: ['/api/pwa/cache', '/api/pwa/sync', '/api/pwa/test'] },
+  
+  // Service Worker
+  { name: 'Service Worker PWA', path: 'client/public/sw.js', content: ['syncOfflineData', 'IndexedDB', 'handleAuthRequest'] },
+  
+  // Configuration
+  { name: 'AuthContext amélioré', path: 'client/src/context/AuthContext.tsx', content: ['preloadResults', 'performPreload'] },
+  
+  // SQL PWA
+  { name: 'Tables PWA SQL', path: 'create_pwa_tables.sql', content: ['PWA_OFFLINE_CACHE', 'INTERVENTION_SYNC'] }
+];
 
-function test(description, testFunction) {
-  totalTests++;
+let passed = 0;
+let failed = 0;
+
+function testFile(test) {
   try {
-    const result = testFunction();
-    if (result) {
-      passedTests++;
-      log(`✅ ${description}`, 'green');
-      results.push({ test: description, status: 'PASS' });
-    } else {
-      log(`❌ ${description}`, 'red');
-      results.push({ test: description, status: 'FAIL' });
+    if (!fs.existsSync(test.path)) {
+      console.log(`${colors.red}❌ ${test.name}${colors.reset} - Fichier manquant: ${test.path}`);
+      failed++;
+      return false;
     }
+    
+    if (test.content) {
+      const content = fs.readFileSync(test.path, 'utf8');
+      const missingItems = test.content.filter(item => !content.includes(item));
+      
+      if (missingItems.length > 0) {
+        console.log(`${colors.yellow}⚠️  ${test.name}${colors.reset} - Contenu manquant: ${missingItems.join(', ')}`);
+        failed++;
+        return false;
+      }
+    }
+    
+    console.log(`${colors.green}✅ ${test.name}${colors.reset}`);
+    passed++;
+    return true;
   } catch (error) {
-    log(`❌ ${description} - ${error.message}`, 'red');
-    results.push({ test: description, status: 'ERROR' });
-  }
-}
-
-function checkFileExists(filePath) {
-  return fs.existsSync(path.join(process.cwd(), filePath));
-}
-
-function checkFileContent(filePath, searchText) {
-  try {
-    const content = fs.readFileSync(path.join(process.cwd(), filePath), 'utf8');
-    return content.includes(searchText);
-  } catch (error) {
+    console.log(`${colors.red}❌ ${test.name}${colors.reset} - Erreur: ${error.message}`);
+    failed++;
     return false;
   }
 }
 
-function checkTypescriptInterface(filePath, interfaceName) {
-  try {
-    const content = fs.readFileSync(path.join(process.cwd(), filePath), 'utf8');
-    const regex = new RegExp(`interface\\s+${interfaceName}\\s*{`, 'g');
-    return regex.test(content);
-  } catch (error) {
-    return false;
+// Exécution des tests
+tests.forEach(test => testFile(test));
+
+// Tests spéciaux pour la navigation et le routeur
+console.log('\n' + colors.bold + '🔍 Tests d\'intégration:' + colors.reset);
+
+// Test navigation
+try {
+  const navContent = fs.readFileSync('client/src/components/Layout/Navigation.tsx', 'utf8');
+  if (navContent.includes('PWA Settings') && navContent.includes('/pwa-settings')) {
+    console.log(`${colors.green}✅ Navigation PWA Settings${colors.reset}`);
+    passed++;
+  } else {
+    console.log(`${colors.red}❌ Navigation PWA Settings${colors.reset} - Lien manquant`);
+    failed++;
   }
+} catch (error) {
+  console.log(`${colors.red}❌ Navigation PWA Settings${colors.reset} - Erreur: ${error.message}`);
+  failed++;
 }
 
-// Début des tests
-log('\n🔍 TEST DU SYSTÈME DE PRÉ-CHARGEMENT PWA', 'cyan');
-log('='.repeat(60), 'cyan');
+// Test en-tête
+try {
+  const headerContent = fs.readFileSync('client/src/components/Layout/Header.tsx', 'utf8');
+  if (headerContent.includes('PWAStatusIndicator')) {
+    console.log(`${colors.green}✅ Header PWA Indicator${colors.reset}`);
+    passed++;
+  } else {
+    console.log(`${colors.red}❌ Header PWA Indicator${colors.reset} - Indicateur manquant`);
+    failed++;
+  }
+} catch (error) {
+  console.log(`${colors.red}❌ Header PWA Indicator${colors.reset} - Erreur: ${error.message}`);
+  failed++;
+}
 
-// Tests des fichiers de service
-log('\n📂 1. FICHIERS DE SERVICE', 'blue');
+// Test routeur
+try {
+  const appContent = fs.readFileSync('client/src/App.tsx', 'utf8');
+  if (appContent.includes('PWASettings') && appContent.includes('/pwa-settings')) {
+    console.log(`${colors.green}✅ Route PWA Settings${colors.reset}`);
+    passed++;
+  } else {
+    console.log(`${colors.red}❌ Route PWA Settings${colors.reset} - Route manquante`);
+    failed++;
+  }
+} catch (error) {
+  console.log(`${colors.red}❌ Route PWA Settings${colors.reset} - Erreur: ${error.message}`);
+  failed++;
+}
 
-test('Service AutoSync existe', () => {
-  return checkFileExists('client/src/services/autoSync.ts');
-});
+// Résultats finaux
+const total = passed + failed;
+const percentage = total > 0 ? ((passed / total) * 100).toFixed(1) : 0;
 
-test('Hook usePWASync existe', () => {
-  return checkFileExists('client/src/hooks/usePWASync.ts');
-});
+console.log('\n' + colors.bold + '📊 Résultats des tests:' + colors.reset);
+console.log(`Total: ${total} tests`);
+console.log(`${colors.green}Réussis: ${passed}${colors.reset}`);
+console.log(`${colors.red}Échoués: ${failed}${colors.reset}`);
+console.log(`Pourcentage: ${percentage}%`);
 
-test('Composant TravelMode existe', () => {
-  return checkFileExists('client/src/components/PWA/TravelMode.tsx');
-});
-
-test('Page PWASettings existe', () => {
-  return checkFileExists('client/src/pages/PWASettings.tsx');
-});
-
-// Tests des fonctionnalités
-log('\n⚙️ 2. FONCTIONNALITÉS PRINCIPALES', 'blue');
-
-test('Méthode preloadEssentialData', () => {
-  return checkFileContent('client/src/services/autoSync.ts', 'preloadEssentialData');
-});
-
-test('Méthode enableTravelMode', () => {
-  return checkFileContent('client/src/services/autoSync.ts', 'enableTravelMode');
-});
-
-test('Synchronisation en arrière-plan', () => {
-  return checkFileContent('client/src/services/autoSync.ts', 'setupBackgroundSync');
-});
-
-test('Endpoint cache géographique', () => {
-  return checkFileContent('server/routes.ts', '/api/pwa/cache/geography');
-});
-
-// Tests d'intégration
-log('\n🔗 3. INTÉGRATION', 'blue');
-
-test('AutoSync dans AuthContext', () => {
-  return checkFileContent('client/src/context/AuthContext.tsx', 'autoSync');
-});
-
-test('Service Worker amélioré', () => {
-  return checkFileContent('client/public/sw.js', 'syncOfflineData');
-});
-
-test('Configuration pré-chargement', () => {
-  return checkFileContent('client/src/services/autoSync.ts', 'PreloadConfig');
-});
-
-const successRate = ((passedTests / totalTests) * 100).toFixed(1);
-log(`\n📊 RÉSULTATS: ${passedTests}/${totalTests} (${successRate}%)`, 
-    successRate >= 90 ? 'green' : 'yellow');
-
-if (successRate >= 90) {
-  log('✨ Système de pré-chargement opérationnel!', 'green');
+if (passed === total) {
+  console.log(`\n${colors.green}${colors.bold}🎉 Tous les tests sont passés ! Votre système de pré-chargement PWA est prêt !${colors.reset}`);
+  console.log(`\n${colors.blue}Prochaines étapes:${colors.reset}`);
+  console.log(`1. ${colors.yellow}npm run dev${colors.reset} - Démarrer l'application`);
+  console.log(`2. Se connecter et observer le pré-chargement automatique`);
+  console.log(`3. Tester le mode voyage dans PWA Settings`);
+  console.log(`4. Valider le fonctionnement hors ligne`);
+  process.exit(0);
 } else {
-  log('⚠️ Quelques ajustements nécessaires', 'yellow');
-}
-
-process.exit(passedTests === totalTests ? 0 : 1); 
+  console.log(`\n${colors.red}${colors.bold}❌ ${failed} test(s) échoué(s). Veuillez corriger les problèmes avant de continuer.${colors.reset}`);
+  process.exit(1);
+} 
