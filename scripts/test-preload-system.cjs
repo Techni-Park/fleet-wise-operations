@@ -84,7 +84,7 @@ tests.forEach(test => testFile(test));
 console.log('\n' + colors.bold + '🔍 Tests d\'intégration:' + colors.reset);
 
 // Test navigation
-try {
+  try {
   const navContent = fs.readFileSync('client/src/components/Layout/Navigation.tsx', 'utf8');
   if (navContent.includes('PWA Settings') && navContent.includes('/pwa-settings')) {
     console.log(`${colors.green}✅ Navigation PWA Settings${colors.reset}`);
@@ -93,7 +93,7 @@ try {
     console.log(`${colors.red}❌ Navigation PWA Settings${colors.reset} - Lien manquant`);
     failed++;
   }
-} catch (error) {
+  } catch (error) {
   console.log(`${colors.red}❌ Navigation PWA Settings${colors.reset} - Erreur: ${error.message}`);
   failed++;
 }
@@ -149,4 +149,4 @@ if (passed === total) {
 } else {
   console.log(`\n${colors.red}${colors.bold}❌ ${failed} test(s) échoué(s). Veuillez corriger les problèmes avant de continuer.${colors.reset}`);
   process.exit(1);
-} 
+}

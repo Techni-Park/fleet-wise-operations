@@ -1,4 +1,5 @@
-import { mysqlTable, text, int, varchar, datetime, decimal, mysqlEnum, timestamp, bigint, smallint, tinyint, date, time, float, longtext, json } from "drizzle-orm/mysql-core";
+import { mysqlTable, text, int, varchar, datetime, decimal, mysqlEnum, timestamp, bigint, smallint, tinyint, date, time, float, longtext, json, double } from "drizzle-orm/mysql-core";
+import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -303,7 +304,11 @@ export const machinesMnt = mysqlTable("MACHINE_MNT", {
   DT_MISEENFONCTION: date("DT_MISEENFONCTION"),
   USDEF_LIB: varchar("USDEF_LIB", { length: 40 }),
   USDEF_NUM: float("USDEF_NUM"),
-  USDEF_BOO: tinyint("USDEF_BOO"),
+  USDEF_BOO1: tinyint("USDEF_BOO1"),
+  USDEF_BOO2: tinyint("USDEF_BOO2"),
+  USDEF_BOO3: tinyint("USDEF_BOO3"),
+  USDEF_BOO4: tinyint("USDEF_BOO4"),
+  USDEF_BOO5: tinyint("USDEF_BOO5"),
   IMG_MACHINE: longtext("IMG_MACHINE"),
   DOSSIER: varchar("DOSSIER", { length: 150 }),
   DT_DBT_GARANTIE: date("DT_DBT_GARANTIE"),
@@ -905,10 +910,10 @@ export type InsertUserSystem = z.infer<typeof insertUserSystemSchema>;
 export type UserSystem = typeof userSystem.$inferSelect;
 export type InsertVehicule = z.infer<typeof insertVehiculeSchema>;
 export type Vehicule = typeof vehicules.$inferSelect;
-export type InsertMachineMnt = z.infer<typeof insertMachineMntSchema>;
-export type MachineMnt = typeof machinesMnt.$inferSelect;
 export type InsertZ83Intervention = z.infer<typeof insertZ83InterventionSchema>;
 export type Z83Intervention = typeof z83Interventions.$inferSelect;
+export type InsertAdressePost = z.infer<typeof insertAdressePostSchema>;
+export type AdressePost = typeof adressePost.$inferSelect;
 
 // Types pour les formulaires personnalisés
 export type Form = typeof forms.$inferSelect;
@@ -917,6 +922,54 @@ export type FormField = typeof formsFields.$inferSelect;
 export type InsertFormField = typeof formsFields.$inferInsert;
 export type FormFieldValue = typeof formsFieldsValues.$inferSelect;
 export type InsertFormFieldValue = typeof formsFieldsValues.$inferInsert;
+
+// Table ADRESSEPOST pour les adresses postales
+export const adressePost = mysqlTable("ADRESSEPOST", {
+  IDADRESSEPOST: bigint("IDADRESSEPOST", { mode: "number" }).primaryKey().autoincrement(),
+  XXIDCONTACT: int("XXIDCONTACT").default(0),
+  ID2GENRE_ADRESSE: tinyint("ID2GENRE_ADRESSE", { unsigned: true }).default(0),
+  LIBDESC: varchar("LIBDESC", { length: 50 }).default(""),
+  NOMFAMILLE: varchar("NOMFAMILLE", { length: 30 }).default(""),
+  PRENOM: varchar("PRENOM", { length: 20 }).default(""),
+  ADRESSE1: varchar("ADRESSE1", { length: 50 }).default(""),
+  ADRESSE2: varchar("ADRESSE2", { length: 50 }).default(""),
+  CPOSTAL: varchar("CPOSTAL", { length: 9 }).default(""),
+  VILLE: varchar("VILLE", { length: 30 }).default(""),
+  CDPAYS: varchar("CDPAYS", { length: 3 }).default(""),
+  IDCIVILITE: bigint("IDCIVILITE", { mode: "number" }).default(0),
+  DT_DEBUT: date("DT_DEBUT"),
+  DT_FIN: date("DT_FIN"),
+  DHCRE: datetime("DHCRE", { mode: "string", fsp: 3 }),
+  USCRE: varchar("USCRE", { length: 3 }).default(""),
+  DHMOD: datetime("DHMOD", { mode: "string", fsp: 3 }),
+  RAISON_SOCIALE: varchar("RAISON_SOCIALE", { length: 160 }).default(""),
+  USMOD: varchar("USMOD", { length: 3 }).default(""),
+  created_at: datetime("created_at").default(sql`CURRENT_TIMESTAMP`),
+  updated_at: datetime("updated_at").default(sql`CURRENT_TIMESTAMP`),
+  DH_SYNCHRO: datetime("DH_SYNCHRO"),
+  TRGCIBLE: varchar("TRGCIBLE", { length: 11 }).default(""),
+  CDREGION: varchar("CDREGION", { length: 3 }).default(""),
+  TEL1: varchar("TEL1", { length: 18 }).default(""),
+  TYPTEL1: tinyint("TYPTEL1", { unsigned: true }).default(0),
+  TEL2: varchar("TEL2", { length: 18 }).default(""),
+  INFOPORTE: varchar("INFOPORTE", { length: 30 }).default(""),
+  TYPTEL2: tinyint("TYPTEL2", { unsigned: true }).default(0),
+  TYPTEL3: tinyint("TYPTEL3", { unsigned: true }).default(0),
+  TEL3: varchar("TEL3", { length: 18 }).default(""),
+  USDEF_LIB: varchar("USDEF_LIB", { length: 40 }),
+  USDEF_NUM: double("USDEF_NUM"),
+  USDEF_CBO: tinyint("USDEF_CBO", { unsigned: true }),
+  USDEF_BOO: tinyint("USDEF_BOO"),
+  USDEF_DATE: date("USDEF_DATE"),
+  LATITUDE: float("LATITUDE").default(0),
+  LONGITUDE: float("LONGITUDE").default(0),
+  DISTANCE_SIEGE: float("DISTANCE_SIEGE").notNull().default(0),
+  IPREF: tinyint("IPREF").default(0),
+  ID2ZONE_GEO: tinyint("ID2ZONE_GEO", { unsigned: true }).default(0)
+});
+
+// Schéma pour la table ADRESSEPOST
+export const insertAdressePostSchema = createInsertSchema(adressePost);
 
 // ================================================================
 // TABLES PWA POUR FONCTIONNALITÉS OFFLINE

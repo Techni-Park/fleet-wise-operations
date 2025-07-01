@@ -3,14 +3,15 @@ import { db } from "./db";
 import * as fs from "fs";
 import * as path from "path";
 import { 
-  users, vehicles, interventions, alerts, documents, actions, anomalies, contacts, ingredients, machinesMnt, produits, societes, userSystem, vehicules, customFields, customFieldsValues, z83Interventions, forms, formsFields, formsFieldsValues,
+  users, vehicles, interventions, alerts, documents, actions, anomalies, contacts, ingredients, machinesMnt, produits, societes, userSystem, vehicules, customFields, customFieldsValues, z83Interventions, forms, formsFields, formsFieldsValues, adressePost,
   type User, type InsertUser, type Vehicle, type InsertVehicle, type Intervention, type InsertIntervention, 
   type Alert, type InsertAlert, type Document, type InsertDocument, type Action, type InsertAction,
   type Anomalie, type InsertAnomalie, type Contact, type InsertContact, type Ingredient, type InsertIngredient,
   type MachineMnt, type InsertMachineMnt, type Produit, type InsertProduit, type Societe, type InsertSociete,
   type UserSystem, type InsertUserSystem, type Vehicule, type InsertVehicule, type CustomField, type InsertCustomField,
   type CustomFieldValue, type InsertCustomFieldValue, type Z83Intervention, type InsertZ83Intervention,
-  type Form, type InsertForm, type FormField, type InsertFormField, type FormFieldValue, type InsertFormFieldValue
+  type Form, type InsertForm, type FormField, type InsertFormField, type FormFieldValue, type InsertFormFieldValue,
+  type AdressePost, type InsertAdressePost
 } from "@shared/schema";
 
 export interface IStorage {
@@ -46,6 +47,7 @@ export interface IStorage {
   deleteIntervention(id: number): Promise<boolean>;
   getAllInterventions(page: number, limit: number): Promise<{ interventions: Intervention[], total: number }>;
   getInterventionsByVehicle(vehicleId: number): Promise<Intervention[]>;
+  getRecentInterventions(limit?: number): Promise<Intervention[]>;
 
   // Alerts
   getAlert(id: number): Promise<Alert | undefined>;
@@ -309,7 +311,36 @@ export class MySQLStorage implements IStorage {
           u.PRENOM as TECHNICIEN_PRENOM,
           u.EMAIL as TECHNICIEN_EMAIL,
           u.TELBUR as TECHNICIEN_TEL,
-          u.US_TEAM as TECHNICIEN_TEAM
+          u.US_TEAM as TECHNICIEN_TEAM,
+          z83.IDADRLIEU,
+          z83.ADRINTER,
+          ap.IDADRESSEPOST,
+          ap.ADRESSE1 as ADRESSEPOST_ADRESSE1,
+          ap.ADRESSE2 as ADRESSEPOST_ADRESSE2,
+          ap.CPOSTAL as ADRESSEPOST_CPOSTAL,
+          ap.VILLE as ADRESSEPOST_VILLE,
+          ap.CDPAYS as ADRESSEPOST_PAYS,
+          ap.LATITUDE as ADRESSEPOST_LATITUDE,
+          ap.LONGITUDE as ADRESSEPOST_LONGITUDE,
+          ap.RAISON_SOCIALE as ADRESSEPOST_RAISON_SOCIALE,
+          CASE 
+            WHEN ap.LATITUDE IS NOT NULL AND ap.LONGITUDE IS NOT NULL AND ap.LATITUDE != 0 AND ap.LONGITUDE != 0 
+            THEN ap.LATITUDE 
+            ELSE NULL 
+          END as latitude,
+          CASE 
+            WHEN ap.LATITUDE IS NOT NULL AND ap.LONGITUDE IS NOT NULL AND ap.LATITUDE != 0 AND ap.LONGITUDE != 0 
+            THEN ap.LONGITUDE 
+            ELSE NULL 
+          END as longitude,
+          CASE 
+            WHEN ap.ADRESSE1 IS NOT NULL AND ap.ADRESSE1 != '' 
+            THEN CONCAT(
+              COALESCE(ap.ADRESSE1, ''),
+              CASE WHEN ap.ADRESSE2 IS NOT NULL AND ap.ADRESSE2 != '' THEN CONCAT(', ', ap.ADRESSE2) ELSE '' END
+            )
+            ELSE z83.ADRINTER 
+          END as ADRESSE_INTERVENTION_FULL
         FROM INTERVENTION i
         LEFT JOIN CONTACT c ON i.IDCONTACT = c.IDCONTACT AND c.IDCONTACT > 0
         LEFT JOIN MACHINE_MNT m ON (
@@ -321,6 +352,8 @@ export class MySQLStorage implements IStorage {
         )
         LEFT JOIN VEHICULE v ON m.IDMACHINE = v.IDMACHINE
         LEFT JOIN USER u ON i.CDUSER = u.CDUSER AND i.CDUSER IS NOT NULL AND i.CDUSER != ''
+        LEFT JOIN Z83_INTERVENTION z83 ON i.IDINTERVENTION = z83.IDINTERVENTION
+        LEFT JOIN ADRESSEPOST ap ON z83.IDADRLIEU = ap.IDADRESSEPOST AND z83.IDADRLIEU IS NOT NULL AND z83.IDADRLIEU > 0
         WHERE i.IDINTERVENTION = ${id}
         LIMIT 1
       `;
@@ -336,7 +369,9 @@ export class MySQLStorage implements IStorage {
           technicien: `${intervention.TECHNICIEN_PRENOM} ${intervention.TECHNICIEN_NOM}`,
           cle_machine_cible: intervention.CLE_MACHINE_CIBLE,
           idcontact: intervention.IDCONTACT,
-          cduser: intervention.CDUSER
+          cduser: intervention.CDUSER,
+          adresse_intervention: intervention.ADRESSE_INTERVENTION_FULL,
+          coordinates: intervention.latitude && intervention.longitude ? `${intervention.latitude}, ${intervention.longitude}` : 'Non géolocalisée'
         });
       } else {
         console.log(`❌ getIntervention - Aucune intervention trouvée pour ID: ${id}`);
@@ -365,7 +400,7 @@ export class MySQLStorage implements IStorage {
         return { interventions: [], total: 0 };
       }
       
-      // Requête principale avec toutes les jointures nécessaires
+      // Requête principale avec toutes les jointures nécessaires, incluant ADRESSEPOST
       const query = sql`
         SELECT 
           i.*,
@@ -389,7 +424,36 @@ export class MySQLStorage implements IStorage {
           u.NOMFAMILLE as TECHNICIEN_NOM,
           u.PRENOM as TECHNICIEN_PRENOM,
           u.EMAIL as TECHNICIEN_EMAIL,
-          u.US_TEAM as TECHNICIEN_TEAM
+          u.US_TEAM as TECHNICIEN_TEAM,
+          z83.IDADRLIEU,
+          z83.ADRINTER,
+          ap.IDADRESSEPOST,
+          ap.ADRESSE1 as ADRESSEPOST_ADRESSE1,
+          ap.ADRESSE2 as ADRESSEPOST_ADRESSE2,
+          ap.CPOSTAL as ADRESSEPOST_CPOSTAL,
+          ap.VILLE as ADRESSEPOST_VILLE,
+          ap.CDPAYS as ADRESSEPOST_PAYS,
+          ap.LATITUDE as ADRESSEPOST_LATITUDE,
+          ap.LONGITUDE as ADRESSEPOST_LONGITUDE,
+          ap.RAISON_SOCIALE as ADRESSEPOST_RAISON_SOCIALE,
+          CASE 
+            WHEN ap.LATITUDE IS NOT NULL AND ap.LONGITUDE IS NOT NULL AND ap.LATITUDE != 0 AND ap.LONGITUDE != 0 
+            THEN ap.LATITUDE 
+            ELSE NULL 
+          END as latitude,
+          CASE 
+            WHEN ap.LATITUDE IS NOT NULL AND ap.LONGITUDE IS NOT NULL AND ap.LATITUDE != 0 AND ap.LONGITUDE != 0 
+            THEN ap.LONGITUDE 
+            ELSE NULL 
+          END as longitude,
+          CASE 
+            WHEN ap.ADRESSE1 IS NOT NULL AND ap.ADRESSE1 != '' 
+            THEN CONCAT(
+              COALESCE(ap.ADRESSE1, ''),
+              CASE WHEN ap.ADRESSE2 IS NOT NULL AND ap.ADRESSE2 != '' THEN CONCAT(', ', ap.ADRESSE2) ELSE '' END
+            )
+            ELSE z83.ADRINTER 
+          END as ADRESSE_INTERVENTION_FULL
         FROM INTERVENTION i
         LEFT JOIN CONTACT c ON i.IDCONTACT = c.IDCONTACT AND c.IDCONTACT > 0
         LEFT JOIN MACHINE_MNT m ON (
@@ -401,6 +465,8 @@ export class MySQLStorage implements IStorage {
         )
         LEFT JOIN VEHICULE v ON m.IDMACHINE = v.IDMACHINE
         LEFT JOIN USER u ON i.CDUSER = u.CDUSER AND i.CDUSER IS NOT NULL AND i.CDUSER != ''
+        LEFT JOIN Z83_INTERVENTION z83 ON i.IDINTERVENTION = z83.IDINTERVENTION
+        LEFT JOIN ADRESSEPOST ap ON z83.IDADRLIEU = ap.IDADRESSEPOST AND z83.IDADRLIEU IS NOT NULL AND z83.IDADRLIEU > 0
         ORDER BY i.IDINTERVENTION DESC
         LIMIT ${limit} OFFSET ${offset}
       `;
@@ -538,6 +604,46 @@ export class MySQLStorage implements IStorage {
     } catch (error) {
       console.error('Erreur deleteIntervention:', error);
       return false;
+    }
+  }
+
+  async getRecentInterventions(limit: number = 20): Promise<Intervention[]> {
+    try {
+      // Calculer la plage de dates : J-7 à J+7
+      const today = new Date();
+      const dateMin = new Date(today);
+      dateMin.setDate(today.getDate() - 7);
+      const dateMax = new Date(today);
+      dateMax.setDate(today.getDate() + 7);
+
+      const formatDate = (date: Date) => date.toISOString().split('T')[0];
+
+      console.log(`[PWA] Recherche interventions récentes du ${formatDate(dateMin)} au ${formatDate(dateMax)}`);
+
+      const query = sql`
+        SELECT 
+          i.*,
+          c.RAISON_SOCIALE as contact_nom,
+          c.VILLEP as contact_ville,
+          m.LIB_MACHINE as machine_nom,
+          m.MARQUE as machine_marque,
+          m.MODELE as machine_modele
+        FROM INTERVENTION i
+        LEFT JOIN CONTACT c ON i.IDCONTACT = c.IDCONTACT  
+        LEFT JOIN MACHINE_MNT m ON i.CLE_MACHINE_CIBLE = CONCAT('R', m.IDMACHINE)
+        WHERE i.DT_INTER_DBT BETWEEN ${formatDate(dateMin)} AND ${formatDate(dateMax)}
+        ORDER BY i.DT_INTER_DBT DESC, i.IDINTERVENTION DESC
+        LIMIT ${limit}
+      `;
+
+      const result = await db.execute(query);
+      const interventions = result[0] as Intervention[];
+      
+      console.log(`[PWA] ${interventions.length} interventions récentes trouvées`);
+      return interventions;
+    } catch (error) {
+      console.error('[PWA] Erreur getRecentInterventions:', error);
+      return [];
     }
   }
 

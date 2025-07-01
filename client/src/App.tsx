@@ -3,7 +3,6 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Routes, Route } from "react-router-dom";
-import { ErrorBoundary } from "react-error-boundary";
 
 import Index from "./pages/Index";
 import Vehicles from "./pages/Vehicles";
@@ -52,76 +51,51 @@ const queryClient = new QueryClient({
   },
 });
 
-// Composant d'erreur pour ErrorBoundary
-const ErrorFallback = ({ error, resetErrorBoundary }: { error: Error, resetErrorBoundary: () => void }) => (
-  <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
-    <div className="text-center space-y-4 p-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg max-w-md">
-      <h2 className="text-xl font-semibold text-red-600">Erreur de l'application</h2>
-      <p className="text-gray-600 dark:text-gray-400">
-        {error.message || 'Une erreur inattendue s\'est produite'}
-      </p>
-      <button 
-        onClick={resetErrorBoundary}
-        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-      >
-        Réessayer
-      </button>
-    </div>
-  </div>
-);
-
 const App = () => {
   return (
-    <ErrorBoundary 
-      FallbackComponent={ErrorFallback}
-      onError={(error, errorInfo) => {
-        console.error('[App] ErrorBoundary caught an error:', error, errorInfo);
-      }}
-    >
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/test-db" element={<DatabaseTest />} />
-            <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-            <Route path="/vehicles" element={<ProtectedRoute><Vehicles /></ProtectedRoute>} />
-            <Route path="/vehicles/create" element={<ProtectedRoute><CreateVehicle /></ProtectedRoute>} />
-            <Route path="/vehicles/:id" element={<ProtectedRoute><VehicleDetails /></ProtectedRoute>} />
-            <Route path="/vehicles/:id/edit" element={<ProtectedRoute><EditVehicle /></ProtectedRoute>} />
-            <Route path="/interventions" element={<ProtectedRoute><Interventions /></ProtectedRoute>} />
-            <Route path="/interventions/create" element={<ProtectedRoute><CreateIntervention /></ProtectedRoute>} />
-            <Route path="/interventions/:id" element={<ProtectedRoute><InterventionDetails /></ProtectedRoute>} />
-            <Route path="/interventions/:id/edit" element={<ProtectedRoute><EditIntervention /></ProtectedRoute>} />
-            <Route path="/planning" element={<ProtectedRoute><Planning /></ProtectedRoute>} />
-            <Route path="/alerts" element={<ProtectedRoute><Alerts /></ProtectedRoute>} />
-            <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
-            <Route path="/users" element={<ProtectedRoute><Users /></ProtectedRoute>} />
-            <Route path="/users/create" element={<ProtectedRoute><CreateUser /></ProtectedRoute>} />
-            <Route path="/users/:id/edit" element={<ProtectedRoute><EditUser /></ProtectedRoute>} />
-            <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-            <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-            <Route path="/db-test" element={<ProtectedRoute><DatabaseTest /></ProtectedRoute>} />
-            <Route path="/database-test" element={<ProtectedRoute><DatabaseTest /></ProtectedRoute>} />
-            <Route path="/real-data" element={<ProtectedRoute><RealData /></ProtectedRoute>} />
-            <Route path="/mysql" element={<ProtectedRoute><MySQLDashboard /></ProtectedRoute>} />
-            <Route path="/clients" element={<ProtectedRoute><Clients /></ProtectedRoute>} />
-            <Route path="/clients/create" element={<ProtectedRoute><CreateClient /></ProtectedRoute>} />
-            <Route path="/clients/:id" element={<ProtectedRoute><ClientDetails /></ProtectedRoute>} />
-            <Route path="/clients/:id/edit" element={<ProtectedRoute><EditClient /></ProtectedRoute>} />
-            <Route path="/custom-fields" element={<ProtectedRoute><CustomFieldsSettings /></ProtectedRoute>} />
-            <Route path="/settings/forms" element={<ProtectedRoute><FormsSettings /></ProtectedRoute>} />
-            <Route path="/pwa-settings" element={<ProtectedRoute><PWASettings /></ProtectedRoute>} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-          
-          {/* Toasters à la fin pour éviter les conflits */}
-          <Toaster />
-          <Sonner position="top-right" richColors />
-        </TooltipProvider>
-      </QueryClientProvider>
-    </ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/test-db" element={<DatabaseTest />} />
+          <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+          <Route path="/vehicles" element={<ProtectedRoute><Vehicles /></ProtectedRoute>} />
+          <Route path="/vehicles/create" element={<ProtectedRoute><CreateVehicle /></ProtectedRoute>} />
+          <Route path="/vehicles/:id" element={<ProtectedRoute><VehicleDetails /></ProtectedRoute>} />
+          <Route path="/vehicles/:id/edit" element={<ProtectedRoute><EditVehicle /></ProtectedRoute>} />
+          <Route path="/interventions" element={<ProtectedRoute><Interventions /></ProtectedRoute>} />
+          <Route path="/interventions/create" element={<ProtectedRoute><CreateIntervention /></ProtectedRoute>} />
+          <Route path="/interventions/:id" element={<ProtectedRoute><InterventionDetails /></ProtectedRoute>} />
+          <Route path="/interventions/:id/edit" element={<ProtectedRoute><EditIntervention /></ProtectedRoute>} />
+          <Route path="/planning" element={<ProtectedRoute><Planning /></ProtectedRoute>} />
+          <Route path="/alerts" element={<ProtectedRoute><Alerts /></ProtectedRoute>} />
+          <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+          <Route path="/users" element={<ProtectedRoute><Users /></ProtectedRoute>} />
+          <Route path="/users/create" element={<ProtectedRoute><CreateUser /></ProtectedRoute>} />
+          <Route path="/users/:id/edit" element={<ProtectedRoute><EditUser /></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+          <Route path="/db-test" element={<ProtectedRoute><DatabaseTest /></ProtectedRoute>} />
+          <Route path="/database-test" element={<ProtectedRoute><DatabaseTest /></ProtectedRoute>} />
+          <Route path="/real-data" element={<ProtectedRoute><RealData /></ProtectedRoute>} />
+          <Route path="/mysql" element={<ProtectedRoute><MySQLDashboard /></ProtectedRoute>} />
+          <Route path="/clients" element={<ProtectedRoute><Clients /></ProtectedRoute>} />
+          <Route path="/clients/create" element={<ProtectedRoute><CreateClient /></ProtectedRoute>} />
+          <Route path="/clients/:id" element={<ProtectedRoute><ClientDetails /></ProtectedRoute>} />
+          <Route path="/clients/:id/edit" element={<ProtectedRoute><EditClient /></ProtectedRoute>} />
+          <Route path="/custom-fields" element={<ProtectedRoute><CustomFieldsSettings /></ProtectedRoute>} />
+          <Route path="/settings/forms" element={<ProtectedRoute><FormsSettings /></ProtectedRoute>} />
+          <Route path="/pwa-settings" element={<ProtectedRoute><PWASettings /></ProtectedRoute>} />
+          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+        
+        {/* Toasters à la fin pour éviter les conflits */}
+        <Toaster />
+        <Sonner position="top-right" richColors />
+      </TooltipProvider>
+    </QueryClientProvider>
   );
 };
 

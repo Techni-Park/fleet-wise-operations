@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { AddressInput } from '@/components/ui/address-input';
 import { useToast } from '@/hooks/use-toast';
 
 const CreateIntervention = () => {
@@ -40,6 +41,12 @@ const CreateIntervention = () => {
     ST_INTER: 0, // 0=Planifiée par défaut
     ID2GENRE_INTER: 1, // 1=Maintenance par défaut
     SUR_SITE: false,
+    
+    // Adresse d'intervention
+    ADRESSE_INTERVENTION: '',
+    LIEU_INTERVENTION: '',
+    COORDS_LAT: '',
+    COORDS_LON: '',
     
     // Champs personnalisés
     USDEF_LIB: '',
@@ -87,6 +94,17 @@ const CreateIntervention = () => {
     if (vehicle) {
       const machineId = vehicle.IDMACHINE || vehicle.IDVEHICULE;
       handleInputChange('CLE_MACHINE_CIBLE', `R${machineId}`);
+    }
+  };
+
+  const handleAddressChange = (address: string, coordinates?: { lat: number; lon: number }) => {
+    handleInputChange('ADRESSE_INTERVENTION', address);
+    if (coordinates) {
+      handleInputChange('COORDS_LAT', coordinates.lat.toString());
+      handleInputChange('COORDS_LON', coordinates.lon.toString());
+    } else {
+      handleInputChange('COORDS_LAT', '');
+      handleInputChange('COORDS_LON', '');
     }
   };
 
@@ -315,11 +333,48 @@ const CreateIntervention = () => {
             </CardContent>
           </Card>
 
-          {/* Section 3: Statut et options */}
+          {/* Section 3: Localisation */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
                 <MapPin className="w-5 h-5 mr-2" />
+                Localisation de l'intervention
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <AddressInput
+                  value={formData.ADRESSE_INTERVENTION}
+                  onChange={handleAddressChange}
+                  label="Adresse d'intervention"
+                  placeholder="Saisir l'adresse du lieu d'intervention..."
+                  className="w-full"
+                />
+                <div>
+                  <Label htmlFor="lieu">Précisions sur le lieu</Label>
+                  <Input
+                    id="lieu"
+                    value={formData.LIEU_INTERVENTION}
+                    onChange={(e) => handleInputChange('LIEU_INTERVENTION', e.target.value)}
+                    placeholder="Détails supplémentaires (bâtiment, étage, etc.)"
+                  />
+                </div>
+              </div>
+              
+              {/* Affichage des coordonnées si géocodées */}
+              {formData.COORDS_LAT && formData.COORDS_LON && (
+                <div className="text-xs text-gray-500 bg-green-50 p-2 rounded">
+                  📍 Coordonnées GPS : {parseFloat(formData.COORDS_LAT).toFixed(6)}, {parseFloat(formData.COORDS_LON).toFixed(6)}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Section 4: Statut et options */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <User className="w-5 h-5 mr-2" />
                 Statut et options
               </CardTitle>
             </CardHeader>

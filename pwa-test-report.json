@@ -1,9 +1,9 @@
 {
-  "timestamp": "2025-06-28T22:46:28.490Z",
+  "timestamp": "2025-06-30T21:10:01.637Z",
   "summary": {
-    "passed": 22,
+    "passed": 21,
     "total": 22,
-    "percentage": 100
+    "percentage": 95
   },
   "results": [
     {
@@ -29,7 +29,7 @@
     {
       "name": "Manifest icons",
       "passed": true,
-      "details": "8 icônes définies"
+      "details": "2 icônes définies"
     },
     {
       "name": "Service Worker existe",
@@ -53,7 +53,7 @@
     },
     {
       "name": "SW sync event",
-      "passed": true,
+      "passed": false,
       "details": "Event sync trouvé"
     },
     {

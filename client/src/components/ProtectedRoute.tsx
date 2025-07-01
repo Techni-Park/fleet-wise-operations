@@ -1,30 +1,38 @@
 import React, { ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
 
 interface ProtectedRouteProps {
   children: ReactNode;
 }
 
+// Hook sécurisé pour utiliser le contexte d'auth
+const useSafeAuth = () => {
+  try {
+    // Import dynamique du hook pour éviter les erreurs de timing
+    const { useAuth } = require('../context/AuthContext');
+    return useAuth();
+  } catch (error) {
+    console.error('[ProtectedRoute] Erreur import/utilisation AuthContext:', error);
+    return null;
+  }
+};
+
 /**
- * Composant ProtectedRoute utilisant le contexte d'authentification
+ * Composant ProtectedRoute avec gestion ultra-sécurisée du contexte
  */
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const location = useLocation();
   
-  // Gestion sécurisée du contexte d'authentification
-  let user = null;
-  let loading = true;
+  // Utilisation du hook sécurisé
+  const auth = useSafeAuth();
   
-  try {
-    const auth = useAuth();
-    user = auth.user;
-    loading = auth.loading;
-  } catch (error) {
-    console.error('[ProtectedRoute] Erreur useAuth:', error);
-    // En cas d'erreur du contexte, rediriger vers login
-    return <Navigate to="/login" state={{ from: location, error: 'Context error' }} replace />;
+  // Si le contexte n'est pas disponible du tout
+  if (!auth) {
+    console.warn('[ProtectedRoute] Contexte AuthProvider non disponible - redirection vers login');
+    return <Navigate to="/login" state={{ from: location, error: 'Auth context not available' }} replace />;
   }
+  
+  const { user, loading } = auth;
 
   // Affichage du loading pendant la vérification
   if (loading) {

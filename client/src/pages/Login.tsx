@@ -13,7 +13,43 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { login } = useAuth();
+  
+  // Gestion sécurisée du contexte d'authentification
+  let login: (email: string, password: string) => Promise<any>;
+  
+  try {
+    const auth = useAuth();
+    login = auth.login;
+  } catch (error) {
+    console.error('[Login] Erreur contexte auth:', error);
+    
+    // Fallback si le contexte n'est pas disponible
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
+        <Card className="w-full max-w-md">
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-2xl font-bold text-red-600">Erreur d'initialisation</CardTitle>
+            <CardDescription>
+              L'application n'a pas pu s'initialiser correctement. Veuillez recharger la page.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <Button 
+                onClick={() => window.location.reload()} 
+                className="w-full"
+              >
+                Recharger la page
+              </Button>
+              <div className="text-center text-sm text-gray-600">
+                Si le problème persiste, essayez en mode navigation privée.
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const from = location.state?.from?.pathname || '/';
 

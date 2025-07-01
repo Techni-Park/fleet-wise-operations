@@ -285,7 +285,7 @@ class AutoSyncService {
 
   private async preloadRecentInterventions(userId: string): Promise<SyncResult> {
     try {
-      const response = await fetch('/api/pwa/cache/interventions?limit=20&recent=true', {
+      const response = await fetch('/api/pwa/cache/recent_interventions?limit=20', {
         credentials: 'include'
       });
       
@@ -294,7 +294,7 @@ class AutoSyncService {
       }
       
       const result = await response.json();
-      await offlineStorage.setCache('recent_interventions', result.data, 2 * 60 * 60 * 1000); // 2h
+      await offlineStorage.setCache('recent_interventions', result.data, 1 * 60 * 60 * 1000); // 1h
       
       console.log('[AutoSync] Interventions récentes pré-chargées:', result.count);
       return {
@@ -304,7 +304,7 @@ class AutoSyncService {
         timestamp: Date.now()
       };
     } catch (error) {
-      console.error('[AutoSync] Erreur pré-chargement interventions:', error);
+      console.error('[AutoSync] Erreur pré-chargement interventions récentes:', error);
       return {
         success: false,
         entity: 'recent_interventions',

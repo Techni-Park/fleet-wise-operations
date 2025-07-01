@@ -21,7 +21,8 @@
     "pwa:diagnose": "node scripts/diagnose-pwa-install.js",
     "pwa:diagnose-prod": "node scripts/diagnose-pwa-install.js --prod",
     "pwa:test-final": "node scripts/test-final-pwa.js",
-    "test:preload": "node scripts/test-preload-system.cjs"
+    "test:preload": "node scripts/test-preload-system.cjs",
+    "geocoding:test": "node scripts/test-geocoding-realtime.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

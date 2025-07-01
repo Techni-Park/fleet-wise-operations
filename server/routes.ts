@@ -58,8 +58,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/contacts", async (req, res) => {
     try {
-      const contacts = await storage.getAllContacts();
-      res.json(contacts);
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 9999;
+      const result = await storage.getAllContacts(page, limit);
+      res.json(result);
     } catch (error) {
       res.status(500).json({ error: (error as Error).message });
     }
@@ -1975,17 +1977,24 @@ app.get("/api/pwa/cache/:entity", async (req, res) => {
         cacheExpiry = 2 * 60 * 60 * 1000; // 2h pour les interventions
         break;
 
+      case 'recent_interventions':
+        const recentLimit = parseInt(limit as string) || 20;
+        data = await storage.getRecentInterventions(recentLimit);
+        cacheExpiry = 1 * 60 * 60 * 1000; // 1h pour les interventions récentes
+        console.log(`[PWA] ${data.length} interventions récentes (J-7 à J+7) pré-chargées`);
+        break;
+
       case 'vehicles':
-        const vehicleLimit = parseInt(limit as string) || 0;
-        const allVehicles = await storage.getAllVehicles();
-        data = vehicleLimit > 0 ? allVehicles.slice(0, vehicleLimit) : allVehicles;
+        const vehicleLimit = parseInt(limit as string) || 100;
+        const allVehicules = await storage.getAllVehicules();
+        data = vehicleLimit > 0 ? allVehicules.slice(0, vehicleLimit) : allVehicules;
         cacheExpiry = 24 * 60 * 60 * 1000; // 24h pour les véhicules
         break;
 
       case 'contacts':
-        const contactLimit = parseInt(limit as string) || 0;
-        const allContacts = await storage.getAllContacts();
-        data = contactLimit > 0 ? allContacts.slice(0, contactLimit) : allContacts;
+        const contactLimit = parseInt(limit as string) || 50;
+        const contactsResult = await storage.getAllContacts(1, contactLimit);
+        data = contactsResult.contacts;
         cacheExpiry = 24 * 60 * 60 * 1000; // 24h pour les contacts
         break;
 
@@ -2044,11 +2053,13 @@ app.get("/api/pwa/cache/geography", async (req, res) => {
 
     // TODO: Implémenter requêtes SQL avec filtrage géographique
     // Pour l'instant, retourner données de base avec métadonnées GPS
-    const [vehicles, contacts, interventions] = await Promise.all([
+    const [vehicles, contactsResult, interventions] = await Promise.all([
       storage.getAllVehicles(),
-      storage.getAllContacts(),
+      storage.getAllContacts(1, 50),
       storage.getAllInterventions(1, 20).then(r => r.interventions)
     ]);
+    
+    const contacts = contactsResult.contacts;
 
     const geoData = {
       vehicles: vehicles.slice(0, 20), // Limiter pour les tests

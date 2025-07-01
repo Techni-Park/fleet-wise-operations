@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AddressInput } from '@/components/ui/address-input';
 import { useToast } from '@/hooks/use-toast';
 
 const EditIntervention = () => {
@@ -36,6 +37,11 @@ const EditIntervention = () => {
     DEMANDEUR: '',
     SUR_SITE: 0,
     ID2GENRE_INTER: 0,
+    // Adresse d'intervention
+    ADRESSE_INTERVENTION: '',
+    LIEU_INTERVENTION: '',
+    COORDS_LAT: '',
+    COORDS_LON: '',
     USDEF_LIB: '',
     USDEF_NUM: 0,
     USDEF_BOO: 0
@@ -67,6 +73,11 @@ const EditIntervention = () => {
               DEMANDEUR: data.DEMANDEUR || '',
               SUR_SITE: data.SUR_SITE || 0,
               ID2GENRE_INTER: data.ID2GENRE_INTER || 0,
+              // Adresse d'intervention (nouveaux champs)
+              ADRESSE_INTERVENTION: data.ADRESSE_INTERVENTION || '',
+              LIEU_INTERVENTION: data.LIEU_INTERVENTION || '',
+              COORDS_LAT: data.COORDS_LAT?.toString() || '',
+              COORDS_LON: data.COORDS_LON?.toString() || '',
               USDEF_LIB: data.USDEF_LIB || '',
               USDEF_NUM: data.USDEF_NUM || 0,
               USDEF_BOO: data.USDEF_BOO || 0
@@ -109,6 +120,18 @@ const EditIntervention = () => {
       ...prev,
       [field]: value
     }));
+  };
+
+  // Gérer les changements d'adresse avec géocodage
+  const handleAddressChange = (address: string, coordinates?: { lat: number; lon: number }) => {
+    handleInputChange('ADRESSE_INTERVENTION', address);
+    if (coordinates) {
+      handleInputChange('COORDS_LAT', coordinates.lat.toString());
+      handleInputChange('COORDS_LON', coordinates.lon.toString());
+    } else {
+      handleInputChange('COORDS_LAT', '');
+      handleInputChange('COORDS_LON', '');
+    }
   };
 
   // Sauvegarder l'intervention
@@ -360,6 +383,40 @@ const EditIntervention = () => {
                   />
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Localisation */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Localisation de l'intervention</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <AddressInput
+                  value={formData.ADRESSE_INTERVENTION}
+                  onChange={handleAddressChange}
+                  label="Adresse d'intervention"
+                  placeholder="Saisir l'adresse du lieu d'intervention..."
+                  className="w-full"
+                />
+                <div>
+                  <Label htmlFor="LIEU_INTERVENTION">Précisions sur le lieu</Label>
+                  <Input
+                    id="LIEU_INTERVENTION"
+                    value={formData.LIEU_INTERVENTION}
+                    onChange={(e) => handleInputChange('LIEU_INTERVENTION', e.target.value)}
+                    placeholder="Détails supplémentaires (bâtiment, étage, etc.)"
+                  />
+                </div>
+              </div>
+              
+              {/* Affichage des coordonnées si géocodées */}
+              {formData.COORDS_LAT && formData.COORDS_LON && (
+                <div className="text-xs text-gray-500 bg-green-50 p-2 rounded">
+                  📍 Coordonnées GPS : {parseFloat(formData.COORDS_LAT).toFixed(6)}, {parseFloat(formData.COORDS_LON).toFixed(6)}
+                </div>
+              )}
             </CardContent>
           </Card>
 
