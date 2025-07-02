@@ -284,7 +284,7 @@ class OfflineStorageService {
   }
 
   // ============================================
-  // GESTION DU CACHE
+  // GESTION DU CACHE DE DONNÉES (pour consultation offline)
   // ============================================
 
   async setCache(key: string, data: any, expiresIn: number = 24 * 60 * 60 * 1000): Promise<void> {
@@ -308,23 +308,47 @@ class OfflineStorageService {
   }
 
   async getCache(key: string): Promise<any> {
-    if (!this.db) throw new Error('IndexedDB non initialisé');
+    if (!this.db) {
+      await this.init();
+    }
     
-    const transaction = this.db.transaction(['cache'], 'readonly');
+    const transaction = this.db!.transaction(['cache'], 'readonly');
     const store = transaction.objectStore('cache');
     
     return new Promise((resolve, reject) => {
       const request = store.get(key);
       request.onsuccess = () => {
-        const result = request.result;
-        if (result && result.expires > Date.now()) {
-          resolve(result.data);
+        if (request.result) {
+          if (Date.now() > request.result.expires) {
+            // Cache expiré
+            store.delete(key);
+            resolve(null);
+          } else {
+            resolve(request.result.data);
+          }
         } else {
           resolve(null);
         }
       };
       request.onerror = () => reject(request.error);
     });
+  }
+
+  async getCachedVehicleById(id: number): Promise<any | null> {
+    if (!this.db) {
+      await this.init();
+    }
+    try {
+      const vehicles = await this.getCache('vehicles');
+      if (vehicles && Array.isArray(vehicles)) {
+        const vehicle = vehicles.find(v => v.IDMACHINE === id);
+        return vehicle || null;
+      }
+      return null;
+    } catch (error) {
+      console.error('[OfflineStorage] Error getting cached vehicle by ID:', error);
+      return null;
+    }
   }
 
   async clearExpiredCache(): Promise<void> {

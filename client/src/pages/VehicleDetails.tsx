@@ -13,6 +13,7 @@ import VehiclePhotos from '@/components/Vehicles/VehiclePhotos';
 import VehicleAnomalies from '@/components/Vehicles/VehicleAnomalies';
 import VehicleStats from '@/components/Vehicles/VehicleStats';
 import VehicleCustomFields from '@/components/Vehicles/VehicleCustomFields';
+import { offlineStorage } from '@/services/offlineStorage';
 
 const VehicleDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -20,48 +21,46 @@ const VehicleDetails = () => {
   const [loading, setLoading] = useState(true);
   const [currentInterventions, setCurrentInterventions] = useState<any[]>([]);
   const [vehicleLocation, setVehicleLocation] = useState<string>('');
-  const [isOffline, setIsOffline] = useState(false);
+  const [isOffline, setIsOffline] = useState<boolean>(false);
 
   const loadVehicle = useCallback(async () => {
+    setLoading(true);
+    setIsOffline(false);
+
     try {
-      setLoading(true);
       const response = await fetch(`/api/vehicules/${id}`);
+      if (!response.ok) {
+        throw new Error(`Erreur HTTP: ${response.status}`);
+      }
+      const data = await response.json();
+      setVehicle(data);
       
-      if (response.ok) {
-        const data = await response.json();
-        setVehicle(data);
-        
-        // Charger les interventions en cours pour déterminer la localisation
-        if (data.IDMACHINE) {
-          await loadCurrentInterventions(data.IDMACHINE);
-        }
-      } else if (response.status === 503) {
-        // Mode offline - vérifier si on a des données en cache
-        const errorData = await response.json().catch(() => ({}));
-        if (errorData.offline) {
-          console.log('[VehicleDetails] Mode offline détecté - données non disponibles');
-          setIsOffline(true);
-          // Ici on pourrait charger les données depuis IndexedDB si nécessaire
-          setVehicle(null);
-        } else {
-          console.error('Failed to fetch vehicle:', response.status);
-          setVehicle(null);
-        }
-      } else {
-        console.error('Failed to fetch vehicle:', response.status);
-        setVehicle(null);
+      if (data.IDMACHINE) {
+        await loadCurrentInterventions(data.IDMACHINE);
       }
     } catch (error) {
-      console.error('Error loading vehicle:', error);
+      console.warn('[VehicleDetails] Échec du chargement réseau, tentative de chargement depuis le cache local.', error);
       
-      // Vérifier si c'est une erreur réseau (mode offline)
-      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-        console.log('[VehicleDetails] Erreur réseau - probablement en mode offline');
-        setIsOffline(true);
-        // Ici on pourrait essayer de charger depuis le stockage offline
+      if (id) {
+        try {
+          const vehicleId = parseInt(id, 10);
+          const offlineVehicle = await offlineStorage.getCachedVehicleById(vehicleId);
+          
+          if (offlineVehicle) {
+            console.log('[VehicleDetails] Véhicule chargé depuis le cache local:', offlineVehicle);
+            setVehicle(offlineVehicle);
+            setIsOffline(true);
+          } else {
+            console.log('[VehicleDetails] Véhicule non trouvé dans le cache local.');
+            setVehicle(null);
+            setIsOffline(true);
+          }
+        } catch (offlineError) {
+          console.error('[VehicleDetails] Erreur lors du chargement depuis le cache:', offlineError);
+          setVehicle(null);
+          setIsOffline(true);
+        }
       }
-      
-      setVehicle(null);
     } finally {
       setLoading(false);
     }

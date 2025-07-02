@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Search, Filter, Eye, Edit, Trash2, Calendar, Clock, User, AlertTriangle, Loader, RefreshCw, Car, Info, Grid3X3, List, MapPin, ChevronLeft, ChevronRight, Map, X, RotateCcw } from 'lucide-react';
+import { Plus, Search, Filter, Eye, Edit, Trash2, Calendar, Clock, User, AlertTriangle, Loader, RefreshCw, Car, Info, Grid3X3, List, MapPin, ChevronLeft, ChevronRight, Map, X, RotateCcw, WifiOff } from 'lucide-react';
 import AppLayout from '@/components/Layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Label } from '@/components/ui/label';
 import { InterventionsMap } from '@/components/Maps/InterventionsMap';
+import { offlineStorage, OfflineIntervention } from '@/services/offlineStorage';
 
 
 const Interventions = () => {
@@ -30,6 +31,7 @@ const Interventions = () => {
   const [dateDebut, setDateDebut] = useState('');
   const [dateFin, setDateFin] = useState('');
   const [selectedStatuses, setSelectedStatuses] = useState<number[]>([]);
+  const [offlineInterventions, setOfflineInterventions] = useState<OfflineIntervention[]>([]);
 
   // Charger toutes les données nécessaires (interventions, véhicules, contacts)
   const loadData = useCallback(async (showRefresh = false) => {
@@ -37,37 +39,67 @@ const Interventions = () => {
     else setLoading(true);
 
     try {
-      const [interventionsRes, vehiclesRes, contactsRes] = await Promise.all([
-        fetch(`/api/interventions?page=${pagination.page}&limit=${pagination.limit}`, { credentials: 'include' }),
-        fetch('/api/vehicules?limit=9999', { credentials: 'include' }),
-        fetch('/api/contacts?limit=9999', { credentials: 'include' })
+      // Charger les données en parallèle, en gérant les erreurs réseau individuellement
+      const [interventionsRes, vehiclesRes, contactsRes, localInterventions] = await Promise.all([
+        fetch(`/api/interventions?page=${pagination.page}&limit=${pagination.limit}`, { credentials: 'include' }).catch(() => null),
+        fetch('/api/vehicules?limit=9999', { credentials: 'include' }).catch(() => null),
+        fetch('/api/contacts?limit=9999', { credentials: 'include' }).catch(() => null),
+        offlineStorage.getPendingInterventions()
       ]);
 
-      if (!interventionsRes.ok || !vehiclesRes.ok || !contactsRes.ok) {
-        throw new Error('Failed to fetch data');
+      let onlineInterventions: any[] = [];
+      let totalOnline = 0;
+
+      if (interventionsRes && interventionsRes.ok) {
+        const interventionsData = await interventionsRes.json();
+        onlineInterventions = Array.isArray(interventionsData.interventions) ? interventionsData.interventions : [];
+        totalOnline = interventionsData.total || 0;
+      } else {
+        console.warn('[Interventions] Impossible de charger les interventions depuis le réseau. Affichage des données locales uniquement.');
+      }
+      
+      setOfflineInterventions(localInterventions);
+
+      // Fusionner les données locales et en ligne pour un affichage unifié
+      const interventionMap = new Map(onlineInterventions.map(item => [item.IDINTERVENTION, item]));
+      
+      localInterventions.forEach(local => {
+        const interventionData = {
+          ...local.data,
+          IDINTERVENTION: local.id,
+          isOffline: true, // Marqueur pour l'UI
+          status: local.status // 'offline'
+        };
+        interventionMap.set(local.id, interventionData);
+      });
+      
+      const mergedInterventions = Array.from(interventionMap.values());
+      setInterventions(mergedInterventions);
+      
+      // Mettre à jour la pagination en comptant les nouveaux éléments locaux
+      const newLocalItemsCount = localInterventions.filter(local => !onlineInterventions.some(online => online.IDINTERVENTION === local.id)).length;
+      setPagination(prev => ({ ...prev, total: totalOnline + newLocalItemsCount }));
+
+      // Charger les métadonnées (véhicules, contacts)
+      if (vehiclesRes && vehiclesRes.ok) {
+        const vehiclesData = await vehiclesRes.json();
+        const allVehicles = vehiclesData.vehicles && Array.isArray(vehiclesData.vehicles) ? vehiclesData.vehicles : (Array.isArray(vehiclesData) ? vehiclesData : []);
+        const newVehicleMap: {[key: number]: any} = {};
+        allVehicles.forEach((v: any) => newVehicleMap[v.IDMACHINE] = v);
+        setVehicleMap(newVehicleMap);
       }
 
-      const interventionsData = await interventionsRes.json();
-      const vehiclesData = await vehiclesRes.json();
-      const contactsData = await contactsRes.json();
-
-      setInterventions(Array.isArray(interventionsData.interventions) ? interventionsData.interventions : []);
-      setPagination(prev => ({ ...prev, total: interventionsData.total || 0 }));
-
-      const allVehicles = vehiclesData.vehicles && Array.isArray(vehiclesData.vehicles) ? vehiclesData.vehicles : (Array.isArray(vehiclesData) ? vehiclesData : []);
-      const allContacts = contactsData.contacts && Array.isArray(contactsData.contacts) ? contactsData.contacts : (Array.isArray(contactsData) ? contactsData : []);
-
-      const newVehicleMap: {[key: number]: any} = {};
-      allVehicles.forEach((v: any) => newVehicleMap[v.IDMACHINE] = v);
-      setVehicleMap(newVehicleMap);
-
-      const newContactMap: {[key: number]: any} = {};
-      allContacts.forEach((c: any) => newContactMap[c.IDCONTACT] = c);
-      setContactMap(newContactMap);
+      if (contactsRes && contactsRes.ok) {
+        const contactsData = await contactsRes.json();
+        const allContacts = contactsData.contacts && Array.isArray(contactsData.contacts) ? contactsData.contacts : (Array.isArray(contactsData) ? contactsData : []);
+        const newContactMap: {[key: number]: any} = {};
+        allContacts.forEach((c: any) => newContactMap[c.IDCONTACT] = c);
+        setContactMap(newContactMap);
+      }
 
     } catch (error) {
       console.error('Erreur lors du chargement des données:', error);
-      setInterventions([]);
+      setInterventions([]); // En cas d'erreur critique, vider la liste
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -79,7 +111,15 @@ const Interventions = () => {
   }, [loadData]);
 
   // Fonction pour formater le statut
-  const getStatusBadge = (status: number) => {
+  const getStatusBadge = (status: number, isOffline = false) => {
+    if (isOffline) {
+      return (
+        <Badge className="bg-yellow-100 text-yellow-800 border border-yellow-300">
+          <WifiOff className="w-3 h-3 mr-1.5" />
+          Non synchronisé
+        </Badge>
+      );
+    }
     switch (status) {
       case 9:
         return <Badge className="bg-green-100 text-green-800">Terminée</Badge>;
@@ -217,133 +257,63 @@ const Interventions = () => {
 
   // Composant pour le rendu des cartes
   const renderInterventionCard = (intervention: any, isListView: boolean) => {
-    const cardClass = isListView
-      ? "flex flex-col sm:flex-row w-full"
-      : "flex flex-col";
-
-    // Find vehicle - utiliser directement VEHICULE_LIB_MACHINE de la jointure
-    let vehicleDisplay = 'Véhicule non défini';
-    if (intervention.VEHICULE_LIB_MACHINE) {
-        vehicleDisplay = intervention.VEHICULE_LIB_MACHINE;
-    } else if (intervention.VEHICULE_MARQUE || intervention.VEHICULE_MODELE) {
-        vehicleDisplay = `${intervention.VEHICULE_MARQUE || ''} ${intervention.VEHICULE_MODELE || ''}`.trim();
-    } else if (intervention.CLE_MACHINE_CIBLE) {
-        vehicleDisplay = `Machine: ${intervention.CLE_MACHINE_CIBLE}`;
-    }
-
-    // Find contact
-    let contactDisplay = 'Client non défini';
-    if (intervention.IDCONTACT) {
-        const contact = contactMap[intervention.IDCONTACT];
-        if (contact) {
-            contactDisplay = contact.RAISON_SOCIALE || formatFullName(contact.NOM, contact.PRENOM);
-        } else {
-            contactDisplay = `Contact ID: ${intervention.IDCONTACT}`;
-        }
-    }
+    const vehicle = vehicleMap[intervention.CLE_MACHINE_CIBLE];
+    const contact = contactMap[intervention.IDCONTACT];
+    const techniciens = formatTechnicienDisplay(intervention);
 
     return (
-      <Card key={intervention.IDINTERVENTION} className={cardClass}>
-        <div className={`flex-grow ${isListView ? 'sm:w-2/3' : ''}`}>
-          <CardHeader>
-            <div className="flex items-start justify-between gap-4">
-              <CardTitle className="truncate">
-                {intervention.LIB50 || 'Intervention sans libellé'}
-                <div className="text-sm font-normal text-gray-500 mt-1">
-                  #{intervention.IDINTERVENTION}
-                </div>
-              </CardTitle>
-              <div className="flex flex-col items-end gap-1">
-                {getStatusBadge(intervention.ST_INTER)}
-                {intervention.SUR_SITE === 1 && (
-                  <Badge variant="outline" className="text-orange-600 border-orange-600">
-                    <MapPin className="w-3 h-3 mr-1" />
-                    Sur site
-                  </Badge>
-                )}
-              </div>
+      <Card 
+        key={intervention.IDINTERVENTION} 
+        className={`hover:shadow-lg transition-shadow duration-200 flex flex-col ${intervention.isOffline ? 'border-yellow-400 border-2' : ''}`}
+        onClick={() => navigate(`/interventions/${intervention.IDINTERVENTION}`)}
+      >
+        <CardHeader className="flex-shrink-0">
+          <div className="flex justify-between items-start">
+            <CardTitle className="text-lg font-bold mb-2 pr-2 leading-tight">
+              {intervention.isOffline && <WifiOff className="w-4 h-4 mr-2 inline-block text-yellow-600" />}
+              {intervention.LIB50 || 'Intervention sans titre'}
+            </CardTitle>
+            <div className="flex-shrink-0">
+              {getStatusBadge(intervention.ST_INTER, intervention.isOffline)}
             </div>
-          </CardHeader>
-          <CardContent>
-            {/* Informations principales - priorité administrative */}
-            <div className="space-y-3">
-              {/* Client et Date - info prioritaire */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center min-w-0 flex-1">
-                  <User className="w-4 h-4 mr-2 text-blue-600 flex-shrink-0" />
-                  <span className="truncate font-medium">
-                    {contactDisplay}
-                  </span>
-                </div>
-                <div className="flex items-center text-gray-600 ml-2">
-                  <Calendar className="w-4 h-4 mr-1" />
-                  <span className="text-sm">{formatDate(intervention.DT_INTER_DBT)}</span>
-                </div>
-              </div>
-
-              {/* Véhicule et Technicien */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                <div className="flex items-center">
-                  <Car className="w-4 h-4 mr-2 text-green-600 flex-shrink-0" />
-                  <span className="truncate">
-                    {vehicleDisplay}
-                  </span>
-                </div>
-                <div className="flex items-center">
-                  <AlertTriangle className="w-4 h-4 mr-2 text-orange-600 flex-shrink-0" />
-                  <span className="truncate">
-                    {formatTechnicienDisplay(intervention) || 'Non assigné'}
-                  </span>
-                </div>
-              </div>
-
-              {/* Détails secondaires */}
-              <div className="flex items-center justify-between text-xs text-gray-500">
-                <div className="flex items-center">
-                  <Info className="w-3 h-3 mr-1" />
-                  <span>{getInterventionType(intervention.ID2GENRE_INTER)}</span>
-                </div>
-                {intervention.HR_DEBUT && (
-                  <div className="flex items-center">
-                    <Clock className="w-3 h-3 mr-1" />
-                    <span>{intervention.HR_DEBUT}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Description si disponible */}
-            {intervention.LIB_INTERVENTION && (
-              <div className="mt-3 p-2 bg-gray-50 dark:bg-gray-800 rounded text-sm">
-                <p className="text-gray-700 dark:text-gray-300 line-clamp-2">{intervention.LIB_INTERVENTION}</p>
-              </div>
-            )}
-          </CardContent>
-        </div>
-
-        {/* Actions */}
-        <div className={`flex p-3 border-t sm:border-t-0 sm:border-l ${isListView ? 'sm:w-1/4 sm:flex-col sm:justify-center' : 'justify-end'}`}>
-          <div className={`flex ${isListView ? 'flex-col space-y-1' : 'space-x-1'}`}>
-            <Link to={`/interventions/${intervention.IDINTERVENTION}`} className="w-full">
-              <Button variant="outline" size="sm" className="w-full px-2" title="Voir les détails">
-                <Eye className="w-4 h-4" />
-              </Button>
-            </Link>
-            <Link to={`/interventions/${intervention.IDINTERVENTION}/edit`} className="w-full">
-              <Button variant="outline" size="sm" className="w-full px-2" title="Modifier l'intervention">
-                <Edit className="w-4 h-4" />
-              </Button>
-            </Link>
-            <Button 
-              variant="destructive" 
-              size="sm" 
-              onClick={() => handleDelete(intervention.IDINTERVENTION)}
-              className="w-full px-2"
-              title="Supprimer l'intervention"
-            >
-              <Trash2 className="w-4 h-4" />
-            </Button>
           </div>
+          <div className="flex items-center text-sm text-gray-500">
+            <Calendar className="w-4 h-4 mr-2" />
+            <span>{formatDate(intervention.DT_INTER_DBT)}</span>
+          </div>
+        </CardHeader>
+        <CardContent className="flex-grow">
+          <div className="flex items-start mb-2">
+            <MapPin className="w-4 h-4 mr-2 mt-1 text-gray-400" />
+            <p className="font-semibold text-gray-800 dark:text-gray-200">
+              {contact ? contact.RAISON_SOCIALE || formatFullName(contact.NOM, contact.PRENOM) : 'Client non défini'}
+            </p>
+          </div>
+          <div className="flex items-start mb-2">
+            <Car className="w-4 h-4 mr-2 mt-1 text-gray-400" />
+            <div>
+              <p className="font-semibold text-gray-800 dark:text-gray-200">
+                {vehicle ? `${vehicle.MARQUE} ${vehicle.MODELE}` : 'Véhicule non défini'}
+              </p>
+              {vehicle && <p className="text-sm text-gray-500">{vehicle.IMMAT}</p>}
+            </div>
+          </div>
+          <div className="flex items-start mt-2">
+            <User className="w-4 h-4 mr-2 mt-1 text-gray-400" />
+            <p className="font-semibold text-gray-800 dark:text-gray-200">
+              {techniciens || 'Technicien non assigné'}
+            </p>
+          </div>
+        </CardContent>
+        <div className="mt-auto p-4 border-t flex justify-end space-x-2">
+          <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); navigate(`/interventions/${intervention.IDINTERVENTION}`)}}>
+            <Eye className="w-4 h-4 mr-2" />
+            Voir
+          </Button>
+          <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); navigate(`/interventions/${intervention.IDINTERVENTION}/edit`)}}>
+            <Edit className="w-4 h-4 mr-2" />
+            Modifier
+          </Button>
         </div>
       </Card>
     );

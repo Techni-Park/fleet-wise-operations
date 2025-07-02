@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Save, X, Loader } from 'lucide-react';
+import { ArrowLeft, Save, X, Loader, WifiOff } from 'lucide-react';
 import AppLayout from '@/components/Layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AddressInput } from '@/components/ui/address-input';
 import { useToast } from '@/hooks/use-toast';
+import { offlineStorage } from '@/services/offlineStorage';
 
 const EditIntervention = () => {
   const { id } = useParams();
@@ -147,7 +148,9 @@ const EditIntervention = () => {
         SUR_SITE: parseInt(formData.SUR_SITE.toString()),
         ID2GENRE_INTER: parseInt(formData.ID2GENRE_INTER.toString()),
         USDEF_NUM: parseFloat(formData.USDEF_NUM.toString()) || 0,
-        USDEF_BOO: parseInt(formData.USDEF_BOO.toString())
+        USDEF_BOO: parseInt(formData.USDEF_BOO.toString()),
+        // Ajouter l'ID de l'intervention si on est en mode édition
+        IDINTERVENTION: id ? parseInt(id) : undefined,
       };
 
       const url = id ? `/api/interventions/${id}` : '/api/interventions';
@@ -170,17 +173,64 @@ const EditIntervention = () => {
         });
         navigate(`/interventions/${savedIntervention.IDINTERVENTION || id}`);
       } else {
-        throw new Error('Erreur lors de la sauvegarde');
+        throw new Error(`Erreur HTTP: ${response.status}`);
       }
     } catch (error) {
       console.error('Erreur sauvegarde:', error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de sauvegarder l'intervention",
-        variant: "destructive"
-      });
+      
+      // Gestion du mode offline
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        await saveOffline();
+      } else {
+        toast({
+          title: "Erreur",
+          description: "Impossible de sauvegarder l'intervention en ligne.",
+          variant: "destructive"
+        });
+      }
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Logique de sauvegarde offline
+  const saveOffline = async () => {
+    try {
+      console.log('[EditIntervention] Mode offline détecté. Sauvegarde locale...');
+      
+      const interventionToSave = {
+        ...formData,
+        IDINTERVENTION: id ? parseInt(id) : Date.now(), // Utiliser un ID temporaire pour les nouvelles interventions
+        IDCONTACT: formData.IDCONTACT ? parseInt(formData.IDCONTACT) : null,
+        ST_INTER: parseInt(formData.ST_INTER.toString()),
+        SUR_SITE: parseInt(formData.SUR_SITE.toString()),
+        ID2GENRE_INTER: parseInt(formData.ID2GENRE_INTER.toString()),
+        USDEF_NUM: parseFloat(formData.USDEF_NUM.toString()) || 0,
+        USDEF_BOO: parseInt(formData.USDEF_BOO.toString()),
+        // Marqueur offline
+        isOffline: true
+      };
+
+      await offlineStorage.saveOfflineIntervention(interventionToSave);
+
+      toast({
+        title: "Mode hors ligne",
+        description: (
+          <div className="flex items-center">
+            <WifiOff className="w-4 h-4 mr-2" />
+            Intervention sauvegardée localement. Elle sera synchronisée plus tard.
+          </div>
+        )
+      });
+      navigate('/interventions');
+
+    } catch (offlineError) {
+      console.error('[EditIntervention] Erreur sauvegarde offline:', offlineError);
+      toast({
+        title: "Erreur critique",
+        description: "Impossible de sauvegarder l'intervention, même localement.",
+        variant: "destructive"
+      });
     }
   };
 
