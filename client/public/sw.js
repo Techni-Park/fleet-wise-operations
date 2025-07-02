@@ -188,10 +188,42 @@ self.addEventListener('fetch', (event) => {
               });
             }
             return response;
+          }).catch((error) => {
+            console.log('[SW] Erreur réseau pour API:', url.pathname, error.message);
+            
+            // En mode offline, retourner le cache si disponible, sinon une réponse d'erreur appropriée
+            if (cachedResponse) {
+              console.log('[SW] Utilisation du cache pour:', url.pathname);
+              return cachedResponse;
+            }
+            
+            // Retourner une réponse JSON d'erreur offline appropriée
+            return new Response(
+              JSON.stringify({ 
+                error: 'Mode offline', 
+                message: 'Données non disponibles hors ligne',
+                offline: true 
+              }), 
+              { 
+                status: 503,
+                statusText: 'Service Unavailable - Offline',
+                headers: { 'Content-Type': 'application/json' }
+              }
+            );
           });
           
-          // Retourner le cache immédiatement si disponible, sinon attendre le réseau
-          return cachedResponse || fetchPromise;
+          // Si on a du cache, le retourner immédiatement, sinon attendre le réseau
+          if (cachedResponse) {
+            console.log('[SW] Cache trouvé pour:', url.pathname);
+            
+            // Mettre à jour le cache en arrière-plan si possible
+            fetchPromise.catch(() => {}); // Ignorer les erreurs en arrière-plan
+            
+            return cachedResponse;
+          }
+          
+          // Pas de cache, attendre le réseau
+          return fetchPromise;
         })
       );
       return;

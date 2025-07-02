@@ -20,11 +20,13 @@ const VehicleDetails = () => {
   const [loading, setLoading] = useState(true);
   const [currentInterventions, setCurrentInterventions] = useState<any[]>([]);
   const [vehicleLocation, setVehicleLocation] = useState<string>('');
+  const [isOffline, setIsOffline] = useState(false);
 
   const loadVehicle = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`/api/vehicules/${id}`);
+      
       if (response.ok) {
         const data = await response.json();
         setVehicle(data);
@@ -33,12 +35,32 @@ const VehicleDetails = () => {
         if (data.IDMACHINE) {
           await loadCurrentInterventions(data.IDMACHINE);
         }
+      } else if (response.status === 503) {
+        // Mode offline - vérifier si on a des données en cache
+        const errorData = await response.json().catch(() => ({}));
+        if (errorData.offline) {
+          console.log('[VehicleDetails] Mode offline détecté - données non disponibles');
+          setIsOffline(true);
+          // Ici on pourrait charger les données depuis IndexedDB si nécessaire
+          setVehicle(null);
+        } else {
+          console.error('Failed to fetch vehicle:', response.status);
+          setVehicle(null);
+        }
       } else {
-        console.error('Failed to fetch vehicle');
+        console.error('Failed to fetch vehicle:', response.status);
         setVehicle(null);
       }
     } catch (error) {
       console.error('Error loading vehicle:', error);
+      
+      // Vérifier si c'est une erreur réseau (mode offline)
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        console.log('[VehicleDetails] Erreur réseau - probablement en mode offline');
+        setIsOffline(true);
+        // Ici on pourrait essayer de charger depuis le stockage offline
+      }
+      
       setVehicle(null);
     } finally {
       setLoading(false);
@@ -106,6 +128,12 @@ const VehicleDetails = () => {
       }
     } catch (error) {
       console.error('Erreur lors du chargement des interventions en cours:', error);
+      
+      // Gestion spécifique du mode offline
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        console.log('[VehicleDetails] Interventions non disponibles en mode offline');
+      }
+      
       setCurrentInterventions([]);
       setVehicleLocation('');
     }
@@ -160,6 +188,17 @@ const VehicleDetails = () => {
     return (
       <AppLayout>
         <div className="text-center py-12">
+          {isOffline && (
+            <div className="mb-6 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+              <div className="flex items-center justify-center space-x-2 text-orange-700">
+                <AlertTriangle className="w-5 h-5" />
+                <span className="font-medium">Mode hors ligne</span>
+              </div>
+              <p className="text-sm text-orange-600 mt-1">
+                Les données du véhicule ne sont pas disponibles sans connexion internet
+              </p>
+            </div>
+          )}
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
             Véhicule introuvable
           </h1>
@@ -179,6 +218,30 @@ const VehicleDetails = () => {
   return (
     <AppLayout>
       <div className="space-y-6">
+        {/* Indicateur mode offline */}
+        {isOffline && (
+          <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+            <div className="flex items-center space-x-2 text-orange-700">
+              <AlertTriangle className="w-5 h-5" />
+              <span className="font-medium">Mode hors ligne actif</span>
+            </div>
+            <p className="text-sm text-orange-600 mt-1">
+              Certaines données peuvent ne pas être à jour. Reconnectez-vous pour accéder aux informations les plus récentes.
+            </p>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="mt-3"
+              onClick={() => {
+                setIsOffline(false);
+                loadVehicle();
+              }}
+            >
+              Réessayer
+            </Button>
+          </div>
+        )}
+        
         {/* En-tête de page */}
         <div className="grid grid-cols-4 gap-6 items-start mb-8">
           {/* Colonne 1 : Informations principales (3/4 de l'espace) */}
