@@ -5,6 +5,7 @@ import { ErrorBoundary } from "react-error-boundary";
 import App from './App.tsx'
 import './index.css'
 import { AuthProvider } from './context/AuthContext.tsx'
+import '@fontsource/inter';
 
 // Composant d'erreur pour ErrorBoundary principal
 const ErrorFallback = ({ error, resetErrorBoundary }: { error: Error, resetErrorBoundary: () => void }) => (
