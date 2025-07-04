@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Search, Filter, Eye, Edit, Trash2, Calendar, Clock, User, AlertTriangle, Loader, RefreshCw, Car, Info, Grid3X3, List, MapPin, ChevronLeft, ChevronRight, Map, X, RotateCcw, WifiOff } from 'lucide-react';
+import { Plus, Search, Filter, Eye, Edit, Trash2, Calendar, Clock, User, AlertTriangle, Loader, RefreshCw, Car, Info, Grid3X3, List, MapPin, ChevronLeft, ChevronRight, Map as MapIcon, X, RotateCcw, WifiOff } from 'lucide-react';
 import AppLayout from '@/components/Layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -83,18 +83,18 @@ const Interventions = () => {
       // Charger les métadonnées (véhicules, contacts)
       if (vehiclesRes && vehiclesRes.ok) {
         const vehiclesData = await vehiclesRes.json();
-        const allVehicles = vehiclesData.vehicles && Array.isArray(vehiclesData.vehicles) ? vehiclesData.vehicles : (Array.isArray(vehiclesData) ? vehiclesData : []);
-        const newVehicleMap: {[key: number]: any} = {};
-        allVehicles.forEach((v: any) => newVehicleMap[v.IDMACHINE] = v);
-        setVehicleMap(newVehicleMap);
+      const allVehicles = vehiclesData.vehicles && Array.isArray(vehiclesData.vehicles) ? vehiclesData.vehicles : (Array.isArray(vehiclesData) ? vehiclesData : []);
+      const newVehicleMap: {[key: number]: any} = {};
+      allVehicles.forEach((v: any) => newVehicleMap[v.IDMACHINE] = v);
+      setVehicleMap(newVehicleMap);
       }
 
       if (contactsRes && contactsRes.ok) {
         const contactsData = await contactsRes.json();
         const allContacts = contactsData.contacts && Array.isArray(contactsData.contacts) ? contactsData.contacts : (Array.isArray(contactsData) ? contactsData : []);
-        const newContactMap: {[key: number]: any} = {};
-        allContacts.forEach((c: any) => newContactMap[c.IDCONTACT] = c);
-        setContactMap(newContactMap);
+      const newContactMap: {[key: number]: any} = {};
+      allContacts.forEach((c: any) => newContactMap[c.IDCONTACT] = c);
+      setContactMap(newContactMap);
       }
 
     } catch (error) {
@@ -258,7 +258,7 @@ const Interventions = () => {
   // Composant pour le rendu des cartes
   const renderInterventionCard = (intervention: any, isListView: boolean) => {
     const vehicle = vehicleMap[intervention.CLE_MACHINE_CIBLE];
-    const contact = contactMap[intervention.IDCONTACT];
+        const contact = contactMap[intervention.IDCONTACT];
     const techniciens = formatTechnicienDisplay(intervention);
 
     return (
@@ -272,15 +272,15 @@ const Interventions = () => {
             <CardTitle className="text-lg font-bold mb-2 pr-2 leading-tight">
               {intervention.isOffline && <WifiOff className="w-4 h-4 mr-2 inline-block text-yellow-600" />}
               {intervention.LIB50 || 'Intervention sans titre'}
-            </CardTitle>
+              </CardTitle>
             <div className="flex-shrink-0">
               {getStatusBadge(intervention.ST_INTER, intervention.isOffline)}
             </div>
-          </div>
+                </div>
           <div className="flex items-center text-sm text-gray-500">
             <Calendar className="w-4 h-4 mr-2" />
             <span>{formatDate(intervention.DT_INTER_DBT)}</span>
-          </div>
+                </div>
         </CardHeader>
         <CardContent className="flex-grow">
           <div className="flex items-start mb-2">
@@ -288,7 +288,7 @@ const Interventions = () => {
             <p className="font-semibold text-gray-800 dark:text-gray-200">
               {contact ? contact.RAISON_SOCIALE || formatFullName(contact.NOM, contact.PRENOM) : 'Client non défini'}
             </p>
-          </div>
+              </div>
           <div className="flex items-start mb-2">
             <Car className="w-4 h-4 mr-2 mt-1 text-gray-400" />
             <div>
@@ -297,7 +297,7 @@ const Interventions = () => {
               </p>
               {vehicle && <p className="text-sm text-gray-500">{vehicle.IMMAT}</p>}
             </div>
-          </div>
+              </div>
           <div className="flex items-start mt-2">
             <User className="w-4 h-4 mr-2 mt-1 text-gray-400" />
             <p className="font-semibold text-gray-800 dark:text-gray-200">
@@ -400,7 +400,7 @@ const Interventions = () => {
                   className="px-2"
                   title="Affichage carte"
                 >
-                  <Map className="w-4 h-4" />
+                  <MapIcon className="w-4 h-4" />
                 </Button>
               </div>
             </div>
