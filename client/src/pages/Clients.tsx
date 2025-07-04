@@ -156,7 +156,7 @@ const Clients = () => {
         <div className={`flex-grow ${isListView ? 'sm:w-2/3' : ''}`}>
           <CardHeader>
             <div className="flex items-start justify-between gap-4">
-              <CardTitle className="truncate">
+              <CardTitle className={`truncate ${isListView ? 'text-lg' : ''}`}>
                 {contact.RAISON_SOCIALE ? (
                   <>
                     {contact.RAISON_SOCIALE}
@@ -180,12 +180,27 @@ const Clients = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-2 text-sm text-gray-600">
-              <div className="flex items-center">
-                <Mail className="w-4 h-4 mr-2 flex-shrink-0" />
-                <a href={`mailto:${email}`} className="truncate text-blue-600 hover:underline">
-                  {email || 'N/A'}
-                </a>
-              </div>
+              {isListView ? (
+                 <div className="flex items-center justify-between">
+                   <div className="flex items-center truncate">
+                     <Mail className="w-4 h-4 mr-2 flex-shrink-0" />
+                     <a href={`mailto:${email}`} className="truncate text-blue-600 hover:underline">
+                       {email || 'N/A'}
+                     </a>
+                   </div>
+                   <div className="flex items-center text-xs text-gray-500">
+                     <Users className="w-4 h-4 mr-1 flex-shrink-0" />
+                     <span>{formatGender(contact.ID2GENRE_CONTACT)}</span>
+                   </div>
+                 </div>
+              ) : (
+                <div className="flex items-center">
+                  <Mail className="w-4 h-4 mr-2 flex-shrink-0" />
+                  <a href={`mailto:${email}`} className="truncate text-blue-600 hover:underline">
+                    {email || 'N/A'}
+                  </a>
+                </div>
+              )}
               <div className="flex items-center">
                 <Phone className="w-4 h-4 mr-2 flex-shrink-0" />
                 <span>{tel1 || 'N/A'}</span>
@@ -210,23 +225,25 @@ const Clients = () => {
                   )}
                 </span>
               </div>
+              {!isListView && (
               <div className="flex items-center">
                 <Users className="w-4 h-4 mr-2 flex-shrink-0" />
                 <span>Genre: {formatGender(contact.ID2GENRE_CONTACT)}</span>
               </div>
+              )}
             </div>
           </CardContent>
         </div>
         <div className={`flex p-4 border-t sm:border-t-0 sm:border-l ${isListView ? 'sm:w-1/3 sm:flex-col sm:justify-center' : 'justify-end'}`}>
           <div className={`flex ${isListView ? 'flex-col space-y-2' : 'space-x-2'}`}>
             <Link to={`/clients/${contact.IDCONTACT}`} className="w-full">
-              <Button variant="outline" size="sm" className="w-full flex justify-center items-center text-xs"><Eye className="w-4 h-4 mr-2" /> Voir</Button>
+              <Button variant="outline" size="sm" className="w-full flex justify-center items-center text-xs"><Eye className="w-4 h-4 mr-2" /></Button>
             </Link>
             <Link to={`/clients/${contact.IDCONTACT}/edit`} className="w-full">
-              <Button variant="outline" size="sm" className="w-full flex justify-center items-center text-xs"><Edit className="w-4 h-4 mr-2" /> Modifier</Button>
+              <Button variant="outline" size="sm" className="w-full flex justify-center items-center text-xs"><Edit className="w-4 h-4 mr-2" /> </Button>
             </Link>
             <Button variant="destructive" size="sm" onClick={() => handleDelete(contact.IDCONTACT)} className="w-full flex justify-center items-center text-xs">
-              <Trash2 className="w-4 h-4 mr-2" /> Supprimer
+              <Trash2 className="w-4 h-4 mr-2" /> 
             </Button>
           </div>
         </div>
@@ -295,7 +312,7 @@ const Clients = () => {
             </p>
           </div>
         ) : (
-          <div className={view === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6' : 'space-y-4'}>
+          <div className={view === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6' : 'space-y-4'}>
             {filteredContacts.map((contact) => renderContactCard(contact, view === 'list'))}
           </div>
         )}
