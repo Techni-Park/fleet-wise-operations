@@ -3,6 +3,7 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Car, Home, Calendar, FileText, Settings, Users, AlertTriangle, BarChart3, Wrench, X, Menu, Database, Server, Sliders, Smartphone } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useSettings } from '@/context/SettingsContext';
 
 interface NavigationProps {
   isOpen?: boolean;
@@ -12,6 +13,7 @@ interface NavigationProps {
 const Navigation = ({ isOpen = true, onToggle }: NavigationProps) => {
   const location = useLocation();
   const isMobile = useIsMobile();
+  const { settings } = useSettings();
 
   const navigationItems = [
     { icon: Home, label: 'Tableau de bord', path: '/' },
@@ -61,7 +63,7 @@ const Navigation = ({ isOpen = true, onToggle }: NavigationProps) => {
           <div className="p-6">
             <div className="flex items-center justify-between mb-8">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                FleetTracker Pro
+                {settings?.RAISON_SOCIALE || 'FleetTracker Pro'}
               </h2>
               <button
                 onClick={onToggle}
@@ -108,7 +110,7 @@ const Navigation = ({ isOpen = true, onToggle }: NavigationProps) => {
         <div className="flex items-center justify-between mb-8">
           {isOpen && (
             <h2 className="text-xl font-bold text-gray-900 dark:text-white transition-opacity duration-200">
-              FleetTracker Pro
+              {settings?.RAISON_SOCIALE || 'FleetTracker Pro'}
             </h2>
           )}
           <button

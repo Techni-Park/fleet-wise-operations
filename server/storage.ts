@@ -4,6 +4,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { 
   users, vehicles, interventions, alerts, documents, actions, anomalies, contacts, ingredients, machinesMnt, produits, societes, userSystem, vehicules, customFields, customFieldsValues, z83Interventions, forms, formsFields, formsFieldsValues, adressePost,
+  paramappli,
   type User, type InsertUser, type Vehicle, type InsertVehicle, type Intervention, type InsertIntervention, 
   type Alert, type InsertAlert, type Document, type InsertDocument, type Action, type InsertAction,
   type Anomalie, type InsertAnomalie, type Contact, type InsertContact, type Ingredient, type InsertIngredient,
@@ -11,7 +12,7 @@ import {
   type UserSystem, type InsertUserSystem, type Vehicule, type InsertVehicule, type CustomField, type InsertCustomField,
   type CustomFieldValue, type InsertCustomFieldValue, type Z83Intervention, type InsertZ83Intervention,
   type Form, type InsertForm, type FormField, type InsertFormField, type FormFieldValue, type InsertFormFieldValue,
-  type AdressePost, type InsertAdressePost
+  type AdressePost, type InsertAdressePost, type ParamAppli, type InsertParamAppli
 } from "@shared/schema";
 
 export interface IStorage {
@@ -162,6 +163,10 @@ export interface IStorage {
   // Intervention enrichment
   getMachineByCleMachine(cleMachine: string): Promise<MachineMnt | undefined>;
   getContactById(contactId: number): Promise<Contact | undefined>;
+
+  // ParamAppli
+  getParamAppli(): Promise<ParamAppli | undefined>;
+  updateParamAppli(params: Partial<InsertParamAppli>): Promise<ParamAppli | undefined>;
 }
 
 export class MySQLStorage implements IStorage {
@@ -1817,6 +1822,31 @@ export class MySQLStorage implements IStorage {
       console.error('Erreur lors de la récupération du contact:', error);
       return undefined;
     }
+  }
+
+  // ParamAppli
+  async getParamAppli(): Promise<ParamAppli | undefined> {
+    // Il ne devrait y avoir qu'une seule ligne de paramètres
+    const result = await db.select().from(paramappli).limit(1);
+    return result[0];
+  }
+
+  async updateParamAppli(params: Partial<InsertParamAppli>): Promise<ParamAppli | undefined> {
+    const currentParams = await this.getParamAppli();
+    if (!currentParams) {
+      // Si aucune ligne n'existe, on pourrait en créer une. 
+      // Pour l'instant, on retourne une erreur ou undefined.
+      // Cela dépend de la logique métier : est-ce que la ligne est censée toujours exister ?
+      // Supposons qu'elle est créée à l'installation.
+      console.error("Aucun enregistrement de paramètres trouvé à mettre à jour.");
+      return undefined;
+    }
+
+    await db.update(paramappli)
+      .set(params)
+      .where(eq(paramappli.IDPARAMAPPLI, currentParams.IDPARAMAPPLI));
+    
+    return this.getParamAppli();
   }
 }
 

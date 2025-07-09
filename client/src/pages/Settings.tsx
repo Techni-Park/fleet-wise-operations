@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Settings as SettingsIcon, Save, Bell, Shield, Database, Palette, Globe } from 'lucide-react';
 import Navigation from '@/components/Layout/Navigation';
 import Header from '@/components/Layout/Header';
@@ -11,8 +11,77 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/components/ui/use-toast';
+import { type ParamAppli } from '@shared/schema';
+import { useSettings } from '@/context/SettingsContext';
+
 
 const Settings = () => {
+  const { settings: globalSettings, loading: isLoading, reloadSettings } = useSettings();
+  const [localSettings, setLocalSettings] = useState<Partial<ParamAppli>>({});
+  const [isSaving, setIsSaving] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (globalSettings) {
+      setLocalSettings(globalSettings);
+    }
+  }, [globalSettings]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { id, value } = e.target;
+    setLocalSettings((prev: Partial<ParamAppli>) => ({ ...prev, [id]: value }));
+  };
+
+  const handleSelectChange = (id: keyof ParamAppli, value: string) => {
+    setLocalSettings((prev: Partial<ParamAppli>) => ({ ...prev, [id]: value }));
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const response = await fetch('/api/paramappli', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(localSettings),
+      });
+
+      if (response.ok) {
+        await reloadSettings();
+        toast({
+          title: "Succès",
+          description: "Paramètres sauvegardés avec succès.",
+        });
+      } else {
+        toast({
+          title: "Erreur",
+          description: "Impossible de sauvegarder les paramètres.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Erreur lors de la sauvegarde des paramètres:", error);
+      toast({
+        title: "Erreur",
+        description: "Une erreur réseau est survenue lors de la sauvegarde.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+
+  if (isLoading) {
+    return (
+        <div className="flex-1 p-6">
+            <h1 className="text-3xl font-bold">Chargement des paramètres...</h1>
+        </div>
+    )
+  }
+
   return (
     <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900 w-full">
       <Navigation />
@@ -30,9 +99,9 @@ const Settings = () => {
                 Configuration de l'application et préférences
               </p>
             </div>
-            <Button className="bg-blue-600 hover:bg-blue-700">
+            <Button onClick={handleSave} disabled={isSaving || isLoading} className="bg-blue-600 hover:bg-blue-700">
               <Save className="w-4 h-4 mr-2" />
-              Sauvegarder
+              {isSaving ? 'Sauvegarde...' : 'Sauvegarder'}
             </Button>
           </div>
 
@@ -56,18 +125,18 @@ const Settings = () => {
                 <CardContent className="space-y-6">
                   <div className="grid grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="company-name">Nom de l'entreprise</Label>
-                      <Input id="company-name" defaultValue="FleetTracker Pro" />
+                      <Label htmlFor="RAISON_SOCIALE">Nom de l'entreprise</Label>
+                      <Input id="RAISON_SOCIALE" value={localSettings.RAISON_SOCIALE || ''} onChange={handleInputChange} />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="contact-email">Email de contact</Label>
-                      <Input id="contact-email" type="email" defaultValue="contact@fleettracker.com" />
+                      <Label htmlFor="EMAIL">Email de contact</Label>
+                      <Input id="EMAIL" type="email" value={localSettings.EMAIL || ''} onChange={handleInputChange} />
                     </div>
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="company-address">Adresse de l'entreprise</Label>
-                    <Textarea id="company-address" defaultValue="123 Rue de la Flotte, 75001 Paris, France" />
+                    <Label htmlFor="ADRESSE">Adresse de l'entreprise</Label>
+                    <Textarea id="ADRESSE" value={localSettings.ADRESSE || ''} onChange={handleInputChange} />
                   </div>
                   
                   <div className="grid grid-cols-2 gap-6">
@@ -85,17 +154,55 @@ const Settings = () => {
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="currency">Devise</Label>
-                      <Select defaultValue="eur">
+                      <Label htmlFor="CD_DEVISE">Devise</Label>
+                      <Select value={localSettings.CD_DEVISE || 'EUR'} onValueChange={(value) => handleSelectChange('CD_DEVISE', value)}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="eur">Euro (€)</SelectItem>
-                          <SelectItem value="usd">Dollar US ($)</SelectItem>
-                          <SelectItem value="gbp">Livre Sterling (£)</SelectItem>
+                          <SelectItem value="EUR">Euro (€)</SelectItem>
+                          <SelectItem value="USD">Dollar US ($)</SelectItem>
+                          <SelectItem value="GBP">Livre Sterling (£)</SelectItem>
                         </SelectContent>
                       </Select>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Informations légales et fiscales</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="SIRET">SIRET</Label>
+                      <Input id="SIRET" value={localSettings.SIRET || ''} onChange={handleInputChange} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="NUM_TVA">N° TVA Intracommunautaire</Label>
+                      <Input id="NUM_TVA" value={localSettings.NUM_TVA || ''} onChange={handleInputChange} />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="CODE_APE">Code APE (NAF)</Label>
+                      <Input id="CODE_APE" value={localSettings.CODE_APE || ''} onChange={handleInputChange} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="RCS">RCS</Label>
+                      <Input id="RCS" value={localSettings.RCS || ''} onChange={handleInputChange} />
+                    </div>
+                  </div>
+                   <div className="grid grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="STATUT_SOCIAL">Statut social</Label>
+                      <Input id="STATUT_SOCIAL" value={localSettings.STATUT_SOCIAL || ''} onChange={handleInputChange} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="MTT_CAPITAL">Capital Social</Label>
+                      <Input id="MTT_CAPITAL" type="number" value={localSettings.MTT_CAPITAL || ''} onChange={handleInputChange} />
                     </div>
                   </div>
                 </CardContent>
@@ -121,7 +228,7 @@ const Settings = () => {
                   
                   <div className="space-y-2">
                     <Label>Langue de l'interface</Label>
-                    <Select defaultValue="fr">
+                    <Select value={localSettings.CD_LANG || 'fr'} onValueChange={(value) => handleSelectChange('CD_LANG', value)}>
                       <SelectTrigger className="w-48">
                         <SelectValue />
                       </SelectTrigger>
