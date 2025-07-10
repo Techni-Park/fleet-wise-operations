@@ -11,8 +11,10 @@ import { Progress } from '../components/ui/progress';
 import { TravelMode } from '../components/PWA/TravelMode';
 import { usePWASync } from '../hooks/usePWASync';
 import { useAuth } from '../context/AuthContext';
+import { useSettings } from '../context/SettingsContext';
 import { useToast } from '../hooks/use-toast';
 import { autoSync } from '../services/autoSync';
+import { offlineStorage } from '../services/offlineStorage';
 import { 
   Settings, 
   Smartphone, 
@@ -31,6 +33,7 @@ import {
 export default function PWASettings() {
   const { toast } = useToast();
   const { user, isPreloading, preloadResults } = useAuth();
+  const { settings, loading: settingsLoading, error: settingsError } = useSettings();
   const { status, syncResults, error, storagePercentage, totalPending, refreshStatus, startPreload } = usePWASync();
   
   const [preloadConfig, setPreloadConfig] = useState({
@@ -102,7 +105,7 @@ export default function PWASettings() {
     }
 
     try {
-      await autoSync.clearAllData();
+      await offlineStorage.clearAllData();
       await refreshStatus();
       toast({
         title: "Données supprimées",
@@ -405,6 +408,90 @@ export default function PWASettings() {
 
       {/* Mode voyage */}
       <TravelMode />
+
+      {/* Paramètres de l'application */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Settings className="h-5 w-5" />
+            Paramètres de l'application
+          </CardTitle>
+          <CardDescription>
+            Configuration générale de l'application depuis PARAMAPPLI
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {settingsLoading ? (
+            <div className="text-center py-4">
+              <p className="text-muted-foreground">Chargement des paramètres...</p>
+            </div>
+          ) : settingsError ? (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                Erreur lors du chargement des paramètres: {settingsError}
+              </AlertDescription>
+            </Alert>
+          ) : settings ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Nom de l'entreprise</Label>
+                <div className="p-2 bg-muted rounded-md text-sm">
+                  {settings.RAISON_SOCIALE || 'Non défini'}
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Email de contact</Label>
+                <div className="p-2 bg-muted rounded-md text-sm">
+                  {settings.EMAIL || 'Non défini'}
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Adresse</Label>
+                <div className="p-2 bg-muted rounded-md text-sm">
+                  {settings.ADRESSE || 'Non définie'}
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Ville</Label>
+                <div className="p-2 bg-muted rounded-md text-sm">
+                  {settings.VILLE || 'Non définie'} {settings.CPOSTAL && `(${settings.CPOSTAL})`}
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label>SIRET</Label>
+                <div className="p-2 bg-muted rounded-md text-sm">
+                  {settings.SIRET || 'Non défini'}
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Devise</Label>
+                <div className="p-2 bg-muted rounded-md text-sm">
+                  {settings.CD_DEVISE || 'EUR'}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                Aucun paramètre d'application trouvé.
+              </AlertDescription>
+            </Alert>
+          )}
+          
+          <div className="pt-4">
+            <Button variant="outline" onClick={() => window.location.href = '/settings'}>
+              Modifier les paramètres
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Actions avancées */}
       <Card>

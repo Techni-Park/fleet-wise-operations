@@ -1056,8 +1056,8 @@ export const customFieldsValues = mysqlTable("custom_fields_values", {
   updated_at: timestamp("updated_at").onUpdateNow()
 });
 
-// Table forms pour stocker les métadonnées des formulaires personnalisés
-export const forms = mysqlTable("forms", {
+// Table customForms pour stocker les métadonnées des formulaires personnalisés
+export const customForms = mysqlTable("forms", {
   id: bigint("id", { mode: "number" }).primaryKey().autoincrement(),
   nom: varchar("nom", { length: 100 }).notNull(),
   description: longtext("description"),
