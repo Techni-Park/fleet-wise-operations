@@ -1,13 +1,13 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import express from "express";
 import { createServer, type Server } from "http";
 import passport from "passport";
 import multer from "multer";
 import * as path from "path";
 import * as fs from "fs";
-  import "./passport-config"; // Import the passport configuration
-  import { storage } from "./storage";
-  import { db } from "./db";
+import "./passport-config"; // Import the passport configuration
+import { storage } from "./storage";
+import { db } from "./db";
 
 // Configuration multer pour l'upload en mémoire
 const upload = multer({
@@ -28,6 +28,15 @@ const upload = multer({
     }
   }
 });
+
+const isAuthenticated: express.RequestHandler = (req, res, next) => {
+  // `req.isAuthenticated()` est une méthode ajoutée par Passport.js
+  if (req.isAuthenticated()) {
+    return next(); // L'utilisateur est connecté, continuer
+  }
+  // Sinon, renvoyer une erreur 401 (Non autorisé)
+  res.status(401).json({ error: 'Accès non autorisé. Veuillez vous connecter.' });
+};
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Test de connexion à la base de données
@@ -2130,6 +2139,33 @@ app.get("/api/pwa/test", async (req, res) => {
 });
 
 console.log('[PWA] Endpoints PWA enregistrés');
+
+// API pour les paramètres de l'application (PARAMAPPLI) - Protégée
+app.get("/api/paramappli", isAuthenticated, async (req, res) => {
+  try {
+    const params = await storage.getParamAppli();
+    if (!params) {
+      return res.status(404).json({ error: "Aucun paramètre d'application trouvé." });
+    }
+    res.json(params);
+  } catch (error) {
+    console.error('Erreur API getParamAppli:', error);
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+app.put("/api/paramappli", isAuthenticated, async (req, res) => {
+  try {
+    const updatedParams = await storage.updateParamAppli(req.body);
+    if (!updatedParams) {
+      return res.status(404).json({ error: "Impossible de mettre à jour les paramètres : enregistrement non trouvé." });
+    }
+    res.json(updatedParams);
+  } catch (error) {
+    console.error('Erreur API updateParamAppli:', error);
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
 
 const httpServer = createServer(app);
 
