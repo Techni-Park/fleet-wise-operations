@@ -16,6 +16,18 @@ export default defineConfig({
         ]
       : []),
   ],
+  server: {
+    host: true, // Autoriser les connexions externes
+    allowedHosts: [
+      "localhost",
+      "127.0.0.1",
+      "fleet.voluntis.space",
+      ".voluntis.space", // Autoriser tous les sous-domaines de voluntis.space
+    ],
+    hmr: {
+      clientPort: process.env.NODE_ENV === "production" ? 443 : undefined,
+    },
+  },
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "client", "src"),
