@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Edit, Phone, Mail, MapPin, Building, User, Calendar, Truck, FileText, AlertTriangle, Loader, Globe, Briefcase, NotebookText } from 'lucide-react';
+import { ArrowLeft, Edit, Phone, Mail, MapPin, Building, User, Calendar, Truck, FileText, AlertTriangle, Loader, Globe, Briefcase, NotebookText, Eye } from 'lucide-react';
 import AppLayout from '@/components/Layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';

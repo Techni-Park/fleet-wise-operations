@@ -208,7 +208,7 @@ export function AddressInput({
           {label}
           {required && <span className="text-red-500">*</span>}
           {hasValidCoordinates && (
-            <Check className="w-4 h-4 text-green-500" title="Adresse géolocalisée" />
+            <Check className="w-4 h-4 text-green-500" />
           )}
         </Label>
       )}

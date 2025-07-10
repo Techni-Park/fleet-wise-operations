@@ -508,7 +508,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
 
       {/* Champs personnalisés */}
       <VehicleCustomFieldsForm
-        vehicleId={initialData?.IDMACHINE}
+        vehicleId={undefined}
         values={customFieldValues}
         onChange={handleCustomFieldChange}
       />

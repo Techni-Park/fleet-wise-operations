@@ -90,7 +90,10 @@ export function TravelMode() {
       const vehicleIdArray = vehicleIds.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
       const contactIdArray = contactIds.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
 
-      const results = await autoSync.enableTravelMode(vehicleIdArray, contactIdArray);
+      const results = await autoSync.enableTravelMode({
+        vehicleIds: vehicleIdArray,
+        contactIds: contactIdArray
+      });
       setLastResults(results);
       setIsEnabled(true);
 

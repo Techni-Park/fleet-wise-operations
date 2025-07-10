@@ -40,9 +40,9 @@ export default function Profile() {
       setFormData({
         PRENOM: user.PRENOM || '',
         NOMFAMILLE: user.NOMFAMILLE || '',
-        EMAILP: user.EMAILP || '',
-        TELBUR: user.TELBUR || '',
-        FONCTION_PRO: user.FONCTION_PRO || ''
+        EMAILP: (user as any).EMAILP || user.email || '',
+        TELBUR: (user as any).TELBUR || '',
+        FONCTION_PRO: (user as any).FONCTION_PRO || ''
       });
     }
   }, [user]);
@@ -92,9 +92,9 @@ export default function Profile() {
       setFormData({
         PRENOM: user.PRENOM || '',
         NOMFAMILLE: user.NOMFAMILLE || '',
-        EMAILP: user.EMAILP || '',
-        TELBUR: user.TELBUR || '',
-        FONCTION_PRO: user.FONCTION_PRO || ''
+        EMAILP: (user as any).EMAILP || user.email || '',
+        TELBUR: (user as any).TELBUR || '',
+        FONCTION_PRO: (user as any).FONCTION_PRO || ''
       });
     }
     setIsEditing(false);
@@ -130,20 +130,20 @@ export default function Profile() {
                   </h1>
                   <p className="text-gray-500 flex items-center gap-2">
                     <Mail className="h-4 w-4" />
-                    {user.EMAILP}
+                    {(user as any).EMAILP || user.email}
                   </p>
-                  {user.FONCTION_PRO && (
+                  {(user as any).FONCTION_PRO && (
                     <p className="text-gray-600 flex items-center gap-2 mt-1">
                       <Building className="h-4 w-4" />
-                      {user.FONCTION_PRO}
+                      {(user as any).FONCTION_PRO}
                     </p>
                   )}
                 </div>
                 
                 <div className="flex items-center gap-2">
-                  <Badge variant={user.IAUTORISE === 1 ? "default" : "destructive"} className="flex items-center gap-1">
-                    {user.IAUTORISE === 1 ? <UserCheck className="h-3 w-3" /> : <UserX className="h-3 w-3" />}
-                    {user.IAUTORISE === 1 ? 'Autorisé' : 'Non autorisé'}
+                  <Badge variant={(user as any).IAUTORISE === 1 ? "default" : "destructive"} className="flex items-center gap-1">
+                    {(user as any).IAUTORISE === 1 ? <UserCheck className="h-3 w-3" /> : <UserX className="h-3 w-3" />}
+                    {(user as any).IAUTORISE === 1 ? 'Autorisé' : 'Non autorisé'}
                   </Badge>
                   
                   {user.IADMIN === 1 && (
@@ -274,8 +274,8 @@ export default function Profile() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Statut:</span>
-                    <Badge variant={user.IAUTORISE === 1 ? "default" : "destructive"}>
-                      {user.IAUTORISE === 1 ? 'Autorisé' : 'Non autorisé'}
+                    <Badge variant={(user as any).IAUTORISE === 1 ? "default" : "destructive"}>
+                      {(user as any).IAUTORISE === 1 ? 'Autorisé' : 'Non autorisé'}
                     </Badge>
                   </div>
                   <div className="flex justify-between">
