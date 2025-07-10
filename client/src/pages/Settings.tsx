@@ -179,10 +179,43 @@ const Settings = () => {
                 Configuration de l'application et préférences
               </p>
             </div>
-            <Button onClick={handleSave} disabled={isSaving || isLoading} className="bg-blue-600 hover:bg-blue-700">
-              <Save className="w-4 h-4 mr-2" />
-              {isSaving ? 'Sauvegarde...' : 'Sauvegarder'}
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                onClick={async () => {
+                  console.log('🧪 [Settings] Testing auth endpoint...');
+                  try {
+                    const response = await fetch('/api/auth-test');
+                    console.log('🧪 [Settings] Auth test response:', {
+                      status: response.status,
+                      ok: response.ok,
+                      statusText: response.statusText
+                    });
+                    const data = await response.json();
+                    console.log('🧪 [Settings] Auth test data:', data);
+                    toast({
+                      title: `Auth Test: ${response.status}`,
+                      description: response.ok ? 'Authentication working!' : `Error: ${data.error || 'Unknown error'}`,
+                      variant: response.ok ? "default" : "destructive"
+                    });
+                  } catch (error) {
+                    console.error('🧪 [Settings] Auth test error:', error);
+                    toast({
+                      title: "Test Error",
+                      description: "Network error during auth test",
+                      variant: "destructive"
+                    });
+                  }
+                }}
+                variant="outline"
+                className="bg-green-100 hover:bg-green-200"
+              >
+                🧪 Test Auth
+              </Button>
+              <Button onClick={handleSave} disabled={isSaving || isLoading} className="bg-blue-600 hover:bg-blue-700">
+                <Save className="w-4 h-4 mr-2" />
+                {isSaving ? 'Sauvegarde...' : 'Sauvegarder'}
+              </Button>
+            </div>
           </div>
 
           <Tabs defaultValue="general" className="w-full">
@@ -319,7 +352,7 @@ const Settings = () => {
                   
                   <div className="space-y-2">
                     <Label>Langue de l'interface</Label>
-                    <Select value={localSettings.CD_LANG || 'fr'} onValueChange={(value) => handleSelectChange('CD_LANG', value)}>
+                    <Select value={String(localSettings.CD_LANG || 'fr')} onValueChange={(value) => handleSelectChange('CD_LANG', value)}>
                       <SelectTrigger className="w-48">
                         <SelectValue />
                       </SelectTrigger>

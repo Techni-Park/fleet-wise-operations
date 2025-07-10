@@ -79,9 +79,15 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         console.error('❌ [SettingsContext] Settings fetch failed');
         let errorData;
         try {
-          errorData = await response.json();
+          // Lire le contenu de la réponse une seule fois
+          const responseText = await response.text();
+          try {
+            errorData = JSON.parse(responseText);
+          } catch (e) {
+            errorData = { error: responseText };
+          }
         } catch (e) {
-          errorData = { error: await response.text() };
+          errorData = { error: `HTTP ${response.status} ${response.statusText}` };
         }
         console.error('📋 [SettingsContext] Error details:', {
           status: response.status,

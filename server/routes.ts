@@ -2224,6 +2224,31 @@ app.put("/api/paramappli", isAuthenticated, async (req, res) => {
   }
 });
 
+// Test endpoint pour diagnostiquer l'authentification
+app.get("/api/auth-test", isAuthenticated, async (req, res) => {
+  console.log('🔐 [API] GET /api/auth-test called');
+  console.log('👤 [API] Auth test - Request user:', {
+    hasUser: !!req.user,
+    userCDUSER: req.user?.CDUSER,
+    userNom: req.user?.NOMFAMILLE,
+    userEmail: req.user?.EMAIL,
+    isAuthenticated: req.isAuthenticated(),
+    sessionID: req.sessionID,
+    session: req.session
+  });
+  
+  res.json({
+    success: true,
+    message: "Authentication test successful",
+    user: {
+      CDUSER: req.user?.CDUSER,
+      NOMFAMILLE: req.user?.NOMFAMILLE,
+      EMAIL: req.user?.EMAIL
+    },
+    timestamp: new Date().toISOString()
+  });
+});
+
 const httpServer = createServer(app);
 
   return httpServer;
