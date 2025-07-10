@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { type ParamAppli } from '@shared/schema';
+import { useAuth } from './AuthContext';
 
 interface SettingsContextType {
   settings: Partial<ParamAppli> | null;
@@ -14,8 +15,15 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [settings, setSettings] = useState<Partial<ParamAppli> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const auth = useAuth();
 
   const fetchSettings = useCallback(async () => {
+    // Ne rien faire si l'utilisateur n'est pas connecté
+    if (!auth.user) {
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -34,11 +42,14 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [auth.user]); // Dépend de l'utilisateur
 
   useEffect(() => {
-    fetchSettings();
-  }, [fetchSettings]);
+    // Lancer le fetch uniquement si l'état d'auth n'est plus en chargement
+    if (!auth.loading) {
+      fetchSettings();
+    }
+  }, [auth.loading, fetchSettings]);
 
   const reloadSettings = async () => {
     await fetchSettings();

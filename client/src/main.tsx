@@ -5,7 +5,12 @@ import { ErrorBoundary } from "react-error-boundary";
 import App from './App.tsx'
 import './index.css'
 import { AuthProvider } from './context/AuthContext.tsx'
-import '@fontsource/inter';
+
+// Importation de la police Inter auto-hébergée
+import '@fontsource/inter/400.css'; // Regular
+import '@fontsource/inter/600.css'; // Semi-bold
+import '@fontsource/inter/700.css'; // Bold
+
 
 // Composant d'erreur pour ErrorBoundary principal
 const ErrorFallback = ({ error, resetErrorBoundary }: { error: Error, resetErrorBoundary: () => void }) => (
