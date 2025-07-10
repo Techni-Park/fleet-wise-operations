@@ -17,29 +17,84 @@ import { useSettings } from '@/context/SettingsContext';
 
 
 const Settings = () => {
+  console.log('🔧 [Settings] Component rendering...');
+  
   const { settings: globalSettings, loading: isLoading, reloadSettings } = useSettings();
   const [localSettings, setLocalSettings] = useState<Partial<ParamAppli>>({});
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
+  // Debug: Log du contexte Settings
+  console.log('📊 [Settings] useSettings hook result:', {
+    globalSettings,
+    isLoading,
+    settingsType: typeof globalSettings,
+    settingsKeys: globalSettings ? Object.keys(globalSettings) : 'null',
+    settingsLength: globalSettings ? Object.keys(globalSettings).length : 0
+  });
+
   useEffect(() => {
+    console.log('🔄 [Settings] useEffect triggered - globalSettings changed');
+    console.log('📥 [Settings] globalSettings received:', {
+      hasGlobalSettings: !!globalSettings,
+      globalSettingsType: typeof globalSettings,
+      globalSettingsValue: globalSettings,
+      isLoadingState: isLoading
+    });
+
     if (globalSettings) {
+      console.log('✅ [Settings] Setting localSettings from globalSettings');
+      console.log('📋 [Settings] globalSettings content:', {
+        RAISON_SOCIALE: globalSettings.RAISON_SOCIALE,
+        EMAIL: globalSettings.EMAIL,
+        ADRESSE: globalSettings.ADRESSE,
+        VILLE: globalSettings.VILLE,
+        CPOSTAL: globalSettings.CPOSTAL,
+        SIRET: globalSettings.SIRET,
+        NUM_TVA: globalSettings.NUM_TVA,
+        CD_DEVISE: globalSettings.CD_DEVISE,
+        CD_LANG: globalSettings.CD_LANG,
+        allKeys: Object.keys(globalSettings)
+      });
       setLocalSettings(globalSettings);
+    } else {
+      console.log('❌ [Settings] globalSettings is null/undefined, not setting localSettings');
     }
-  }, [globalSettings]);
+  }, [globalSettings, isLoading]);
+
+  // Debug: Log des localSettings après changement
+  useEffect(() => {
+    console.log('🏪 [Settings] localSettings updated:', {
+      hasLocalSettings: !!localSettings,
+      localSettingsLength: Object.keys(localSettings).length,
+      localSettingsKeys: Object.keys(localSettings),
+      sampleValues: {
+        RAISON_SOCIALE: localSettings.RAISON_SOCIALE,
+        EMAIL: localSettings.EMAIL,
+        ADRESSE: localSettings.ADRESSE,
+        VILLE: localSettings.VILLE
+      }
+    });
+  }, [localSettings]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
+    console.log('📝 [Settings] Input changed:', { fieldId: id, newValue: value });
     setLocalSettings((prev: Partial<ParamAppli>) => ({ ...prev, [id]: value }));
   };
 
   const handleSelectChange = (id: keyof ParamAppli, value: string) => {
+    console.log('🔽 [Settings] Select changed:', { fieldId: id, newValue: value });
     setLocalSettings((prev: Partial<ParamAppli>) => ({ ...prev, [id]: value }));
   };
 
   const handleSave = async () => {
+    console.log('💾 [Settings] Starting save process...');
+    console.log('📤 [Settings] Data to save:', localSettings);
+    
     setIsSaving(true);
     try {
+      console.log('🌐 [Settings] Making PUT request to /api/paramappli');
       const response = await fetch('/api/paramappli', {
         method: 'PUT',
         headers: {
@@ -48,13 +103,32 @@ const Settings = () => {
         body: JSON.stringify(localSettings),
       });
 
+      console.log('📨 [Settings] API Response:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+        headers: Object.fromEntries(response.headers.entries())
+      });
+
       if (response.ok) {
+        const responseData = await response.json();
+        console.log('✅ [Settings] Save successful, response data:', responseData);
+        
+        console.log('🔄 [Settings] Reloading settings...');
         await reloadSettings();
+        
         toast({
           title: "Succès",
           description: "Paramètres sauvegardés avec succès.",
         });
       } else {
+        const errorData = await response.text();
+        console.error('❌ [Settings] Save failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorData
+        });
+        
         toast({
           title: "Erreur",
           description: "Impossible de sauvegarder les paramètres.",
@@ -62,7 +136,7 @@ const Settings = () => {
         });
       }
     } catch (error) {
-      console.error("Erreur lors de la sauvegarde des paramètres:", error);
+      console.error("💥 [Settings] Network error during save:", error);
       toast({
         title: "Erreur",
         description: "Une erreur réseau est survenue lors de la sauvegarde.",
@@ -70,17 +144,23 @@ const Settings = () => {
       });
     } finally {
       setIsSaving(false);
+      console.log('🏁 [Settings] Save process completed');
     }
   };
 
+  // Debug: Log de l'état de chargement
+  console.log('⏳ [Settings] Current loading state:', { isLoading, isSaving });
 
   if (isLoading) {
+    console.log('⌛ [Settings] Showing loading state');
     return (
         <div className="flex-1 p-6">
             <h1 className="text-3xl font-bold">Chargement des paramètres...</h1>
         </div>
     )
   }
+
+  console.log('🎨 [Settings] Rendering main settings interface');
 
   return (
     <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900 w-full">

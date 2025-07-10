@@ -1972,7 +1972,7 @@ app.get("/api/pwa/cache/:entity", async (req, res) => {
   try {
     const { entity } = req.params;
     const { lastSync, limit } = req.query;
-    const userId = req.user?.CDUSER || 'PWA';
+    const userId = req.user?. || 'PWA';
 
     let data = [];
     let cacheExpiry = 24 * 60 * 60 * 1000; // 24h par défaut
@@ -2142,27 +2142,84 @@ console.log('[PWA] Endpoints PWA enregistrés');
 
 // API pour les paramètres de l'application (PARAMAPPLI) - Protégée
 app.get("/api/paramappli", isAuthenticated, async (req, res) => {
+  console.log('🌐 [API] GET /api/paramappli called');
+  console.log('👤 [API] Request user:', {
+    hasUser: !!req.user,
+    userCDUSER: req.user?.CDUSER,
+    userNom: req.user?.NOMFAMILLE,
+    isAuthenticated: req.isAuthenticated()
+  });
+  
   try {
+    console.log('📡 [API] Calling storage.getParamAppli()...');
     const params = await storage.getParamAppli();
+    
+    console.log('📊 [API] Storage result:', {
+      hasParams: !!params,
+      paramsType: typeof params,
+      paramsKeys: params ? Object.keys(params) : 'null',
+      paramsSample: params ? {
+        IDPARAMAPPLI: params.IDPARAMAPPLI,
+        RAISON_SOCIALE: params.RAISON_SOCIALE,
+        EMAIL: params.EMAIL,
+        ADRESSE: params.ADRESSE
+      } : 'null'
+    });
+    
     if (!params) {
+      console.log('❌ [API] No params found, returning 404');
       return res.status(404).json({ error: "Aucun paramètre d'application trouvé." });
     }
+    
+    console.log('✅ [API] Sending params as response');
     res.json(params);
   } catch (error) {
-    console.error('Erreur API getParamAppli:', error);
+    console.error('💥 [API] Error in GET /api/paramappli:', error);
+    console.error('📋 [API] Error details:', {
+      message: (error as Error).message,
+      stack: (error as Error).stack,
+      name: (error as Error).name
+    });
     res.status(500).json({ error: (error as Error).message });
   }
 });
 
 app.put("/api/paramappli", isAuthenticated, async (req, res) => {
+  console.log('🌐 [API] PUT /api/paramappli called');
+  console.log('👤 [API] Request user:', {
+    hasUser: !!req.user,
+    userCDUSER: req.user?.CDUSER,
+    userNom: req.user?.NOMFAMILLE
+  });
+  console.log('📥 [API] Request body:', req.body);
+  
   try {
+    console.log('📡 [API] Calling storage.updateParamAppli()...');
     const updatedParams = await storage.updateParamAppli(req.body);
+    
+    console.log('📊 [API] Update result:', {
+      hasUpdatedParams: !!updatedParams,
+      updatedParamsType: typeof updatedParams,
+      updatedParamsSample: updatedParams ? {
+        IDPARAMAPPLI: updatedParams.IDPARAMAPPLI,
+        RAISON_SOCIALE: updatedParams.RAISON_SOCIALE,
+        EMAIL: updatedParams.EMAIL
+      } : 'null'
+    });
+    
     if (!updatedParams) {
+      console.log('❌ [API] Update failed, returning 404');
       return res.status(404).json({ error: "Impossible de mettre à jour les paramètres : enregistrement non trouvé." });
     }
+    
+    console.log('✅ [API] Sending updated params as response');
     res.json(updatedParams);
   } catch (error) {
-    console.error('Erreur API updateParamAppli:', error);
+    console.error('💥 [API] Error in PUT /api/paramappli:', error);
+    console.error('📋 [API] Error details:', {
+      message: (error as Error).message,
+      stack: (error as Error).stack
+    });
     res.status(500).json({ error: (error as Error).message });
   }
 });

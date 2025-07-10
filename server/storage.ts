@@ -1826,27 +1826,79 @@ export class MySQLStorage implements IStorage {
 
   // ParamAppli
   async getParamAppli(): Promise<ParamAppli | undefined> {
-    // Il ne devrait y avoir qu'une seule ligne de paramètres
-    const result = await db.select().from(paramappli).limit(1);
-    return result[0];
+    console.log('🗃️ [Storage] getParamAppli called');
+    try {
+      console.log('🔍 [Storage] Executing SELECT from paramappli table...');
+      
+      // Il ne devrait y avoir qu'une seule ligne de paramètres
+      const result = await db.select().from(paramappli).limit(1);
+      
+      console.log('📊 [Storage] Query result:', {
+        resultType: typeof result,
+        resultLength: result ? result.length : 'null',
+        hasData: !!result && result.length > 0,
+        firstRowKeys: result && result.length > 0 ? Object.keys(result[0]) : 'no data',
+        firstRowSample: result && result.length > 0 ? {
+          IDPARAMAPPLI: result[0].IDPARAMAPPLI,
+          RAISON_SOCIALE: result[0].RAISON_SOCIALE,
+          EMAIL: result[0].EMAIL,
+          ADRESSE: result[0].ADRESSE,
+          VILLE: result[0].VILLE
+        } : 'no data',
+        fullFirstRow: result && result.length > 0 ? result[0] : 'no data'
+      });
+
+      const returnValue = result[0];
+      console.log('✅ [Storage] Returning:', {
+        hasReturnValue: !!returnValue,
+        returnValueType: typeof returnValue,
+        returnValue
+      });
+      
+      return returnValue;
+    } catch (error) {
+      console.error('💥 [Storage] Error in getParamAppli:', error);
+      console.error('📋 [Storage] Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
+      throw error;
+    }
   }
 
   async updateParamAppli(params: Partial<InsertParamAppli>): Promise<ParamAppli | undefined> {
-    const currentParams = await this.getParamAppli();
-    if (!currentParams) {
-      // Si aucune ligne n'existe, on pourrait en créer une. 
-      // Pour l'instant, on retourne une erreur ou undefined.
-      // Cela dépend de la logique métier : est-ce que la ligne est censée toujours exister ?
-      // Supposons qu'elle est créée à l'installation.
-      console.error("Aucun enregistrement de paramètres trouvé à mettre à jour.");
-      return undefined;
-    }
-
-    await db.update(paramappli)
-      .set(params)
-      .where(eq(paramappli.IDPARAMAPPLI, currentParams.IDPARAMAPPLI));
+    console.log('📝 [Storage] updateParamAppli called with:', params);
     
-    return this.getParamAppli();
+    try {
+      const currentParams = await this.getParamAppli();
+      console.log('🔍 [Storage] Current params from getParamAppli:', currentParams);
+      
+      if (!currentParams) {
+        // Si aucune ligne n'existe, on pourrait en créer une. 
+        // Pour l'instant, on retourne une erreur ou undefined.
+        // Cela dépend de la logique métier : est-ce que la ligne est censée toujours exister ?
+        // Supposons qu'elle est créée à l'installation.
+        console.error("❌ [Storage] Aucun enregistrement de paramètres trouvé à mettre à jour.");
+        return undefined;
+      }
+
+      console.log('🔄 [Storage] Updating paramappli with ID:', currentParams.IDPARAMAPPLI);
+      
+      const updateResult = await db.update(paramappli)
+        .set(params)
+        .where(eq(paramappli.IDPARAMAPPLI, currentParams.IDPARAMAPPLI));
+      
+      console.log('📊 [Storage] Update result:', updateResult);
+      
+      const updatedParams = await this.getParamAppli();
+      console.log('✅ [Storage] Updated params retrieved:', updatedParams);
+      
+      return updatedParams;
+    } catch (error) {
+      console.error('💥 [Storage] Error in updateParamAppli:', error);
+      throw error;
+    }
   }
 }
 
