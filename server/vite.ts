@@ -22,7 +22,11 @@ export function log(message: string, source = "express") {
 export async function setupVite(app: Express, server: Server) {
   const serverOptions = {
     middlewareMode: true,
-    hmr: { server },
+    hmr: { 
+      server,
+      clientPort: process.env.NODE_ENV === "production" ? 443 : undefined,
+    },
+    host: "0.0.0.0", // Accepter les connexions de tous les hosts
   };
 
   const vite = await createViteServer({
@@ -35,7 +39,10 @@ export async function setupVite(app: Express, server: Server) {
         process.exit(1);
       },
     },
-    server: serverOptions,
+    server: {
+      ...serverOptions,
+      allowedHosts: true, // Désactiver complètement la vérification des hosts
+    },
     appType: "custom",
   });
 

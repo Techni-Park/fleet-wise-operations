@@ -12,7 +12,12 @@ app.use(session({
   secret: "your-secret-key", // Replace with a strong secret in production
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: process.env.NODE_ENV === "production" }
+  cookie: { 
+    secure: false, // Temporairement désactivé pour diagnostic
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000, // 24 heures
+    sameSite: 'lax' // Permettre les requêtes cross-site
+  }
 }));
 
 app.use(passport.initialize());
@@ -77,8 +82,8 @@ app.use((req, res, next) => {
   const port = 5000;
   server.listen({
     port,
-    host: "127.0.0.1",
+    host: "0.0.0.0", // Accepter les connexions de tous les hosts
   }, () => {
-    log(`serving on port ${port}`);
+    log(`serving on port ${port}, accepting connections from all hosts`);
   });
 })();
