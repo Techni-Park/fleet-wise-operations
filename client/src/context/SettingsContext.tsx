@@ -45,11 +45,14 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, [auth.user]); // Dépend de l'utilisateur
 
   useEffect(() => {
-    // Lancer le fetch uniquement si l'état d'auth n'est plus en chargement
-    if (!auth.loading) {
+    // Lancer le fetch si l'état d'auth n'est plus en chargement et qu'un utilisateur est bien présent
+    if (!auth.loading && auth.user) {
       fetchSettings();
+    } else if (!auth.loading && !auth.user) {
+      // Si l'utilisateur se déconnecte, on vide les paramètres
+      setSettings({});
     }
-  }, [auth.loading, fetchSettings]);
+  }, [auth.loading, auth.user, fetchSettings]);
 
   const reloadSettings = async () => {
     await fetchSettings();
