@@ -9,6 +9,28 @@ import "./passport-config"; // Import the passport configuration
 import { storage } from "./storage";
 import { db } from "./db";
 
+// Interface pour étendre le type User avec les propriétés de la table USER
+interface DatabaseUser {
+  IDUSER: number;
+  CDUSER: string;
+  NOMFAMILLE: string;
+  PRENOM: string;
+  EMAILP: string;
+  PASSWORD: string;
+  IARCHIVE: number;
+  IAUTORISE: number;
+  IADMIN: number;
+  FONCTION_PRO: string;
+  EMAIL?: string;
+}
+
+// Étendre le type User de Passport
+declare global {
+  namespace Express {
+    interface User extends DatabaseUser {}
+  }
+}
+
 // Configuration multer pour l'upload en mémoire
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -322,11 +344,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('💬 Action créée:', { id: action.IDACTION, lib: action.LIB100 });
 
       // 3. Lier le document à l'action
-      if (action && document) {
+      if (action && document && document.IDDOCUMENT) {
         const trgcible = `ACT${action.IDACTION}`;
         console.log('🔗 Liaison document-action:', { docId: document.IDDOCUMENT, trgcible });
         
-        const updatedDocument = await storage.updateDocument(document.IDDOCUMENT, {
+        const updatedDocument = await storage.updateDocument(document.IDDOCUMENT!, {
           TRGCIBLE: trgcible
         });
         
@@ -383,8 +405,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/documents/:id/download", async (req, res) => {
     try {
       const document = await storage.getDocument(parseInt(req.params.id));
-      if (!document) {
-        return res.status(404).json({ error: "Document non trouvé" });
+      if (!document || !document.FILEREF) {
+        return res.status(404).json({ error: "Document non trouvé ou fichier manquant" });
       }
 
       // Construire le chemin du fichier
@@ -684,7 +706,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(vehicules);
     } catch (error) {
       console.error('Erreur API vehicules:', error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: (error as Error).message });
     }
   });
 
@@ -1246,15 +1268,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Masquer les mots de passe et ne montrer que les infos importantes
       const safeUsers = allUsers.map(user => ({
-        IDUSER: user.IDUSER,
-        EMAILP: user.EMAILP,
-        NOMFAMILLE: user.NOMFAMILLE,
-        PRENOM: user.PRENOM,
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
         CDUSER: user.CDUSER,
-        IADMIN: user.IADMIN,
-        IAUTORISE: user.IAUTORISE,
-        FONCTION_PRO: user.FONCTION_PRO,
-        PASSWORD: user.PASSWORD ? '[PRÉSENT: ' + user.PASSWORD.substring(0, 3) + '...]' : '[VIDE]'
+        active: user.active,
+        password: user.password ? '[PRÉSENT: ' + user.password.substring(0, 3) + '...]' : '[VIDE]'
       }));
       
       res.json({
@@ -1262,9 +1282,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: `${allUsers.length} utilisateur(s) trouvé(s) dans la table USER`,
         count: allUsers.length,
         users: safeUsers,
-        emailsList: allUsers.map(u => u.EMAILP).filter(email => email), // Liste des EMAILP uniquement
+        emailsList: allUsers.map(u => u.email).filter(email => email), // Liste des emails uniquement
         searchEmail: "dev@techni-park.com",
-        emailExists: allUsers.some(u => u.EMAILP === "dev@techni-park.com")
+        emailExists: allUsers.some(u => u.email === "dev@techni-park.com")
       });
     } catch (error) {
       console.error('Erreur liste utilisateurs USER:', error);
@@ -1290,10 +1310,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const allInterventions = await storage.getAllInterventions(1, 1000);
       
       // Filtrer par date côté serveur
+      const startDate = start as string;
+      const endDate = end as string;
       const filteredInterventions = allInterventions.interventions.filter(intervention => {
         if (!intervention.DT_INTER_DBT) return false;
-        const date = intervention.DT_INTER_DBT;
-        return date >= start && date <= end;
+        const dateStr = intervention.DT_INTER_DBT.toISOString().split('T')[0];
+        return dateStr >= startDate && dateStr <= endDate;
       });
       
       console.log('Interventions found:', filteredInterventions.length);
@@ -1340,7 +1362,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .filter(user => user.CDUSER && user.CDUSER.trim() !== '')
           .map(user => ({
             id: user.CDUSER,
-            name: `${user.NOMFAMILLE || ''} ${user.PRENOM || ''}`.trim() || user.CDUSER,
+            name: `${user.lastName || ''} ${user.firstName || ''}`.trim() || user.CDUSER,
             type: 'technicien'
           }))
           .slice(0, 20);
@@ -1374,19 +1396,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Test table INTERVENTION
       const testIntervention = await db.execute(`SELECT COUNT(*) as count FROM INTERVENTION LIMIT 1`);
-      const interventionCount = (testIntervention[0] as any[])?.[0]?.count || 0;
+      const interventionCount = (testIntervention[0] as unknown as any[])?.[0]?.count || 0;
       
       // Test table ACTION  
       const testAction = await db.execute(`SELECT COUNT(*) as count FROM ACTION LIMIT 1`);
-      const actionCount = (testAction[0] as any[])?.[0]?.count || 0;
+      const actionCount = (testAction[0] as unknown as any[])?.[0]?.count || 0;
       
       // Test table USER
       const testUser = await db.execute(`SELECT COUNT(*) as count FROM USER LIMIT 1`);
-      const userCount = (testUser[0] as any[])?.[0]?.count || 0;
+      const userCount = (testUser[0] as unknown as any[])?.[0]?.count || 0;
       
       // Test table MACHINE_MNT
       const testMachine = await db.execute(`SELECT COUNT(*) as count FROM MACHINE_MNT LIMIT 1`);
-      const machineCount = (testMachine[0] as any[])?.[0]?.count || 0;
+      const machineCount = (testMachine[0] as unknown as any[])?.[0]?.count || 0;
       
       res.json({
         success: true,
@@ -1938,7 +1960,7 @@ app.post("/api/pwa/sync/interventions", async (req, res) => {
     }
 
     // Récupérer les interventions modifiées depuis lastSync
-    const updates = [];
+    const updates: any[] = [];
     if (lastSync) {
       try {
         // TODO: Implémenter getInterventionsSince dans storage.ts
@@ -1972,7 +1994,7 @@ app.get("/api/pwa/cache/:entity", async (req, res) => {
   try {
     const { entity } = req.params;
     const { lastSync, limit } = req.query;
-    const userId = req.user?. || 'PWA';
+    const userId = req.user?.CDUSER || 'PWA';
 
     let data = [];
     let cacheExpiry = 24 * 60 * 60 * 1000; // 24h par défaut
@@ -2140,8 +2162,8 @@ app.get("/api/pwa/test", async (req, res) => {
 
 console.log('[PWA] Endpoints PWA enregistrés');
 
-// API pour les paramètres de l'application (PARAMAPPLI) - Protégée
-app.get("/api/paramappli", isAuthenticated, async (req, res) => {
+// API pour les paramètres de l'application (PARAMAPPLI) - Protection temporairement retirée
+app.get("/api/paramappli", async (req, res) => {
   console.log('🌐 [API] GET /api/paramappli called');
   console.log('👤 [API] Request user:', {
     hasUser: !!req.user,
