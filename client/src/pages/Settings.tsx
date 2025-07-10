@@ -135,8 +135,19 @@ const Settings = () => {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="ADRESSE">Adresse de l'entreprise</Label>
-                    <Textarea id="ADRESSE" value={localSettings.ADRESSE || ''} onChange={handleInputChange} />
+                    <Label htmlFor="ADRESSE">Adresse</Label>
+                    <Input id="ADRESSE" value={localSettings.ADRESSE || ''} onChange={handleInputChange} placeholder="Ex: 123 Rue de la Flotte" />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="CPOSTAL">Code Postal</Label>
+                      <Input id="CPOSTAL" value={localSettings.CPOSTAL || ''} onChange={handleInputChange} placeholder="Ex: 75001" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="VILLE">Ville</Label>
+                      <Input id="VILLE" value={localSettings.VILLE || ''} onChange={handleInputChange} placeholder="Ex: Paris" />
+                    </div>
                   </div>
                   
                   <div className="grid grid-cols-2 gap-6">
